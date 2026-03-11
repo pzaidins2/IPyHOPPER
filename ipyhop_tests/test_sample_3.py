@@ -32,7 +32,7 @@ methods.declare_task_methods('tm_3', [tm_3_1])
 
 
 # ******************************************        Main Program Start      ****************************************** #
-def main():
+def test_sample_3():
     print('\n\r', methods)
     print('\n\r', actions)
     print('\nInitial State: \n\r', init_state, '\n\r')
@@ -41,6 +41,10 @@ def main():
     plan = planner.plan(init_state, [('tm_1',), ('tm_3',)], verbose=3)
     exp_0 = []
     assert plan == exp_0, "Result plan and expected plan are not same"
+
+def main():
+    test_sample_3()
+
 
 
 # ******************************************        Main Program End        ****************************************** #

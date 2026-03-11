@@ -56,37 +56,40 @@ init_state.flag = -1
 
 
 # ******************************************        Main Program Start      ****************************************** #
-def main():
-    print(methods)
-    print(actions)
-    print(init_state)
+
+def test_backtracking():
+    print( methods )
+    print( actions )
+    print( init_state )
 
     # two possible expected answers for check_result
-    exp_0 = [('a_putv', 0), ('a_getv', 0), ('a_getv', 0)]
-    exp_1 = [('a_putv', 1), ('a_getv', 1), ('a_getv', 1)]
+    exp_0 = [ ('a_putv', 0), ('a_getv', 0), ('a_getv', 0) ]
+    exp_1 = [ ('a_putv', 1), ('a_getv', 1), ('a_getv', 1) ]
 
-    planner = IPyHOP(methods, actions)
+    planner = IPyHOP( methods, actions )
 
-    print("-- Four examples with verbose=3 to get a detailed account of the backtracking.")
+    print( "-- Four examples with verbose=3 to get a detailed account of the backtracking." )
 
-    plan = planner.plan(init_state, [('put_it',), ('need0',)], verbose=3)
+    plan = planner.plan( init_state, [ ('put_it',), ('need0',) ], verbose=3 )
     assert plan == exp_0, "Result plan and expected plan are not same"
-    print("Above, the planner backtracks once to use a different method for 'put_it'.\n")
+    print( "Above, the planner backtracks once to use a different method for 'put_it'.\n" )
 
-    plan = planner.plan(init_state, [('put_it',), ('need01',)], verbose=3)
+    plan = planner.plan( init_state, [ ('put_it',), ('need01',) ], verbose=3 )
     assert plan == exp_0, "Result plan and expected plan are not same"
-    print("The backtracking in the above example is the same as in the first one.\n")
+    print( "The backtracking in the above example is the same as in the first one.\n" )
 
-    plan = planner.plan(init_state, [('put_it',), ('need10',)], verbose=3)
+    plan = planner.plan( init_state, [ ('put_it',), ('need10',) ], verbose=3 )
     assert plan == exp_0, "Result plan and expected plan are not same"
-    print("Above, the planner backtracks to use a different method for 'put_it', \n"
-          "and later it backtracks to use a different method for 'need10'.\n")
+    print( "Above, the planner backtracks to use a different method for 'put_it', \n"
+           "and later it backtracks to use a different method for 'need10'.\n" )
 
-    plan = planner.plan(init_state, [('put_it',), ('need1',)], verbose=3)
+    plan = planner.plan( init_state, [ ('put_it',), ('need1',) ], verbose=3 )
     assert plan == exp_1, "Result plan and expected plan are not same"
-    print("First, the planner backtracks to use a different method for 'put_it'. \n"
-          "But the solution it finds for 'put_it' doesn't satisfy the preconditions of the \n"
-          "method for 'need1', making it backtrack to use a third method for 'put_it'.\n")
+    print( "First, the planner backtracks to use a different method for 'put_it'. \n"
+           "But the solution it finds for 'put_it' doesn't satisfy the preconditions of the \n"
+           "method for 'need1', making it backtrack to use a third method for 'put_it'.\n" )
+def main():
+    test_backtracking()
 
 
 # ******************************************        Main Program End        ****************************************** #

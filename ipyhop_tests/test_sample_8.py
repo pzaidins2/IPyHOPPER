@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-File Description: Sample test file. Plots the sample_test_2.py solution.
+File Description: Sample test file. Plots the test_sample_2.py solution.
 """
 
 # ******************************************    Libraries to be imported    ****************************************** #
@@ -32,23 +32,26 @@ methods.declare_task_methods('tm_3', [tm_3_1])
 
 
 # ******************************************        Main Program Start      ****************************************** #
-def main():
-    print('\n\r', methods)
-    print('\n\r', actions)
-    print('\nInitial State: \n\r', init_state, '\n\r')
+def test_sample_8(with_plot=False):
+    print( '\n\r', methods )
+    print( '\n\r', actions )
+    print( '\nInitial State: \n\r', init_state, '\n\r' )
 
-    planner = IPyHOP(methods, actions)
-    plan = planner.plan(init_state, [('tm_1',), ('tm_3',)], verbose=3)
-    exp_0 = [('t_a', 0, 1), ('t_a', 1, 2), ('t_a', 2, 3), ('t_a', 3, 7), ('t_a', 3, 4), ('t_a', 4, 5), ('t_a', 7, 8)]
+    planner = IPyHOP( methods, actions )
+    plan = planner.plan( init_state, [ ('tm_1',), ('tm_3',) ], verbose=3 )
+    exp_0 = [ ('t_a', 0, 1), ('t_a', 1, 2), ('t_a', 2, 3), ('t_a', 3, 7), ('t_a', 3, 4), ('t_a', 4, 5), ('t_a', 7, 8) ]
     assert plan == exp_0, "Result plan and expected plan are not same."
-    planar_plot(planner.sol_tree)
+    if with_plot:
+        planar_plot( planner.sol_tree )
 
+def main():
+    test_sample_8()
 
 # ******************************************        Main Program End        ****************************************** #
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':
     try:
-        main()
+        test_sample_8(with_plot=True)
         print('\nFile executed successfully!\n')
     except KeyboardInterrupt:
         print('\nProcess interrupted by user. Bye!')

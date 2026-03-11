@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-File Description: Sample test file. Tests the backtracking for a solution tree of depth 3.
+File Description: Sample test file
 """
 
 # ******************************************    Libraries to be imported    ****************************************** #
@@ -10,37 +10,31 @@ from ipyhop_tests.test_state_models import init_state_1 as init_state
 
 methods = Methods()
 
-
 def tm_1_1(state): return [('tm_2', ), ('t_a', 3, 4), ('t_a', 4, 5)]
 def tm_1_2(state): return [('tm_2', ), ('t_a', 3, 4), ('t_a', 4, 5), ('t_a', 5, 6)]
-
-
 methods.declare_task_methods('tm_1', [tm_1_1, tm_1_2, tm_1_2])
-
 
 def tm_2_1(state): return [('t_a', 0, 1), ('t_a', 1, 2), ('t_a', 2, 3)]
 def tm_2_2(state): return [('t_a', 0, 1), ('t_a', 1, 2), ('t_a', 2, 3), ('t_a', 3, 7)]
-
-
 methods.declare_task_methods('tm_2', [tm_2_1, tm_2_2])
 
-
 def tm_3_1(state): return [('t_a', 7, 8)]
-
-
 methods.declare_task_methods('tm_3', [tm_3_1])
 
 
 # ******************************************        Main Program Start      ****************************************** #
-def main():
-    print('\n\r', methods)
-    print('\n\r', actions)
-    print('\nInitial State: \n\r', init_state, '\n\r')
+def test_sample_2():
+    print( '\n\r', methods )
+    print( '\n\r', actions )
+    print( '\nInitial State: \n\r', init_state, '\n\r' )
 
-    planner = IPyHOP(methods, actions)
-    plan = planner.plan(init_state, [('tm_1',), ('tm_3',)], verbose=3)
-    exp_0 = [('t_a', 0, 1), ('t_a', 1, 2), ('t_a', 2, 3), ('t_a', 3, 7), ('t_a', 3, 4), ('t_a', 4, 5), ('t_a', 7, 8)]
-    assert plan == exp_0, "Result plan and expected plan are not same."
+    planner = IPyHOP( methods, actions )
+    plan = planner.plan( init_state, [ ('tm_1',), ('tm_3',) ], verbose=1 )
+    exp_0 = [ ('t_a', 0, 1), ('t_a', 1, 2), ('t_a', 2, 3), ('t_a', 3, 7), ('t_a', 3, 4), ('t_a', 4, 5), ('t_a', 7, 8) ]
+    assert plan == exp_0, "Result plan and expected plan are not same"
+def main():
+    test_sample_2()
+
 
 
 # ******************************************        Main Program End        ****************************************** #

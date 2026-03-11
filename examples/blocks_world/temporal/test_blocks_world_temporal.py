@@ -1,8 +1,8 @@
-import unittest
+# content of test_approx.py
+import pytest
 
-class MyTestCase(unittest.TestCase):
-    def test_something(self):
-        self.assertEqual(True, False)  # add assertion here
 
-if __name__ == '__main__':
-    unittest.main()
+def test_sum():
+    assert (0.1 + 0.2) == pytest.approx(0.3)
+
+
