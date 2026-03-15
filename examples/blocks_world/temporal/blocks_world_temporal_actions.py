@@ -54,7 +54,8 @@ def safe_list_update( lst: List, update_element_lst: List,  update_start_index: 
             break
         # in bounds insert into existing spot
         lst[current_index] = update_element_lst[i]
-    if i < update_size - 1:
+    if current_index >= lst_size:
+        print(update_element_lst[i:])
         lst.extend(update_element_lst[i:])
     return last_valid_index
 
