@@ -4,24 +4,27 @@ File Description: temporal variant of blocksworld domain. Actions have duration 
 """
 
 from ipyhop import Actions
-from typing import NewType, List, Tuple
+from typing import NewType, List, Tuple, Union, Dict, TypeAlias
 from ipyhop import State
+from networkx import MultiDiGraph, DiGraph
 
-# typing
+# domain typing
 Surface = NewType("Surface", str)
 Block = NewType("Block", Surface)
 Table = NewType("Table", Surface)
 
+
+
 '''
 note: we handle time points by integer label rather than temporal value
-where appropriate we store a list and a last valid index (everything past this index is garbage)
 state description
-state: ipyhop state object
+state: contains only indices to be used in reference to lists
     object_var: list of tuples (time_point, predicate_name, *predicate_arg, value) where
         predicate_name( predicate_arg ) equals value at time_point 
-    temporal_con: list of tuples (time_point_0, comp_op, int_eval) where time_point_0 is a time point
-        comp_op is a comparison operator and int_eval is an expression that evaluates to an int (usually a time point
-        or fixed integer)
+    temporal_con: list of tuples (time_point_0, comp_op, time_point_1, int_offset) where each tuple corresponds
+        to a realtive temporal constraint of the form time_point_0 comp_op time_point_1 + int_offset where
+        comp_op = {<, <=, ==, >, >=}, time_point_1 can be None in the case where time_point_0 is given an absolute 
+        constraint   
     t_now: latest time point for which all incoming effects have been resolved
     t_ordered: list of time points such that for all timepoints in the list, no later (in the list)
         time point is earlier (temporal relation) t_ordered[i] <= t_ordered[j] for all i<=j
@@ -33,6 +36,7 @@ state: ipyhop state object
         blocks: list of all objects of type Blocks
         table: singular table object (type Table)
         surfaces: list of all objects of type Surface 
+reference: contains lists corresponding to indices in state
 '''
 
 # helper functions
@@ -92,6 +96,66 @@ def temporal_constraint_lookup_generator( temporal_con_lst: List[Tuple], last_va
     # for temporal_con in reversed(temporal_con_lst[:last_valid_index+1]):
     #     t_con_0, t_op, t_con_1 = temporal_con
     pass
+
+# STN typing
+NetEdgeInput: TypeAlias = Tuple[Tuple[int,int],Dict[str,int]]
+TemporalConstraint: TypeAlias = Tuple[int,str,int,int]
+
+# class for representing and manipulating temporal networks
+class TemporalNetwork:
+    # initialize empty full and corresponding minimal temporal network
+    # t_min: the earliest time a time point may instantiate to
+    # t_max: the latest time a time point may instantiate to
+    def __init__( self, t_min: int, t_max: int ):
+        # full temporal network as directed graph allowing parallel edges
+        full = MultiDiGraph()
+        # minimal representaion of above as simple directed graph
+        minimal = DiGraph()
+        self.t_min = t_min
+        self.t_max = t_max
+        # virtual time points for fixed integer positions -1 is t_min and -2 is t_max
+        # negative numbers are used here to avoid name clashes with planner
+        virtual_tps = [ -1, -2 ]
+        full.add_nodes_from( virtual_tps )
+        minimal.add_nodes_from( virtual_tps )
+
+    # update full and minimal STN with edge in TIPyHOPPER format: (t_0, op, t_1, int)
+    # returns tuple (success_flag, full_add_lst, minimal_add_list, minimal_remove_list)
+    def _add_constraint( self, t_con: Tuple[int,str,int,int] ) -> (
+            Tuple[bool,List[NetEdgeInput],List[NetEdgeInput],List[NetEdgeInput]]):
+        pass
+
+    # add temporal constraints to full and minimal networks
+    # if inconsistency found, restore networks to before call
+    # returns bool indicating success of operations
+    def update_temporal_constraints( self, t_con_lst: List[TemporalConstraint] ) -> bool:
+
+    # convert TIPyHOPPPER edge into form readable by networkx
+    def get_formatted_edge( self, t_con: TemporalConstraint ) -> NetEdgeInput:
+        tp_0, t_op, tp_1, val = t_con
+        # deal with exclusive bounds (shift by 1 in direction of operator)
+        if "=" not in t_op:
+            if t_op is "<":
+                val -= 1
+            elif t_op is ">":
+                val += 1
+            raise ValueError( str( t_op ) + " is not a valid time point comparison operator" )
+            t_op = t_op + "="
+        # transform in to edge tuple for networkx
+        t_min = self.t_min
+        t_max = self.t_max
+        t_range = t_max - t_min
+        edge = ( tp_0, tp_1 )
+        edge_dict = dict()
+        if t_op == "<=":
+            edge_dict.update( { min_delta_t: val, max_delta_t: t_range } )
+        elif t_op == "==":
+            edge_dict.update( { min_delta_t: val, max_delta_t: val } )
+        elif t_op == ">=":
+            edge_dict.update( { min_delta_t: -t_range, max_delta_t: -val } )
+        return ( edge, edge_dict )
+
+
 
 
 
