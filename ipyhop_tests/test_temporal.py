@@ -166,12 +166,72 @@ def test_get_formatted_edge_7():
 
 # tests for intersect_edges
 # edge order invariant
-# intersection exists
+def test_intersect_edges_0():
+    t_min = 0
+    t_max = 10
+    test_stn = TemporalNetwork( t_min, t_max )
+    test_constraint_0 = (0,"<",1,5)
+    test_constraint_1 = (0,">",1,1)
+    test_edge_0 = test_stn.get_formatted_edge(test_constraint_0)
+    test_edge_1 = test_stn.get_formatted_edge(test_constraint_1)
+    intersected_edge_0 = test_stn.intersect_edges(test_edge_0,test_edge_1)
+    intersected_edge_1 = test_stn.intersect_edges(test_edge_1,test_edge_0)
+    assert intersected_edge_0 == intersected_edge_1
+
+# parallel edges only
+def test_intersect_edges_1():
+    t_min = 0
+    t_max = 10
+    test_stn = TemporalNetwork( t_min, t_max )
+
+    test_edge_0: NetEdgeInput = ( (2,5), { "min_delta_t": -5, "max_delta_t": 5 })
+    test_edge_1: NetEdgeInput = ((5, 2), { "min_delta_t": -5, "max_delta_t": 5 })
+    try:
+        test_stn.intersect_edges( test_edge_0, test_edge_1 )
+        assert False
+    except ValueError:
+        assert True
+
+# partial overlap
+def test_intersect_edges_2():
+    t_min = 0
+    t_max = 10
+    test_stn = TemporalNetwork( t_min, t_max )
+    test_edge_0: NetEdgeInput = ((3, 7), { "min_delta_t": -5, "max_delta_t": 2 })
+    test_edge_1: NetEdgeInput = ((3, 7), { "min_delta_t": -2, "max_delta_t": 5 })
+    eval_edge: NetEdgeInput = ((3, 7), { "min_delta_t": -2, "max_delta_t": 2 })
+    intersected_edge = test_stn.intersect_edges(test_edge_0,test_edge_1)
+    assert eval_edge == intersected_edge
+# complete overlap
+def test_intersect_edges_3():
+    t_min = 0
+    t_max = 10
+    test_stn = TemporalNetwork( t_min, t_max )
+    test_edge_0: NetEdgeInput = ((3, 7), { "min_delta_t": -3, "max_delta_t": 3 })
+    test_edge_1: NetEdgeInput = ((3, 7), { "min_delta_t": -5, "max_delta_t": 5 })
+    intersected_edge = test_stn.intersect_edges(test_edge_0,test_edge_1)
+    assert intersected_edge == test_edge_0
 # intersection does not exist
+def test_intersect_edges_4():
+    t_min = 0
+    t_max = 10
+    test_stn = TemporalNetwork( t_min, t_max )
+    test_edge_0: NetEdgeInput = ((3, 7), { "min_delta_t": 0, "max_delta_t": 3 })
+    test_edge_1: NetEdgeInput = ((3, 7), { "min_delta_t": 5, "max_delta_t": 8 })
+    intersected_edge = test_stn.intersect_edges(test_edge_0,test_edge_1)
+    assert intersected_edge is None
 # single point intersection
+def test_intersect_edges_5():
+    t_min = 0
+    t_max = 10
+    test_stn = TemporalNetwork( t_min, t_max )
+    test_edge_0: NetEdgeInput = ((2, 6), { "min_delta_t": 0, "max_delta_t": 3 })
+    test_edge_1: NetEdgeInput = ((2, 6), { "min_delta_t": 3, "max_delta_t": 8 })
+    intersected_edge = test_stn.intersect_edges(test_edge_0,test_edge_1)
+    eval_edge: NetEdgeInput = ( (2,6), { "min_delta_t": 3, "max_delta_t": 3 })
+    assert eval_edge == intersected_edge
 
 # tests for compose_edges
-# order invariance
 # random simple case
 # intersection of edge_0 with composition of edge_0 and edge_1 is edge_0
 

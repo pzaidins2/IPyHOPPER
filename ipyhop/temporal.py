@@ -266,14 +266,19 @@ class TemporalNetwork:
 
     # given 2 parallel edges get intersection
     # edge_ij intersect edge_ij' has max min_delta_t and the min max_delta_t
+    # raises error if edges are not parallel
+    # returns none if edges are parallel without overlap
     def intersect_edges( self, edge: NetEdgeInput, edge_prime: NetEdgeInput ) -> NetEdgeInput:
         # can only intersect edges between the same nodes
-        assert edge[ 0 ] == edge_prime[ 0 ]
-        edge_ik_dict = {
+        if edge[ 0 ] != edge_prime[ 0 ]:
+            raise ValueError("Parallel edges only")
+        edge_dict = {
             "min_delta_t": max( edge[ 1 ][ "min_delta_t" ], edge_prime[ 1 ][ "min_delta_t" ] ),
             "max_delta_t": min( edge[ 1 ][ "max_delta_t" ], edge_prime[ 1 ][ "max_delta_t" ] ),
         }
-        return (edge[ 0 ], edge_ik_dict)
+        if edge_dict["max_delta_t"] < edge_dict["min_delta_t"]:
+            return None
+        return (edge[ 0 ], edge_dict)
 
     # convert TIPyHOPPPER edge into form readable by networkx
     def get_formatted_edge( self, t_con: TemporalConstraint ) -> NetEdgeInput:
