@@ -236,44 +236,6 @@ class TemporalNetwork:
             return None
         return (edge, edge_dict)
 
-    # orients edge lexicographically
-    def standardize_edge( self, edge: NetEdgeInput ):
-        edge_label = edge[0]
-        if edge_label[0] < edge_label[1]:
-            return edge
-        else:
-
-            edge_label = (edge_label[1],edge_label[0])
-            edge_dict = edge[1]
-            edge_dict = {
-                "min_delta_t": -edge_dict["max_delta_t"],
-                "max_delta_t": -edge_dict["min_delta_t"]
-            }
-            return ( edge_label, edge_dict )
-
-    # given edge (i,j) and edge (j,k) gives composed edge (i,k)
-    # adds minimum and maximum delta t's
-    def compose_edges( self, edge_ij: NetEdgeInput, edge_jk: NetEdgeInput ) -> NetEdgeInput:
-        # can only compose edges if they are connected as such
-        assert edge_ij[0][1] == edge_jk[0][0]
-        edge_ik = ( edge_ij[0][0], edge_jk[0][1] )
-        edge_ik_dict = {
-            "min_delta_t": edge_ij[1]["min_delta_t"] + edge_jk[1]["min_delta_t"],
-            "max_delta_t": edge_ij[ 1 ][ "max_delta_t" ] + edge_jk[ 1 ][ "max_delta_t" ],
-        }
-        return (edge_ik,edge_ik_dict)
-
-    # given 2 parallel edges get intersection
-    # edge_ij intersect edge_ij' has max min_delta_t and the min max_delta_t
-    def intersect_edges( self, edge: NetEdgeInput, edge_prime: NetEdgeInput ) -> NetEdgeInput:
-        # can only intersect edges between the same nodes
-        assert edge[0] == edge_prime[0]
-        edge_ik_dict = {
-            "min_delta_t": max( edge[1]["min_delta_t"], edge_prime[1]["min_delta_t"] ),
-            "max_delta_t": min( edge[ 1 ][ "max_delta_t" ], edge_prime[ 1 ][ "max_delta_t" ] ),
-        }
-        return (edge[0],edge_ik_dict)
-
     # edge_ij, edge_jk, and edge_ik consistency check
     # returns  intersect( compose( edge_ij, edge_jk ), edge_ik ) if result is not empty else None
     # the intersection is empty if the resulting edge has max_delta_t < min_delta_t
@@ -290,6 +252,29 @@ class TemporalNetwork:
         else:
             return None
 
+    # given edge (i,j) and edge (j,k) gives composed edge (i,k)
+    # adds minimum and maximum delta t's
+    def compose_edges( self, edge_ij: NetEdgeInput, edge_jk: NetEdgeInput ) -> NetEdgeInput:
+        # can only compose edges if they are connected as such
+        assert edge_ij[ 0 ][ 1 ] == edge_jk[ 0 ][ 0 ]
+        edge_ik = (edge_ij[ 0 ][ 0 ], edge_jk[ 0 ][ 1 ])
+        edge_ik_dict = {
+            "min_delta_t": edge_ij[ 1 ][ "min_delta_t" ] + edge_jk[ 1 ][ "min_delta_t" ],
+            "max_delta_t": edge_ij[ 1 ][ "max_delta_t" ] + edge_jk[ 1 ][ "max_delta_t" ],
+        }
+        return (edge_ik, edge_ik_dict)
+
+    # given 2 parallel edges get intersection
+    # edge_ij intersect edge_ij' has max min_delta_t and the min max_delta_t
+    def intersect_edges( self, edge: NetEdgeInput, edge_prime: NetEdgeInput ) -> NetEdgeInput:
+        # can only intersect edges between the same nodes
+        assert edge[ 0 ] == edge_prime[ 0 ]
+        edge_ik_dict = {
+            "min_delta_t": max( edge[ 1 ][ "min_delta_t" ], edge_prime[ 1 ][ "min_delta_t" ] ),
+            "max_delta_t": min( edge[ 1 ][ "max_delta_t" ], edge_prime[ 1 ][ "max_delta_t" ] ),
+        }
+        return (edge[ 0 ], edge_ik_dict)
+
     # convert TIPyHOPPPER edge into form readable by networkx
     def get_formatted_edge( self, t_con: TemporalConstraint ) -> NetEdgeInput:
         tp_0, t_op, tp_1, val = t_con
@@ -302,28 +287,35 @@ class TemporalNetwork:
             else:
                 raise ValueError( str( t_op ) + " is not a valid time point comparison operator" )
             t_op = t_op + "="
-        # always order edge lexicographically, flip sign correctly
-        # the graph is treated as an unordered graph, but delta_t values must be corrected when operating against order
-        if tp_0 > tp_1:
-            tp_0, tp_1 = tp_1, tp_0
-            if "<" in t_op:
-                t_op.replace("<",">")
-            else:
-                t_op.replace( ">", "<" )
-            val = -val
-        # transform in to edge tuple for networkx
+        # use range as place holder for inf
         t_min = self.t_min
         t_max = self.t_max
         t_range = t_max - t_min
         edge_label = ( tp_0, tp_1 )
         edge_dict = dict()
         if t_op == "<=":
-            edge_dict.update( { "min_delta_t": val, "max_delta_t": t_range } )
+            edge_dict.update( { "min_delta_t": -val, "max_delta_t": t_range } )
         elif t_op == "==":
-            edge_dict.update( { "min_delta_t": val, "max_delta_t": val } )
+            edge_dict.update( { "min_delta_t": -val, "max_delta_t": -val } )
         elif t_op == ">=":
             edge_dict.update( { "min_delta_t": -t_range, "max_delta_t": -val } )
-        return ( edge_label, edge_dict )
+        # lexicographically order edge
+        return self.standardize_edge( ( edge_label, edge_dict ) )
+
+    # orients edge lexicographically
+    def standardize_edge( self, edge: NetEdgeInput ):
+        edge_label = edge[ 0 ]
+        if edge_label[ 0 ] < edge_label[ 1 ]:
+            return edge
+        else:
+
+            edge_label = (edge_label[ 1 ], edge_label[ 0 ])
+            edge_dict = edge[ 1 ]
+            edge_dict = {
+                "min_delta_t": -edge_dict[ "max_delta_t" ],
+                "max_delta_t": -edge_dict[ "min_delta_t" ]
+            }
+            return (edge_label, edge_dict)
 
 """
 Author(s): Paul Zaidins
