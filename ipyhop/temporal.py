@@ -35,7 +35,8 @@ class TemporalNetwork:
     # if a failure occurs for any constraint, restores minimal STN to state prior
     # to operations
     # returns tuple (success_flag, node_add_lst, edge_add_lst, edge_remove_lst)
-    def add_temporal_constraints_from(self, new_edge_lst: List[TemporalConstraint]):
+    def add_temporal_constraints_from(self, new_edge_lst: List[TemporalConstraint]
+                                      ) -> Tuple[bool,List[int],List[NetEdgeInput],List[NetEdgeInput]]:
         # local refs
         add_temporal_constraint = self.add_temporal_constraint
         get_formatted_edge = self.get_formatted_edge
@@ -60,7 +61,8 @@ class TemporalNetwork:
 
     # update minimal STN with edge
     # returns tuple (success_flag, node_add_lst, edge_add_lst, edge_remove_lst)
-    def add_temporal_constraint( self, new_edge: NetEdgeInput ):
+    def add_temporal_constraint( self, new_edge: NetEdgeInput
+                                 ) -> Tuple[bool,List[int],List[NetEdgeInput],List[NetEdgeInput]]:
         # make local refs
         min_stn: Graph = self.min_stn
         path_consistency = self.path_consistency
@@ -70,11 +72,11 @@ class TemporalNetwork:
         # add nodes if new
         edge_nodes = new_edge[:2]
         # check both nodes in edge
-        for v in edge_nodes:
+        for v_edge in edge_nodes:
             # only care if nodes are not already in graph
-            if v not in min_stn.nodes:
+            if v_edge not in min_stn.nodes:
                 # track nodes and bound them by min and max times
-                node_add_lst.append(v)
+                node_add_lst.append(v_edge)
         # add edge with path consistency
         success_flag, edge_add_lst, edge_remove_lst = path_consistency(new_edge)
         # if failure undo changes and return empty lists
@@ -96,68 +98,7 @@ class TemporalNetwork:
         graph.add_edges_from(edge_remove_lst)
         return
 
-    # # performs path consistency algorithm on minimal STN after adding single edge
-    # # returns tuple (success_flag, edge_add_lst, edge_remove_lst)
-    # # success is achieved if no inconsistent edge triple is found
-    # # edge_add_lst: all edges that were added before return
-    # # edge_remove_lst: all edges that were removed before return
-    # def quadratic_path_consistency( self, min_stn: Graph, new_edge: NetEdgeInput
-    #                       ) -> Tuple[bool, List[NetEdgeInput], List[NetEdgeInput]]:
-    #     intersect_edges = self.intersect_edges
-    #     find_edge = self.find_edge
-    #     consistency_check = self.consistency_check
-    #     edge_add_lst: List[NetEdgeInput] = []
-    #     edge_remove_lst: List[NetEdgeInput] = []
-    #     # if there is an existing edge parallel to new_edge terminate early with success
-    #     # if new_edge is no stricter than the existing edge
-    #     # check for edge in minimal STN, may need to get reverse edge and flip it
-    #     existing_edge = find_edge(min_stn,*new_edge[0])
-    #     if existing_edge is not None:
-    #         updated_edge = intersect_edges(new_edge,existing_edge)
-    #         if updated_edge == existing_edge:
-    #             return (True,edge_add_lst,edge_remove_lst)
-    #         # existing edge and mark in remove list
-    #         min_stn.remove_edge(*updated_edge[0])
-    #         edge_remove_lst.append(existing_edge)
-    #     # add updated_edge and mark in add list
-    #     min_stn.add_edge(*updated_edge[0])
-    #     edge_add_lst.append(updated_edge)
-    #     # check consistency of all triplets that have the updated edge as a side
-    #     # track removed and added edges
-    #     # if any inconsitent triplet found, end then and signal failure
-    #     edge_jk = updated_edge
-    #     node_j = updated_edge[0][1]
-    #     # iterate over 1st node in triplet
-    #     for node_i in sorted(filter(lambda x: x != min_stn.nodes)):
-    #         # every node must be unique
-    #         if node_i == node_j:
-    #             continue
-    #         # get edge between node_i and node_j, if it does not exist skip
-    #         edge_ij = find_edge(min_stn, node_i, node_j)
-    #         # iterate over 3rd node in triplet, must be unique and avoid double triplet counting
-    #         for node_k in sorted(filter(lambda x: x > node_i and x != node_j, min_stn.nodes)):
-    #             # get edge between node_i and node_k, if it does not exist skip
-    #             edge_ik = find_edge(min_stn, node_i, node_k)
-    #             # consistency check, if consistent and has tighter bound, replace edge_ik in graph with new one
-    #             # update add and remove lists
-    #             # terminate if inconsistent
-    #             consistent_edge = consistency_check(edge_ij, edge_jk, edge_ik)
-    #             if consistent_edge is None:
-    #                 return (False,edge_add_lst,edge_remove_lst)
-    #             elif consistent_edge == edge_ik:
-    #                 continue
-    #             else:
-    #                 min_stn.add_edge(consistent_edge)
-    #                 edge_add_lst.append(consistent_edge)
-    #                 edge_remove_lst.append(edge_ik)
-    #         # all edges consistent and updated, successful termination
-    #     return (True,edge_add_lst,edge_remove_lst)
-    #
-    #     # performs path consistency algorithm on minimal STN after adding single edge
-    #     # returns tuple (success_flag, edge_add_lst, edge_remove_lst)
-    #     # success is achieved if no inconsistent edge triple is found
-    #     # edge_add_lst: all edges that were added before return
-    #     # edge_remove_lst: all edges that were removed before return
+
 
     # performs path consistency algorithm on minimal STN after adding single edge
     # returns tuple (success_flag, edge_add_lst, edge_remove_lst)
@@ -179,11 +120,14 @@ class TemporalNetwork:
         existing_edge = find_edge( *new_edge[ :2 ] )
         if existing_edge is not None:
             updated_edge = intersect_edges( new_edge, existing_edge )
+            # edge does not increase constraints
             if updated_edge == existing_edge:
-                return (True, edge_add_lst, edge_remove_lst)
+                return (True, [], [])
+            # edge is unsatisfiable
+            if updated_edge is None:
+                return (False, [], [])
             # existing edge and mark in remove list
             min_stn.remove_edge( *updated_edge[ :2 ] )
-            print(existing_edge)
             edge_remove_lst.append( existing_edge )
         else:
             updated_edge = new_edge
@@ -207,7 +151,8 @@ class TemporalNetwork:
                     # perform consistency check on triplet
                     updated_edge_ik = consistency_check( edge_ij, edge_jk, edge_ik )
                     # edge is inconsistent, terminate with failure
-                    if updated_edge_ik is None:
+                    t_range = abs(self.t_max - self.t_min)
+                    if updated_edge_ik is None or abs(updated_edge_ik[2]["min_delta_t"]) > t_range:
                         return (False, edge_add_lst, edge_remove_lst)
                     # edge does not constrict, do nothing
                     elif updated_edge_ik == edge_ik:
@@ -217,7 +162,6 @@ class TemporalNetwork:
                         standardized_updated_edge_ik = standardize_edge(updated_edge_ik)
                         if edge_ik is not None:
                             standardized_edge_ik = standardize_edge(edge_ik)
-                            print(standardized_edge_ik)
                             edge_remove_lst.append( standardized_edge_ik )
                         min_stn.add_edges_from([standardized_updated_edge_ik])
                         edge_add_lst.append(standardized_updated_edge_ik)
@@ -289,9 +233,9 @@ class TemporalNetwork:
         # deal with exclusive bounds (shift by 1 in direction of operator)
         if "=" not in t_op:
             if t_op == "<":
-                val -= 1
-            elif t_op == ">":
                 val += 1
+            elif t_op == ">":
+                val -= 1
             else:
                 raise ValueError( str( t_op ) + " is not a valid time point comparison operator" )
             t_op = t_op + "="
@@ -299,13 +243,15 @@ class TemporalNetwork:
         t_min = self.t_min
         t_max = self.t_max
         t_range = t_max - t_min
+        if abs(val) > abs(t_range):
+            raise ValueError( str(t_con) + " is always larger than range")
         edge_dict = dict()
         if t_op == "<=":
-            edge_dict.update( { "min_delta_t": -val, "max_delta_t": t_range } )
+            edge_dict.update( { "min_delta_t": -t_range, "max_delta_t": val } )
         elif t_op == "==":
-            edge_dict.update( { "min_delta_t": -val, "max_delta_t": -val } )
+            edge_dict.update( { "min_delta_t": val, "max_delta_t": val } )
         elif t_op == ">=":
-            edge_dict.update( { "min_delta_t": -t_range, "max_delta_t": -val } )
+            edge_dict.update( { "min_delta_t": val, "max_delta_t": t_range } )
         # lexicographically order edge
         return self.standardize_edge( ( tp_0, tp_1, edge_dict ) )
 

@@ -49,7 +49,7 @@ def test_get_formatted_edge_0():
     test_stn = TemporalNetwork(t_min,t_max)
     # t_0 <= t_1 + 5
     test_constraint: TemporalConstraint = (node_0,"<=",node_1,offset)
-    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -offset, "max_delta_t": t_range } )
+    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -t_range, "max_delta_t": offset } )
     test_edge = test_stn.get_formatted_edge(test_constraint)
     assert eval_edge == test_edge
 
@@ -64,7 +64,7 @@ def test_get_formatted_edge_1():
     test_stn = TemporalNetwork(t_min,t_max)
     # t_3 == t_5 + 6
     test_constraint: TemporalConstraint = (node_0,"==",node_1,offset)
-    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -offset, "max_delta_t": -offset } )
+    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": offset, "max_delta_t": offset } )
     test_edge = test_stn.get_formatted_edge(test_constraint)
     assert eval_edge == test_edge
 
@@ -79,7 +79,7 @@ def test_get_formatted_edge_2():
     test_stn = TemporalNetwork(t_min,t_max)
     # t_4 >= t_7 + 2
     test_constraint: TemporalConstraint = (node_0,">=",node_1,offset)
-    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -t_range, "max_delta_t": -offset } )
+    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": offset, "max_delta_t": t_range } )
     test_edge: NetEdgeInput = test_stn.get_formatted_edge(test_constraint)
     assert eval_edge == test_edge
 
@@ -145,7 +145,7 @@ def test_get_formatted_edge_6():
     test_stn = TemporalNetwork(t_min,t_max)
     # t_0 < t_1 + 5
     test_constraint: TemporalConstraint = (node_0,"<",node_1,offset)
-    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -(offset-1), "max_delta_t": t_range } )
+    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -t_range, "max_delta_t": offset+1 } )
     test_edge = test_stn.get_formatted_edge(test_constraint)
     assert eval_edge == test_edge
 
@@ -160,7 +160,8 @@ def test_get_formatted_edge_7():
     test_stn = TemporalNetwork(t_min,t_max)
     # t_4 > t_7 + 2
     test_constraint: TemporalConstraint = (node_0,">",node_1,offset)
-    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -t_range, "max_delta_t": -(offset+1) } )
+
+    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": offset-1, "max_delta_t": t_range } )
     test_edge: NetEdgeInput = test_stn.get_formatted_edge(test_constraint)
     assert eval_edge == test_edge
 
@@ -473,45 +474,118 @@ def test_path_consistency_3():
     assert [*test_stn.min_stn.edges.data()] == output_edges
 # inconsistent
 def test_path_consistency_4():
-    # t_min = 0
-    # t_max = 20
-    # test_stn = TemporalNetwork( t_min, t_max )
-    # input_edges: List[ NetEdgeInput ] = [
-    #     (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
-    #     (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
-    #     (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
-    # ]
-    # output_edges: List[ NetEdgeInput ] = [
-    #     (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
-    #     (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
-    #     (1, 2, { "min_delta_t": 3, "max_delta_t": 4 }),
-    # ]
-    # for i in range( len( input_edges ) ):
-    #     edge = input_edges[ i ]
-    #     success_flag, edge_add_lst, edge_remove_lst = test_stn.path_consistency(edge)
-    #     assert success_flag
-    #     if i == 0:
-    #         assert edge_add_lst == [ (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }) ]
-    #         assert edge_remove_lst == []
-    #     if i == 1:
-    #         assert edge_add_lst == [ (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
-    #                                  (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }) ]
-    #         assert edge_remove_lst == []
-    #     if i == 2:
-    #         assert edge_add_lst == [ (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
-    #                                  (1, 2, { "min_delta_t": 3, "max_delta_t": 4 }) ]
-    #         assert edge_remove_lst == [ (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }),
-    #                                     (1, 2, { "min_delta_t": 3, "max_delta_t": 5 })]
-    #
-    # assert [*test_stn.min_stn.edges.data()] == output_edges
-    pass
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ NetEdgeInput ] = [
+        (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+        (0, 2, { "min_delta_t": 1, "max_delta_t": 2 }),
+    ]
+    for i in range( len( input_edges ) ):
+        edge = input_edges[ i ]
+        success_flag, edge_add_lst, edge_remove_lst = test_stn.path_consistency(edge)
+
+        if i == 0:
+            assert success_flag
+            assert edge_add_lst == [ (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }) ]
+            assert edge_remove_lst == []
+        if i == 1:
+            assert success_flag
+            assert edge_add_lst == [ (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+                                     (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }) ]
+            assert edge_remove_lst == []
+        if i == 2:
+            assert not success_flag
+            assert edge_add_lst == []
+            assert edge_remove_lst == []
+    assert [*test_stn.min_stn.edges.data()] == [
+        (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
+        (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+    ]
 
 # tests for add_temporal_constraint
-# consistent
-# inconsistent
+# first edge
+def test_add_temporal_constraint_0():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edge: NetEdgeInput = (0, 1, { "min_delta_t": 5, "max_delta_t": 11 })
+    success_flag, node_add_lst, edge_add_lst, edge_remove_lst = test_stn.add_temporal_constraint(input_edge)
+    assert success_flag
+    assert node_add_lst == [0, 1]
+    assert edge_add_lst == [input_edge]
+    assert edge_remove_lst == []
+    assert [*test_stn.min_stn.edges.data()] == [input_edge]
+# new nodes
+def test_add_temporal_constraint_1():
+    t_min = 0
+    t_max = 30
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[NetEdgeInput] = [
+        (0, 1, { "min_delta_t": 5, "max_delta_t": 11 }),
+        (2, 3, { "min_delta_t": 7, "max_delta_t": 13 })
+    ]
+    for i in range(len(input_edges)):
+        edge = input_edges[i]
+        success_flag, node_add_lst, edge_add_lst, edge_remove_lst = test_stn.add_temporal_constraint(edge)
+        assert success_flag
+        if i == 0:
+            assert node_add_lst == [0,1]
+            assert edge_add_lst == [ input_edges[0] ]
+            assert edge_remove_lst == []
+        if i == 1:
+            assert node_add_lst == [2,3]
+            assert edge_add_lst == [ input_edges[1] ]
+            assert edge_remove_lst == []
+    assert [*test_stn.min_stn.edges.data()] == input_edges
 
+# failure
+def test_add_temporal_constraint_2():
+    t_min = 0
+    t_max = 30
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ NetEdgeInput ] = [
+        (0, 1, { "min_delta_t": 5, "max_delta_t": 11 }),
+        (1, 2, { "min_delta_t": 26, "max_delta_t": 30 })
+    ]
+    for i in range(len(input_edges)):
+        edge = input_edges[i]
+        success_flag, node_add_lst, edge_add_lst, edge_remove_lst = test_stn.add_temporal_constraint(edge)
+        if i == 0:
+            assert success_flag
+            assert node_add_lst == [0,1]
+            assert edge_add_lst == [ input_edges[0] ]
+            assert edge_remove_lst == []
+        if i == 1:
+            print(test_stn.min_stn.edges.data())
+            assert not success_flag
+            assert node_add_lst == []
+            assert edge_add_lst == []
+            assert edge_remove_lst == []
+    assert [ *test_stn.min_stn.edges.data() ] == [ input_edges[0] ]
 # tests for add_temporal_constraints_from
-# consistent
+# finite single edge
+def test_add_temporal_constraints_from_0():
+    t_min = 0
+    t_max = 20
+    t_range = abs(t_max-t_min)
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ TemporalConstraint ] = [
+        (0,"<=",1,7),
+        (0,">=",1,2)
+    ]
+    success_flag, node_add_lst, edge_add_lst, edge_remove_lst = test_stn.add_temporal_constraints_from(input_edges)
+    assert success_flag
+    assert [0,1] == node_add_lst
+    assert edge_add_lst == [
+        (0,1,{"min_delta_t": -t_range, "max_delta_t": 7}),
+        (0, 1, { "min_delta_t": 2, "max_delta_t": 7 }),
+    ]
+    assert edge_remove_lst == [(0,1,{"min_delta_t": -t_range, "max_delta_t": 7})]
+    assert [ *test_stn.min_stn.edges.data() ] == [ (0,1,{"min_delta_t": 2, "max_delta_t": 7}) ]
+# multiple single edges
 # partial consistent
 # completely inconsistent
 """
