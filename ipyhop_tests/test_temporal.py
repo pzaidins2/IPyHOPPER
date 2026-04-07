@@ -328,12 +328,183 @@ def test_find_edge_2():
 
 # tests for restore_graph
 # vertices added
+def test_restore_graph_0():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    nodes_to_add = [0, 1, 2, 3, 4]
+    nodes_to_remove = [ 2, 3, 4 ]
+    nodes_after_restore = [ 0, 1 ]
+    test_stn.min_stn.add_nodes_from(nodes_to_add)
+    test_stn.restore_graph(nodes_to_remove,[],[])
+    assert [*test_stn.min_stn.nodes] == nodes_after_restore
 # edges added
+def test_restore_graph_1():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    initial_edges: List[NetEdgeInput] = [
+        ( 0, 1, {"min_delta_t": 2, "max_delta_t": 3} ),
+        (0, 3, { "min_delta_t": 11, "max_delta_t": 13 }),
+        (2, 3, { "min_delta_t": 5, "max_delta_t": 7 }),
+
+    ]
+    added_edges: List[NetEdgeInput] = [
+        (5, 7, { "min_delta_t": 15, "max_delta_t": 17 }),
+        (2, 7, { "min_delta_t": 19, "max_delta_t": 21 })
+    ]
+    test_stn.min_stn.add_edges_from(initial_edges)
+    test_stn.min_stn.add_edges_from(added_edges)
+    test_stn.restore_graph([5, 7], added_edges, [])
+    assert [0,1,3,2] == [*test_stn.min_stn.nodes]
+    assert [*initial_edges] == [*map(lambda x: (min(x[0],x[1]),max(x[0],x[1]),x[2]), test_stn.min_stn.edges.data())]
 # edges removed
+def test_restore_graph_2():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    initial_edges: List[NetEdgeInput] = [
+        ( 0, 1, {"min_delta_t": 2, "max_delta_t": 3} ),
+        (0, 3, { "min_delta_t": 11, "max_delta_t": 13 }),
+        (2, 3, { "min_delta_t": 5, "max_delta_t": 7 }),
+        (5, 7, { "min_delta_t": 15, "max_delta_t": 17 }),
+    ]
+    removed_edges: List[NetEdgeInput] = [
+        (5, 7, { "min_delta_t": 15, "max_delta_t": 17 }),
+        (2, 3, { "min_delta_t": 5, "max_delta_t": 7 }),
+    ]
+    test_stn.min_stn.add_edges_from(initial_edges)
+    test_stn.min_stn.remove_edges_from(removed_edges)
+    test_stn.restore_graph([], [], removed_edges)
+    assert [0,1,3,2,5,7] == [*test_stn.min_stn.nodes]
+    assert [*initial_edges] == [*map(lambda x: (min(x[0],x[1]),max(x[0],x[1]),x[2]), test_stn.min_stn.edges.data())]
 
 # tests for path_consistency
+# adding first edge
+def test_path_consistency_0():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ NetEdgeInput ] = [
+        (0, 1, { "min_delta_t": 2, "max_delta_t": 3 }),
+    ]
+    success_flag, edge_add_lst, edge_remove_lst = test_stn.path_consistency(*input_edges)
+    assert success_flag
+    assert edge_add_lst == input_edges
+    assert edge_remove_lst == []
+    assert [*test_stn.min_stn.edges.data()] == input_edges
+# replacing edge
+def test_path_consistency_1():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ NetEdgeInput ] = [
+        (0, 1, { "min_delta_t": 1, "max_delta_t": 7 }),
+        (0, 1, { "min_delta_t": 2, "max_delta_t": 9 }),
+    ]
+    for i in range(len(input_edges)):
+        edge = input_edges[i]
+        success_flag, edge_add_lst, edge_remove_lst = test_stn.path_consistency(edge)
+        assert success_flag
+        if i == 0:
+            assert edge_add_lst == [ (0, 1, { "min_delta_t": 1, "max_delta_t": 7 }) ]
+            assert edge_remove_lst == []
+        if i == 1:
+            assert edge_add_lst == [ (0, 1, { "min_delta_t": 2, "max_delta_t": 7 }) ]
+            assert edge_remove_lst == [ (0, 1, { "min_delta_t": 1, "max_delta_t": 7 }) ]
+    assert [*test_stn.min_stn.edges.data()] == [(0, 1, { "min_delta_t": 2, "max_delta_t": 7 })]
+# adding second edge
+def test_path_consistency_2():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ NetEdgeInput ] = [
+        (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+    ]
+    output_edges: List[ NetEdgeInput ] = [
+        (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
+        (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+    ]
+    for i in range( len( input_edges ) ):
+        edge = input_edges[ i ]
+        success_flag, edge_add_lst, edge_remove_lst = test_stn.path_consistency(edge)
+        assert success_flag
+        if i == 0:
+            assert edge_add_lst == [ output_edges[0] ]
+            assert edge_remove_lst == []
+        if i == 1:
+            assert edge_add_lst == [ output_edges[2], output_edges[1] ]
+            assert edge_remove_lst == []
+    assert [*test_stn.min_stn.edges.data()] == output_edges
 # consistent
+def test_path_consistency_3():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ NetEdgeInput ] = [
+        (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+        (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
+    ]
+    output_edges: List[ NetEdgeInput ] = [
+        (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
+        (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 4 }),
+    ]
+    for i in range( len( input_edges ) ):
+        edge = input_edges[ i ]
+        success_flag, edge_add_lst, edge_remove_lst = test_stn.path_consistency(edge)
+        assert success_flag
+        if i == 0:
+            assert edge_add_lst == [ (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }) ]
+            assert edge_remove_lst == []
+        if i == 1:
+            assert edge_add_lst == [ (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+                                     (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }) ]
+            assert edge_remove_lst == []
+        if i == 2:
+            assert edge_add_lst == [ (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
+                                     (1, 2, { "min_delta_t": 3, "max_delta_t": 4 }) ]
+            assert edge_remove_lst == [ (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }),
+                                        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 })]
+
+    assert [*test_stn.min_stn.edges.data()] == output_edges
 # inconsistent
+def test_path_consistency_4():
+    # t_min = 0
+    # t_max = 20
+    # test_stn = TemporalNetwork( t_min, t_max )
+    # input_edges: List[ NetEdgeInput ] = [
+    #     (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
+    #     (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+    #     (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
+    # ]
+    # output_edges: List[ NetEdgeInput ] = [
+    #     (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }),
+    #     (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
+    #     (1, 2, { "min_delta_t": 3, "max_delta_t": 4 }),
+    # ]
+    # for i in range( len( input_edges ) ):
+    #     edge = input_edges[ i ]
+    #     success_flag, edge_add_lst, edge_remove_lst = test_stn.path_consistency(edge)
+    #     assert success_flag
+    #     if i == 0:
+    #         assert edge_add_lst == [ (0, 1, { "min_delta_t": 1, "max_delta_t": 2 }) ]
+    #         assert edge_remove_lst == []
+    #     if i == 1:
+    #         assert edge_add_lst == [ (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+    #                                  (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }) ]
+    #         assert edge_remove_lst == []
+    #     if i == 2:
+    #         assert edge_add_lst == [ (0, 2, { "min_delta_t": 4, "max_delta_t": 5 }),
+    #                                  (1, 2, { "min_delta_t": 3, "max_delta_t": 4 }) ]
+    #         assert edge_remove_lst == [ (0, 2, { "min_delta_t": 4, "max_delta_t": 7 }),
+    #                                     (1, 2, { "min_delta_t": 3, "max_delta_t": 5 })]
+    #
+    # assert [*test_stn.min_stn.edges.data()] == output_edges
+    pass
 
 # tests for add_temporal_constraint
 # consistent

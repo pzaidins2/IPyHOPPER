@@ -5,6 +5,7 @@ File Description: class and methods for manipulating temporal constraints in the
 
 from networkx import Graph
 from typing import NewType, List, Tuple, Union, Dict
+from copy import deepcopy
 
 # STN typing
 NetEdgeInput = Tuple[int,int,Dict[str,int]]
@@ -182,9 +183,10 @@ class TemporalNetwork:
                 return (True, edge_add_lst, edge_remove_lst)
             # existing edge and mark in remove list
             min_stn.remove_edge( *updated_edge[ :2 ] )
+            print(existing_edge)
             edge_remove_lst.append( existing_edge )
         else:
-            updated_edge = existing_edge
+            updated_edge = new_edge
         # add updated_edge and mark in add list
         min_stn.add_edges_from( [updated_edge] )
         edge_add_lst.append( updated_edge )
@@ -213,10 +215,12 @@ class TemporalNetwork:
                     # edge has constricted, add old edge to remove list, and new edge list to add list
                     else:
                         standardized_updated_edge_ik = standardize_edge(updated_edge_ik)
-                        standardized_edge_ik = standardize_edge(edge_ik)
+                        if edge_ik is not None:
+                            standardized_edge_ik = standardize_edge(edge_ik)
+                            print(standardized_edge_ik)
+                            edge_remove_lst.append( standardized_edge_ik )
                         min_stn.add_edges_from([standardized_updated_edge_ik])
                         edge_add_lst.append(standardized_updated_edge_ik)
-                        edge_remove_lst.append(standardized_edge_ik)
         return (True, edge_add_lst, edge_remove_lst)
 
     # return edge if one exists between node_0 and node_1
@@ -225,16 +229,18 @@ class TemporalNetwork:
         min_stn = self.min_stn
         # see if edge exists
         if min_stn.has_edge( node_0, node_1 ):
-            # flip edge if node_0 and node_1 not in lexicomin_stnical order
-            edge_dict = min_stn.get_edge_data( node_0, node_1 )
+            # flip edge if node_0 and node_1 not in lexicographic order
+            edge_dict_old = min_stn.get_edge_data( node_0, node_1 )
             if node_1 < node_0:
-                edge_dict = {
-                    "min_delta_t": -edge_dict["max_delta_t"],
-                    "max_delta_t": -edge_dict["min_delta_t"]
+                edge_dict_new = {
+                    "min_delta_t": -edge_dict_old["max_delta_t"],
+                    "max_delta_t": -edge_dict_old["min_delta_t"]
                 }
+            else:
+                edge_dict_new = deepcopy(edge_dict_old)
         else:
             return None
-        return (node_0, node_1, edge_dict)
+        return (node_0, node_1, edge_dict_new)
 
     # edge_ij, edge_jk, and edge_ik consistency check
     # returns  intersect( compose( edge_ij, edge_jk ), edge_ik ) if result is not empty else None
