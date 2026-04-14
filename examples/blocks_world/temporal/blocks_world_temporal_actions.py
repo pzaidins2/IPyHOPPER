@@ -18,25 +18,31 @@ Table = NewType("Table", Surface)
 '''
 note: we handle time points by integer label rather than temporal value
 state description
-state: contains only indices to be used in reference to lists
-    object_var: list of tuples (time_point, predicate_name, *predicate_arg, value) where
-        predicate_name( predicate_arg ) equals value at time_point 
-    temporal_con: list of tuples (time_point_0, comp_op, time_point_1, int_offset) where each tuple corresponds
-        to a realtive temporal constraint of the form time_point_0 comp_op time_point_1 + int_offset where
-        comp_op = {<, <=, ==, >, >=}, time_point_1 can be None in the case where time_point_0 is given an absolute 
-        constraint   
-    t_now: latest time point for which all incoming effects have been resolved
+state_references: everything but time points are by reference (this is passed through State object)
+    object_var: consists of lists of object variable temporal assignments
+        for each predicate 
+        predicate_name: list of tuples (tp, *predicate_args, bool_val) where predicate_name(*predicate_args) 
+        evaluates bool_val (True or False) as of time point tp, the absence of predicate_args implies bool_val is False          
+    t_now: the latest timepoint for which there can be no further assignment statements added, it is always in t_ordered
+        but might not be the last time point in t_ordered, all timepoints in t_ordered after t_now are assumed equal to
+        t_now until t_now is advanced
     t_ordered: list of time points such that for all timepoints in the list, no later (in the list)
-        time point is earlier (temporal relation) t_ordered[i] <= t_ordered[j] for all i<=j
+        time point is earlier (temporal relation) t_ordered[i].value <= t_ordered[j].value for all i<=j
     t_unordered: unordered list of time points yet to be placed into total ordering
-    t_all: unordered list of all time points (t_0 has the label found at t_all[0])
-    persistences: list of tuples (t_start, t_end, desired_bool, predicate_name, predicate_arg)
-        where for all time points between t_start and t_end predicate_name( predicate_args) must not contradict value
+    persistences: consists of lists of object variable restrictions
+        for each predicate
+        predicate_name: list of tuples (tp_s, tp_e, *predicate_args, bool_val) where predicate_name(*predicate_args) 
+        must evaluate as bool_val (True or False) for all time points inclusive contained by tp_s and tp_e
     domain_objects: fixed typing of all domain objects
         blocks: list of all objects of type Blocks
         table: singular table object (type Table)
         surfaces: list of all objects of type Surface 
-reference: contains lists corresponding to indices in state
+temporal_network: TemporalNetwork class object instance that tracks temporal constraints for consistency. Successful insertion
+    of new constraints returns list of nodes added, edges added, and edges removed for when rollback is needed. Failed insertions
+    return the network prior to last batch of added constraints. (this is curried in action/method functions)
+state_values: contains lists corresponding to indices in state_references (this is curried in action/method functions)
+Note: rollbacks of values in State object are automatically handled by IPyHOP but involve deep copying. Additional mechanisms
+must be added to roll back everything else.
 '''
 
 # helper functions

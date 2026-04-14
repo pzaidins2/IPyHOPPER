@@ -9,7 +9,9 @@ from copy import deepcopy
 
 # STN typing
 NetEdgeInput = Tuple[int,int,Dict[str,int]]
+# edge (x,y,{"min_delta_t":a, "max_delta_t": b}) is x >= y + a and x <= y + b EQUIV b >= x-y >= a EQUIV -a <= y-x <= -b
 TemporalConstraint = Tuple[int,str,int,int]
+# test constraint (x,@,y,z) = x @ y + z
 
 # class for representing and manipulating temporal networks
 class TemporalNetwork:
@@ -21,16 +23,19 @@ class TemporalNetwork:
         # edges in graphs must only be in lexicographical order
         # minimal STN
         self.min_stn = Graph()
+        if t_min >= t_max:
+            raise ValueError("Maximum time point value must be greater than minimum time point value")
         self.t_min = t_min
         self.t_max = t_max
+
 
     # returns list of time points that may be the next time point
     def get_potential_next_time_points( self, unordered_time_point_lst: List[int] ) -> List[int]:
         # refs
         find_edge = self.find_edge
-        t_range = abs(self.t_max - self.t_min)
-        # minimum max_delta of outgoing edges must be positive
-        min_max_delta_t_dict: Dict[int,int] = { k: t_range for k in unordered_time_point_lst}
+        t_range = self.t_max - self.t_min
+        # there cannot exist an outgoing minimum delta t greater than 0
+        max_min_delta_t_dict: Dict[int,int] = { k: -t_range for k in unordered_time_point_lst}
         # iterate over every edge between unordered time points
         for node_i in unordered_time_point_lst:
             for node_j in unordered_time_point_lst:
@@ -38,9 +43,9 @@ class TemporalNetwork:
                 # only care about existing edges
                 if edge_ij is None:
                     continue
-                # if any max_delta_t is negative another time point is required before
-                min_max_delta_t_dict[node_i] = min(min_max_delta_t_dict[node_i],edge_ij[2]["max_delta_t"])
-        candidate_time_point_lst = [*filter(lambda x: min_max_delta_t_dict[x] >= 0, unordered_time_point_lst)]
+                # if any m
+                max_min_delta_t_dict[node_i] = max(max_min_delta_t_dict[node_i],edge_ij[2]["min_delta_t"])
+        candidate_time_point_lst = [*filter(lambda x: max_min_delta_t_dict[x] <= 0, unordered_time_point_lst)]
         return candidate_time_point_lst
 
 
@@ -64,13 +69,12 @@ class TemporalNetwork:
             # apply constraint
             success_flag, node_add_lst, edge_add_lst, edge_remove_lst = add_temporal_constraint( new_edge )
             # path consistent, accumulate lists
-            if success_flag:
-                lst_node_add_lst += node_add_lst
-                lst_edge_add_lst += edge_add_lst
-                lst_edge_remove_lst += edge_remove_lst
+            lst_node_add_lst += node_add_lst
+            lst_edge_add_lst += edge_add_lst
+            lst_edge_remove_lst += edge_remove_lst
             # path inconsistent, restore graph and return
-            else:
-                self.restore_graph(node_add_lst, edge_add_lst, edge_remove_lst)
+            if not success_flag:
+                self.restore_graph(lst_node_add_lst, lst_edge_add_lst, lst_edge_remove_lst)
                 return (False, [], [], [])
         return (True, lst_node_add_lst, lst_edge_add_lst, lst_edge_remove_lst)
 
@@ -217,12 +221,13 @@ class TemporalNetwork:
     # given edge (i,j) and edge (j,k) gives composed edge (i,k)
     # adds minimum and maximum delta t's
     def compose_edges( self, edge_ij: NetEdgeInput, edge_jk: NetEdgeInput ) -> NetEdgeInput:
+        t_range = self.t_max - self.t_min
         # can only compose edges if they are connected as such
         if edge_ij[ 1 ] != edge_jk[ 0 ]:
             raise ValueError(str(edge_ij) + " and " + str(edge_jk) + "do not share middle vertex")
         edge_ik_dict = {
-            "min_delta_t": edge_ij[ 2 ][ "min_delta_t" ] + edge_jk[ 2 ][ "min_delta_t" ],
-            "max_delta_t": edge_ij[ 2 ][ "max_delta_t" ] + edge_jk[ 2 ][ "max_delta_t" ],
+            "min_delta_t": max(edge_ij[ 2 ][ "min_delta_t" ] + edge_jk[ 2 ][ "min_delta_t" ], -t_range),
+            "max_delta_t": min(edge_ij[ 2 ][ "max_delta_t" ] + edge_jk[ 2 ][ "max_delta_t" ], t_range),
         }
         return (edge_ij[ 0 ], edge_jk[ 1 ], edge_ik_dict)
 
@@ -248,9 +253,9 @@ class TemporalNetwork:
         # deal with exclusive bounds (shift by 1 in direction of operator)
         if "=" not in t_op:
             if t_op == "<":
-                val += 1
-            elif t_op == ">":
                 val -= 1
+            elif t_op == ">":
+                val += 1
             else:
                 raise ValueError( str( t_op ) + " is not a valid time point comparison operator" )
             t_op = t_op + "="

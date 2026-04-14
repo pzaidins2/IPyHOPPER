@@ -2,6 +2,7 @@
 """
 File Description: unit testing for methods of TemporalNetwork class of temporal.py
 """
+import itertools
 
 import pytest
 from ipyhop.temporal import TemporalNetwork, TemporalConstraint, NetEdgeInput
@@ -145,7 +146,7 @@ def test_get_formatted_edge_6():
     test_stn = TemporalNetwork(t_min,t_max)
     # t_0 < t_1 + 5
     test_constraint: TemporalConstraint = (node_0,"<",node_1,offset)
-    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -t_range, "max_delta_t": offset+1 } )
+    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": -t_range, "max_delta_t": offset-1 } )
     test_edge = test_stn.get_formatted_edge(test_constraint)
     assert eval_edge == test_edge
 
@@ -161,7 +162,41 @@ def test_get_formatted_edge_7():
     # t_4 > t_7 + 2
     test_constraint: TemporalConstraint = (node_0,">",node_1,offset)
 
-    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": offset-1, "max_delta_t": t_range } )
+    eval_edge: NetEdgeInput = ( node_0, node_1, { "min_delta_t": offset+1, "max_delta_t": t_range } )
+    test_edge: NetEdgeInput = test_stn.get_formatted_edge(test_constraint)
+    assert eval_edge == test_edge
+
+# equivalence of > and >= +1
+def test_get_formatted_edge_8():
+    node_0 = 4
+    node_1 = 7
+    t_min = 3
+    t_max = 10
+    offset = 2
+    t_range = t_max-t_min
+    test_stn = TemporalNetwork(t_min,t_max)
+    # t_4 > t_7 + 2
+    test_constraint: TemporalConstraint = (node_0,">",node_1,offset)
+    # t_4 >= t_7 + 3
+    eval_constraint: TemporalConstraint = (node_0,">=",node_1,offset+1)
+    eval_edge: NetEdgeInput = test_stn.get_formatted_edge(eval_constraint)
+    test_edge: NetEdgeInput = test_stn.get_formatted_edge(test_constraint)
+    assert eval_edge == test_edge
+
+# equivalence of < and <= -1
+def test_get_formatted_edge_8():
+    node_0 = 4
+    node_1 = 7
+    t_min = 3
+    t_max = 10
+    offset = 2
+    t_range = t_max-t_min
+    test_stn = TemporalNetwork(t_min,t_max)
+    # t_4 < t_7 + 2
+    test_constraint: TemporalConstraint = (node_0,">",node_1,offset)
+    # t_4 >= t_7 + 3
+    eval_constraint: TemporalConstraint = (node_0,">=",node_1,offset+1)
+    eval_edge: NetEdgeInput = test_stn.get_formatted_edge(eval_constraint)
     test_edge: NetEdgeInput = test_stn.get_formatted_edge(test_constraint)
     assert eval_edge == test_edge
 
@@ -588,7 +623,7 @@ def test_add_temporal_constraints_from_0():
     assert [ *test_stn.min_stn.edges.data() ] == [ (0,1,{"min_delta_t": 2, "max_delta_t": 7}) ]
 
 # conected edges
-def test_add_temporal_constraints_from1():
+def test_add_temporal_constraints_from_1():
     t_min = 0
     t_max = 20
     t_range = abs(t_max-t_min)
@@ -621,13 +656,90 @@ def test_add_temporal_constraints_from1():
         (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
     ]
 
-# partial consistent
-# completely inconsistent
+# inconsistent
+def test_add_temporal_constraints_from_2():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    initial_edges: List[ TemporalConstraint ] = [
+        (0,"<=",1,7),
+        (0,">=",1,2),
+        (1,"<=",2,5),
+        (1,">=",2,3)
+    ]
+    test_stn.add_temporal_constraints_from(initial_edges)
+    inconsistent_edges: List[ TemporalConstraint ] = [
+        (2,"<",3,0),
+        (0, ">", 1, 7),
+    ]
+    success_flag, node_add_lst, edge_add_lst, edge_remove_lst = test_stn.add_temporal_constraints_from(inconsistent_edges)
+    assert not success_flag
+    assert [] == node_add_lst
+    assert edge_add_lst == []
+    assert edge_remove_lst == []
+    assert [ *test_stn.min_stn.edges.data() ] == [
+        (0,1,{"min_delta_t": 2, "max_delta_t": 7}),
+        (0, 2, { "min_delta_t": 5, "max_delta_t": 12 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+    ]
 
 # tests for get_potential_next_time_points
-# multiple candidate time points
-# single candidate time point
-# no candidate time points
+# all could be next
+def test_get_potential_next_time_points_0():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ TemporalConstraint ] = [
+        (0,"<=",1,0),
+        (0,"<=",2,0)
+    ]
+    unordered_tps = [0,1,2]
+    test_stn.add_temporal_constraints_from(input_edges)
+    time_point_lst = test_stn.get_potential_next_time_points(unordered_tps)
+    # for u, v in itertools.product(unordered_tps,unordered_tps):
+    #     print(test_stn.find_edge(u,v))
+    assert time_point_lst == [0,1,2]
+# single canidate time point
+def test_get_potential_next_time_points_1():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    unordered_tps = [0,1,2,3]
+    input_edges: List[ TemporalConstraint ] = [
+        (0,"<=",1,0),
+        (0,"<=",2,0),
+        (3,"<",0,0)
+    ]
+    test_stn.add_temporal_constraints_from(input_edges)
+    time_point_lst = test_stn.get_potential_next_time_points(unordered_tps)
+    for u, v in itertools.product(unordered_tps,unordered_tps):
+        print(test_stn.find_edge(u,v))
+    assert time_point_lst == [3]
+# multiple candidate time point, excluding some
+def test_get_potential_next_time_points_2():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    unordered_tps = [0,1,2]
+    input_edges: List[ TemporalConstraint ] = [
+        (0,"<=",1,0),
+        (0,"<=",2,0),
+        (3,"<",0,0)
+    ]
+    test_stn.add_temporal_constraints_from(input_edges)
+    time_point_lst = test_stn.get_potential_next_time_points(unordered_tps)
+    for u, v in itertools.product(unordered_tps,unordered_tps):
+        print(test_stn.find_edge(u,v))
+    assert time_point_lst == [0,1,2]
+
+# empty net
+def test_get_potential_next_time_points_3():
+    t_min = 0
+    t_max = 20
+    test_stn = TemporalNetwork( t_min, t_max )
+    time_point_lst = test_stn.get_potential_next_time_points( [] )
+    assert time_point_lst == []
+
 """
 Author(s): Paul Zaidins
 Repository: https://github.com/pzaidins2/IPyHOPPER.git
