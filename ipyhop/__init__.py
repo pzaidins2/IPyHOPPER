@@ -17,6 +17,7 @@ from ipyhop.methods import Methods, mgm_split_multigoal
 from ipyhop.actions import Actions
 from ipyhop.planner import IPyHOP
 from ipyhop.plotter import planar_plot
+from ipyhop.temporal import TemporalNetwork, TemporalConstraint, NetEdgeInput
 # from ipyhop.failure_handler import post_failure_tasks
 
 """

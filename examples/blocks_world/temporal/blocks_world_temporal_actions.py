@@ -3,7 +3,7 @@
 File Description: temporal variant of blocksworld domain. Actions have duration and may be concurrent
 """
 
-from ipyhop import Actions
+from ipyhop import Actions, TemporalNetwork, TemporalConstraint, NetEdgeInput
 from typing import NewType, List, Tuple, Union, Dict
 from ipyhop import State
 
@@ -184,7 +184,7 @@ def next_timepoint_generator():
 
 
 
-
+# Need temporal extension of actions
 # actions.declare_actions( [move_block_to_table, ])
 
 # ******************************************    Demo / Test Routine         ****************************************** #

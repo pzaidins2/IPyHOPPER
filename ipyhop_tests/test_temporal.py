@@ -565,6 +565,7 @@ def test_add_temporal_constraint_2():
             assert edge_add_lst == []
             assert edge_remove_lst == []
     assert [ *test_stn.min_stn.edges.data() ] == [ input_edges[0] ]
+
 # tests for add_temporal_constraints_from
 # finite single edge
 def test_add_temporal_constraints_from_0():
@@ -585,9 +586,48 @@ def test_add_temporal_constraints_from_0():
     ]
     assert edge_remove_lst == [(0,1,{"min_delta_t": -t_range, "max_delta_t": 7})]
     assert [ *test_stn.min_stn.edges.data() ] == [ (0,1,{"min_delta_t": 2, "max_delta_t": 7}) ]
-# multiple single edges
+
+# conected edges
+def test_add_temporal_constraints_from1():
+    t_min = 0
+    t_max = 20
+    t_range = abs(t_max-t_min)
+    test_stn = TemporalNetwork( t_min, t_max )
+    input_edges: List[ TemporalConstraint ] = [
+        (0,"<=",1,7),
+        (0,">=",1,2),
+        (1,"<=",2,5),
+        (1,">=",2,3)
+    ]
+    success_flag, node_add_lst, edge_add_lst, edge_remove_lst = test_stn.add_temporal_constraints_from(input_edges)
+    assert success_flag
+    assert [0,1,2] == node_add_lst
+    assert edge_add_lst == [
+        (0,1,{"min_delta_t": -t_range, "max_delta_t": 7}),
+        (0, 1, { "min_delta_t": 2, "max_delta_t": 7 }),
+        (1, 2, { "min_delta_t": -t_range, "max_delta_t": 5 }),
+        (0, 2, { "min_delta_t": 2-t_range, "max_delta_t": 12 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+        (0, 2, { "min_delta_t": 5, "max_delta_t": 12 }),
+    ]
+    assert edge_remove_lst == [
+        (0,1,{"min_delta_t": -t_range, "max_delta_t": 7}),
+        (1, 2, { "min_delta_t": -t_range, "max_delta_t": 5 }),
+        (0, 2, { "min_delta_t": 2-t_range, "max_delta_t": 12 }),
+    ]
+    assert [ *test_stn.min_stn.edges.data() ] == [
+        (0,1,{"min_delta_t": 2, "max_delta_t": 7}),
+        (0, 2, { "min_delta_t": 5, "max_delta_t": 12 }),
+        (1, 2, { "min_delta_t": 3, "max_delta_t": 5 }),
+    ]
+
 # partial consistent
 # completely inconsistent
+
+# tests for get_potential_next_time_points
+# multiple candidate time points
+# single candidate time point
+# no candidate time points
 """
 Author(s): Paul Zaidins
 Repository: https://github.com/pzaidins2/IPyHOPPER.git

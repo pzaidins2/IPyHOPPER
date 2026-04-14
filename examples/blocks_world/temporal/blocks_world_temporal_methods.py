@@ -4,10 +4,22 @@ File Description: methods for temporal variant of blocksworld domain. Actions ha
 """
 
 from ipyhop import Methods
+from blocks_world_temporal_actions import Surface, Block, Table
 methods = Methods()
 
+# progress stack
+def tgm_progress_stack( t_s: int, t_e: int, state_ptrs, state, top_block: Block, bot_block: Block ):
 
-methods.declare_goal_methods('pos', [gm_move1, gm_get, gm_put])
+    pass
+
+# clear block
+def tgm_clear_block( t_s: int, t_e: int,  state_ptrs, state, goal_block: Block,
+                     obstacle_block: Block, other_surface: Surface ):
+    pass
+
+# NEED: Temporal extension of Goal type: has goal predicate name and time point
+methods.declare_goal_methods('on', [tgm_progress_stack])
+methods.declare_goal_methods('clear', [tgm_progress_stack])
 
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':

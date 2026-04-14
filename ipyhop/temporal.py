@@ -23,13 +23,28 @@ class TemporalNetwork:
         self.min_stn = Graph()
         self.t_min = t_min
         self.t_max = t_max
-        # # virtual time points for fixed integer positions -1 is t_min and -2 is t_max
-        # # negative numbers are used here to avoid name clashes with planner
-        # virtual_tps = [ -1, -2 ]
-        # self.virtual_tps = virtual_tps
-        # self.minimal.add_nodes_from( virtual_tps )
-        # bounding_edge = self.get_formatted_edge( (-2,-1,"==",t_max-t_min) )
-        # self.minimal.add_edge(bounding_edge)
+
+    # returns list of time points that may be the next time point
+    def get_potential_next_time_points( self, unordered_time_point_lst: List[int] ) -> List[int]:
+        # refs
+        find_edge = self.find_edge
+        t_range = abs(self.t_max - self.t_min)
+        # minimum max_delta of outgoing edges must be positive
+        min_max_delta_t_dict: Dict[int,int] = { k: t_range for k in unordered_time_point_lst}
+        # iterate over every edge between unordered time points
+        for node_i in unordered_time_point_lst:
+            for node_j in unordered_time_point_lst:
+                edge_ij = find_edge( node_i, node_j )
+                # only care about existing edges
+                if edge_ij is None:
+                    continue
+                # if any max_delta_t is negative another time point is required before
+                min_max_delta_t_dict[node_i] = min(min_max_delta_t_dict[node_i],edge_ij[2]["max_delta_t"])
+        candidate_time_point_lst = [*filter(lambda x: min_max_delta_t_dict[x] >= 0, unordered_time_point_lst)]
+        return candidate_time_point_lst
+
+
+
 
     # takes list of temporal constraints (TIPyHOPPER format) and attempts to sequential apply them
     # if a failure occurs for any constraint, restores minimal STN to state prior
@@ -266,6 +281,7 @@ class TemporalNetwork:
                 "max_delta_t": -edge_dict[ "min_delta_t" ]
             }
             return (node_1, node_0, edge_dict)
+
 
 """
 Author(s): Paul Zaidins
