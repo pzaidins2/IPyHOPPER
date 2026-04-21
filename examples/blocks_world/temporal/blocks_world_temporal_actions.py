@@ -11,8 +11,8 @@ Surface = NewType( "Surface", str )
 Block = NewType( "Block", Surface )
 Table = NewType( "Table", Surface )
 
-ObjectVarAssertion = Tuple[ int, *Tuple[ Any, ... ], bool ]
-ObjectVarPersistence = Tuple[ int, int, *Tuple[ Any, ... ], bool ]
+type ObjectVarAssertion = Tuple[ int, *Tuple[ Any, ... ], bool ]
+type ObjectVarPersistence = Tuple[ int, int, *Tuple[ Any, ... ], bool ]
 
 
 class TemporalBlocksWorldDomainObjects( Protocol ):
@@ -209,30 +209,29 @@ def move_block_to_table(state_references: State, temporal_network: TemporalNetwo
                         temporal_goal: ObjectVarAssertion,
                         t_start: int, block: Block, start_pos: Block, table: Table):
     # retrieve goal values and some checks
-    t_end, predicate_label, top_block, bot_block, bool_val = temporal_goal
+    t_end: int = temporal_goal[ 0 ]
+    predicate_label, top_block, bot_block = temporal_goal[ 1:-1 ]
+    bool_val: bool = temporal_goal[ -1 ]
     # goal is relevant goal and parameters match goal
     if all( [
         predicate_label == "on",
+        type( block ) == Block,
+        type( table ) == Table,
         top_block == block,
         bot_block == start_pos,
         bool_val,
     ] ):
-        # simple constraint check
-        if all( [
-            t_end == t_start + 1,
-            start_pos != table,
-        ] ):
-            # temporal network consistency check
-            # t_end == t_start + 1
-            temporal_constraint = (t_end, "==", t_start, 1)
-            success_flag, node_add_lst, edge_add_lst, edge_remove_lst = temporal_network.add_temporal_constraints_from(
-                    [
-                        temporal_constraint,
-                    ] )
-            if success_flag:
-                object_var_assertions: List[ ObjectVarAssertion ] = [
-                    (t_end, "on", top_block, table, True),
-                ]
+        # temporal network consistency check
+        # t_end == t_start + 1
+        temporal_constraint = (t_end, "==", t_start, 1)
+        success_flag, node_add_lst, edge_add_lst, edge_remove_lst = temporal_network.add_temporal_constraints_from(
+                [
+                    temporal_constraint,
+                ] )
+        if success_flag:
+            object_var_assertions: List[ ObjectVarAssertion ] = [
+                (t_end, "on", top_block, table, True),
+            ]
 
 
 # Need temporal extension of actions
