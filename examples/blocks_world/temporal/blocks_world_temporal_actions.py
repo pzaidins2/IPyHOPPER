@@ -2,10 +2,9 @@
 """
 File Description: temporal variant of blocksworld domain. Actions have duration and may be concurrent
 """
-
-from ipyhop import Actions, TemporalNetwork, TemporalConstraint, NetEdgeInput
-from typing import NewType, List, Tuple, Union, Dict
-from ipyhop import State
+from typing import NewType, List, Tuple, Union, Dict, Protocol, Unpack, Any
+from types import SimpleNamespace
+from ipyhop import Actions, TemporalNetwork, TemporalConstraint, NetEdgeInput, State
 
 
 # domain typing
@@ -13,7 +12,19 @@ Surface = NewType("Surface", str)
 Block = NewType("Block", Surface)
 Table = NewType("Table", Surface)
 
-
+ObjectVarAssertion = Tuple[int,Unpack[Tuple],bool]
+ObjectVarPersistence = Tuple[int,int,Unpack[Tuple],bool]
+class TemporalBlocksWorldDomainObjects(Protocol):
+    blocks: List[Block]
+    table: Table
+    surfaces: List[Surface]
+class TemporalBlocksWorldStateValues(Protocol):
+    object_var: List[ObjectVarAssertion]
+    t_now: int
+    t_ordered: List[int]
+    t_unordered: List[int]
+    persistences: List[ObjectVarPersistence]
+    domain_objects: TemporalBlocksWorldDomainObjects
 
 '''
 note: we handle time points by integer label rather than temporal value
@@ -173,32 +184,62 @@ def next_timepoint_generator():
     pass
 
 # ADD universal low priority methods for advancing time and choosing next timepoint
+# NEED actions will need wrapper methods to work for goals
 
-#
-# actions = Actions()
-#
-# # from t_start to t_end=t_start+1 move block from being on start_pos to being on the table
-# def move_block_to_table( state: State, t_start: int, block: Block, start_pos: Block):
-#     # type checking
-#     if all([
-#         t_start is int,
-#         block is Block,
-#         start_pos is Block,
-#     ]):
-#         pass
+actions = Actions()
+
+# from t_start to t_end=t_start+1 move block from being on start_pos to being on the table
+def move_block_to_table( state_references: State, temporal_network: TemporalNetwork,
+                         state_values: TemporalBlocksWorldStateValues,
+                         temporal_goal: ObjectVarAssertion,
+                         t_start: int, block: Block, start_pos: Block, table: Table ):
+    # retrieve goal values and some checks
+    t_end: int = temporal_goal[0]
+    predicate_label: str = temporal_goal[1]
+    top_block = temporal_goal[2]
+    bot_block = temporal_goal[3]
+    bool_val: bool = temporal_goal[-1]
+    # goal is relevant goal and parameters match goal
+    if all([
+        predicate_label == "on",
+        top_block == block,
+        bot_block == start_pos,
+        bool_val,
+    ]):
+        # simple constraint check
+        if all([
+            t_end == t_start + 1,
+            start_pos != table
+        ]):
+            # temporal network consistency check
+            # t_end == t_start + 1
+            temporal_constraint = (t_end,"==",t_start,1)
+            success_flag, node_add_lst, edge_add_lst, edge_remove_lst = temporal_network.add_temporal_constraints_from([
+                temporal_constraint,
+            ])
+            if success_flag:
+                object_var_assertions: List[ObjectVarAssertion] = [
+                    (t_end, "on", top_block, table, True),
+                ]
+
+
+
+
+
+
 
 
 
 
 # Need temporal extension of actions
-# actions.declare_actions( [move_block_to_table, ])
+actions.declare_actions( [move_block_to_table, ])
 
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':
     raise NotImplementedError("Test run / Demo routine for Temporal Blocks World not implemented.")
 
 """
-Author(s): Paul Zzaidins
+Author(s): Paul Zaidins
 Repository: https://github.com/pzaidins2/IPyHOPPER.git
 Organization: University of Maryland at College Park
 """
