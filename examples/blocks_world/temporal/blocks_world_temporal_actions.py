@@ -2,6 +2,7 @@
 """
 File Description: temporal variant of blocksworld domain. Actions have duration and may be concurrent
 """
+from itertools import groupby
 from typing import Any, Dict, List, NewType, Protocol, Tuple
 
 from ipyhop import Actions, State, TemporalNetwork
@@ -154,7 +155,9 @@ def verify_object_assertion(
 def add_object_var_changes(
         state_references: TemporalBlocksWorldStateReferences,
         state_values: TemporalBlocksWorldStateValues,
-        min_stn: TemporalNetwork, object_var_assertion_lst: List[ ObjectVarAssertion ], ) -> bool:
+        min_stn: TemporalNetwork, object_var_assertion_lst: List[ ObjectVarAssertion ],
+        change_update_dict: Dict[ str, int ]
+) -> bool:
     # get dictionaries
     change_value_dict: Dict[ str, List[ ObjectVarAssertion ] ] = state_values.object_var
     persistence_value_dict: Dict[ str, List[ ObjectVarPersistence ] ] = state_values.persistences
@@ -191,17 +194,31 @@ def add_object_var_changes(
         )
         if not safe_flag:
             return False
-    # iterate over new change assertions for existing persistence assertions
+    # add new changes to chronicle
+    # alter change_update_dict for new object variable changes
+    # group changes by predicate label and insert/update as appropriate
+    for k, g in groupby( object_var_assertion_lst, key=lambda x: x[ 2 ] ):
+        change_value_lst: List[ ObjectVarAssertion ] = change_value_dict[ k ]
+        change_index: int = change_reference_dict[ k ]
+        # extends (in place) the list with new changes and gives value of updated index
+        updated_index: int = safe_list_update( change_value_lst, object_var_assertion_lst, change_index )
+        # store only the oldest value (allows rollback if failure occurs later in action if multiple calls)
+        if k not in change_update_dict.keys():
+            change_update_dict[ k ] = updated_index
     return True
 
 
 # add list of persistence assertions to the state values and update indices as needed
 # terminate without altering state values if any persistence assertion would fail
-# returns True on success and False on failure
+# updates reference dictionary and state values if successful, no alterations if failed
+# on success returns True
+# persistence_update_dict: stores original indices before additions
 def add_object_var_persistences(
         state_references: TemporalBlocksWorldStateReferences,
         state_values: TemporalBlocksWorldStateValues,
-        min_stn: TemporalNetwork, persistence_assertion_lst: List[ ObjectVarPersistence ], ) -> bool:
+        min_stn: TemporalNetwork, persistence_assertion_lst: List[ ObjectVarPersistence ],
+        persistence_update_dict: Dict[ str, int ],
+) -> bool:
     # get dictionaries
     change_value_dict: Dict[ str, List[ ObjectVarAssertion ] ] = state_values.object_var
     persistence_value_dict: Dict[ str, List[ ObjectVarPersistence ] ] = state_values.persistences
@@ -242,9 +259,18 @@ def add_object_var_persistences(
         )
         if not safe_flag:
             return False
-    # iterate over new persistence assertions for existing persistence assertions
+    # add new persistences to chronicle
+    # alter persistence_update_dict for new object variable persistences
+    # group persistences by predicate label and insert/update as appropriate
+    for k, g in groupby( persistence_assertion_lst, key=lambda x: x[ 2 ] ):
+        persistence_value_lst: List[ ObjectVarPersistence ] = persistence_value_dict[ k ]
+        persistence_index: int = persistence_reference_dict[ k ]
+        # extends the list with new persistences and gives value of updated index
+        updated_index: int = safe_list_update( persistence_value_lst, persistence_assertion_lst, persistence_index )
+        # store only the oldest value (allows rollback if failure occurs later in action if multiple calls)
+        if k not in persistence_update_dict.keys():
+            persistence_update_dict[ k ] = updated_index
     return True
-
 
 # returns true if the negation of the given object var assertion does not exist else False
 # if [t_now] (foo, bar, True) is the new assertion THEN
@@ -263,7 +289,7 @@ def check_change_existing_changes_safe(
         existing_change_index: int
 ) -> bool:
     # only search elements below index
-    search_lst: List[ ObjectVarAssertion ] = existing_change_lst[ :existing_change_index ]
+    search_lst: List[ ObjectVarAssertion ] = existing_change_lst[ :existing_change_index + 1 ]
     # remove label and before as they are redundant
     new_generic_change_assertion: GenericObjectVarAssertion = new_change_assertion[ 2: ]
     negated_new_generic_assertion: GenericObjectVarAssertion = \
@@ -288,12 +314,11 @@ def check_change_persistences_safe(
         persistence_index: int, min_stn: TemporalNetwork
 ) -> bool:
     # get values for determining relevance
-    predicate_label: str = new_change_assertion[ 1 ]
     t_change: int = new_change_assertion[ 0 ]
     new_generic_change_assertion: GenericObjectVarAssertion = new_change_assertion[ 2: ]
     is_strictly_less_than = min_stn.is_strictly_less_than
     # only search elements below index
-    search_lst: List[ ObjectVarPersistence ] = persistence_lst[ :persistence_index ]
+    search_lst: List[ ObjectVarPersistence ] = persistence_lst[ :persistence_index + 1 ]
     # only persistences for the same predicate label, args, and negated boolean value can conflict
     filtered_search_lst = filter( lambda x: (*x[ 2:-1 ], not (x[ -1 ])) == new_generic_change_assertion, search_lst )
     # ensure that t_change is excluded from being between start and end time points for each remainging persistance
@@ -322,7 +347,7 @@ def check_persistence_changes_safe(
     new_generic_persistence: GenericObjectVarAssertion = new_persistence[ 3: ]
     is_strictly_less_than = min_stn.is_strictly_less_than
     # only search elements below index
-    search_lst: List[ ObjectVarAssertion ] = change_lst[ :change_index ]
+    search_lst: List[ ObjectVarAssertion ] = change_lst[ :change_index + 1 ]
     # only change assertions that share a predicate label, args and negated boolean value can clash
     filtered_search_lst = filter( lambda x: (*x[ 1:-1 ], not (x[ -1 ])) == new_generic_persistence, search_lst )
     # ensure that t_change is excluded from being between start and end time points for each remainging persistance
@@ -350,10 +375,10 @@ def check_persistence_existing_persistences_safe(
     new_generic_persistence: GenericObjectVarAssertion = new_persistence[ 3: ]
     is_strictly_less_than = min_stn.is_strictly_less_than
     # only search elements below index
-    search_lst: List[ ObjectVarPersistence ] = persistence_lst[ :persistence_index ]
+    search_lst: List[ ObjectVarPersistence ] = persistence_lst[ :persistence_index + 1 ]
     # only change assertions that share a predicate label, args and negated boolean value can clash
     filtered_search_lst = filter( lambda x: (*x[ 1:-1 ], not (x[ -1 ])) == new_generic_persistence, search_lst )
-    # ensure that t_change is excluded from being between start and end time points for each remainging persistance
+    # ensure that t_change is excluded from being between start and end time points for each remaining persistence
     for existing_persistence in filtered_search_lst:
         t_start_1: int = existing_persistence[ 0 ]
         t_end_1: int = existing_persistence[ 1 ]
