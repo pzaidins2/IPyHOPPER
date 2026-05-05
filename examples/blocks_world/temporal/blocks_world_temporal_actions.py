@@ -210,6 +210,7 @@ def check_change_persistences_safe(
     predicate_label: str = new_change_assertion[ 1 ]
     t_change: int = new_change_assertion[ 0 ]
     new_generic_change_assertion: GenericObjectVarAssertion = new_change_assertion[ 2: ]
+    is_strictly_less_than = min_stn.is_strictly_less_than
     # get list of relevant persistences by predicate label
     search_lst: List[ ObjectVarPersistence ] = persistences_dict[ predicate_label ][
         :persistences_index_dict[ predicate_label ] ]
@@ -219,7 +220,12 @@ def check_change_persistences_safe(
     for persistence in filtered_search_lst:
         t_start: int = persistence[ 0 ]
         t_end: int = persistence[ 1 ]
-
+        # current time constraints do not prevent clash
+        if is_strictly_less_than( t_change, t_start ) or is_strictly_less_than( t_end, t_change ):
+            continue
+        else:
+            return False
+    return True
 
 def check_persistence_assertions_safe():
     pass
