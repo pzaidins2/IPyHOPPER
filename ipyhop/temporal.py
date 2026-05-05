@@ -3,9 +3,10 @@
 File Description: class and methods for manipulating temporal constraints in the form of simple temporal networks
 """
 
-from networkx import Graph
-from typing import NewType, List, Tuple, Union, Dict
 from copy import deepcopy
+from typing import Dict, List, Tuple, Union
+
+from networkx import Graph
 
 # STN typing
 NetEdgeInput = Tuple[int,int,Dict[str,int]]
@@ -27,7 +28,6 @@ class TemporalNetwork:
             raise ValueError("Maximum time point value must be greater than minimum time point value")
         self.t_min = t_min
         self.t_max = t_max
-
 
     # returns list of time points that may be the next time point
     def get_potential_next_time_points( self, unordered_time_point_lst: List[int] ) -> List[int]:
