@@ -204,31 +204,22 @@ def check_change_existing_changes_safe(
 # conflict exists if t_now >= t_peristence_start and t_now <= t_persistence_end and bool_val contradicts
 def check_change_persistences_safe(
         new_change_assertion: ObjectVarAssertion, persistences_dict: Dict[ str, List[ ObjectVarPersistence ] ],
-        persistences_index_dict: Dict[ str, int ], t_ordered: List[ int ],
+        persistences_index_dict: Dict[ str, int ], min_stn: TemporalNetwork
 ) -> bool:
     # get values for determining relevance
     predicate_label: str = new_change_assertion[ 1 ]
     t_change: int = new_change_assertion[ 0 ]
-    t_change_index = t_ordered.index( t_change )
     new_generic_change_assertion: GenericObjectVarAssertion = new_change_assertion[ 2: ]
     # get list of relevant persistences by predicate label
     search_lst: List[ ObjectVarPersistence ] = persistences_dict[ predicate_label ][
         :persistences_index_dict[ predicate_label ] ]
-    # returns True if index of new_change_assetion time point is bounded by indices of persistence time points
-    is_between_timepoints = lambda x: (t_ordered.index( x[ 0 ] ) >= t_change_index and
-                                       t_ordered.index( x[ 1 ] ) <= t_change_index)
-    # returns True if args match and bool contradicts
-    args_negative_match = lambda y: (*y[ 4:-1 ], not (y[ -1 ]) == new_generic_change_assertion)
-    # returns True if predicate labels match and the above 2 conditions
-    filtered_search_lst = filter(
-            lambda z: z[ 2 ] == predicate_label and
-                      args_negative_match( z ) and
-                      is_between_timepoints( z ), search_lst,
-    )
-    if len( [ *filtered_search_lst ] ) > 0:
-        return False
-    else:
-        return True
+    # returns True if potential conflict based on label and args
+    filtered_search_lst = filter( lambda x: (*x[ 2:-1 ], not (x[ -1 ])) == new_generic_change_assertion, search_lst )
+    # ensure that t_change is excluded from being between start and end time points for each remainging persistance
+    for persistence in filtered_search_lst:
+        t_start: int = persistence[ 0 ]
+        t_end: int = persistence[ 1 ]
+
 
 def check_persistence_assertions_safe():
     pass

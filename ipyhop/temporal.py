@@ -29,6 +29,16 @@ class TemporalNetwork:
         self.t_min = t_min
         self.t_max = t_max
 
+    # returns True if tp_0 cannot be greater than or equal to tp_1
+    def is_strictly_less_than(self, tp_0: int, tp_1: int) -> bool:
+        edge_01 = self.find_edge( tp_0, tp_1 )
+        if edge_01 is None:
+            return False
+        if edge_01[ 2 ][ "max_delta_t" ] < 0:
+            return True
+        else:
+            return False
+
     # returns list of time points that may be the next time point
     def get_potential_next_time_points( self, unordered_time_point_lst: List[int] ) -> List[int]:
         # refs

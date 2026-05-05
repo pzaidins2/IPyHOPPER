@@ -3,11 +3,10 @@
 File Description: unit testing for methods of TemporalNetwork class of temporal.py
 """
 import itertools
-
-import pytest
-from ipyhop.temporal import TemporalNetwork, TemporalConstraint, NetEdgeInput
 from typing import List
-from copy import deepcopy
+
+from ipyhop.temporal import NetEdgeInput, TemporalConstraint, TemporalNetwork
+
 
 # tests for standardize_edge method of TemporalNetwork class
 #  standardize_edge should not change standardized edge
@@ -184,7 +183,7 @@ def test_get_formatted_edge_8():
     assert eval_edge == test_edge
 
 # equivalence of < and <= -1
-def test_get_formatted_edge_8():
+def test_get_formatted_edge_9():
     node_0 = 4
     node_1 = 7
     t_min = 3
@@ -361,6 +360,36 @@ def test_find_edge_2():
     ]
     test_stn.min_stn.add_edges_from(test_edges)
     assert test_stn.find_edge(3, 4) is None
+
+
+# tests for is_strictly_less_than
+def test_is_strictly_less_than_0():
+    t_min = 0
+    t_max = 10
+    min_stn = TemporalNetwork( t_min, t_max )
+    temporal_constraint = (0, "<", 1, 0)
+    min_stn.add_temporal_constraints_from( [ temporal_constraint ] )
+    assert min_stn.is_strictly_less_than( 0, 1 )
+
+
+# tests for is_strictly_less_than
+def test_is_strictly_less_than_1():
+    t_min = 0
+    t_max = 10
+    min_stn = TemporalNetwork( t_min, t_max )
+    temporal_constraint = (0, "<=", 1, 0)
+    min_stn.add_temporal_constraints_from( [ temporal_constraint ] )
+    assert not (min_stn.is_strictly_less_than( 0, 1 ))
+
+
+# tests for is_strictly_less_than
+def test_is_strictly_less_than_2():
+    t_min = 0
+    t_max = 10
+    min_stn = TemporalNetwork( t_min, t_max )
+    temporal_constraint = (0, "<", 1, 5)
+    min_stn.add_temporal_constraints_from( [ temporal_constraint ] )
+    assert not (min_stn.is_strictly_less_than( 0, 1 ))
 
 # tests for restore_graph
 # vertices added
