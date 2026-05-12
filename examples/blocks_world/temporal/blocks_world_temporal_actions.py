@@ -16,10 +16,12 @@ type ObjectVarAssertion = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
 type GenericObjectVarAssertion = Tuple[ *Tuple[ Any, ... ], bool ]
 type ObjectVarPersistence = Tuple[ int, int, str, *Tuple[ Any, ... ], bool ]
 
+
 class TemporalBlocksWorldDomainObjects( Protocol ):
     blocks: List[ Block ]
     table: Table
     surfaces: List[ Surface ]
+
 
 class TemporalBlocksWorldStateValues( Protocol ):
     object_var: Dict[ str, List[ ObjectVarAssertion ] ]
@@ -36,6 +38,7 @@ class TemporalBlocksWorldStateReferences( Protocol ):
     t_ordered: int
     t_unordered: int
     persistences: Dict[ str, int ]
+
 
 '''
 note: we handle time points by integer label rather than temporal value
@@ -94,6 +97,7 @@ if deadend is reached, backtrack to previous decision point
 if deadend is reached and not previous decision point exists there is no solution
 
 '''
+
 
 # helper functions
 # bulk insert elements into list overwriting and appending as needed
@@ -156,7 +160,7 @@ def add_object_var_changes(
         state_references: TemporalBlocksWorldStateReferences,
         state_values: TemporalBlocksWorldStateValues,
         min_stn: TemporalNetwork, object_var_assertion_lst: List[ ObjectVarAssertion ],
-        change_update_dict: Dict[ str, int ]
+        change_update_dict: Dict[ str, int ],
 ) -> bool:
     # get dictionaries
     change_value_dict: Dict[ str, List[ ObjectVarAssertion ] ] = state_values.object_var
@@ -272,6 +276,7 @@ def add_object_var_persistences(
             persistence_update_dict[ k ] = updated_index
     return True
 
+
 # returns true if the negation of the given object var assertion does not exist else False
 # if [t_now] (foo, bar, True) is the new assertion THEN
 # if [t_now] (foo, bar, True) is in the existing changes then True
@@ -286,32 +291,33 @@ def add_object_var_persistences(
 def check_change_existing_changes_safe(
         new_change_assertion: ObjectVarAssertion,
         existing_change_lst: List[ ObjectVarAssertion ],
-        existing_change_index: int
+        existing_change_index: int, min_stn: TemporalNetwork,
 ) -> bool:
     # only search elements below index
     search_lst: List[ ObjectVarAssertion ] = existing_change_lst[ :existing_change_index + 1 ]
     # remove label and before as they are redundant
     new_generic_change_assertion: GenericObjectVarAssertion = new_change_assertion[ 2: ]
+    t_change: int = new_change_assertion[ 0 ]
     negated_new_generic_assertion: GenericObjectVarAssertion = \
         (*new_generic_change_assertion[ :-1 ], not (new_generic_change_assertion[ -1 ]))
     # go through the list
     for obj_var_assert in search_lst:
         generic_change_assertion: GenericObjectVarAssertion = obj_var_assert[ 2: ]
-        # first match is the same as new assertion return True
+        # check if assertion potentially relevant based on predicate label and args
         if generic_change_assertion == negated_new_generic_assertion:
-            return False
-    # if no matches then default value is False
-    if new_change_assertion[ -1 ] == False:
-        return True
-    else:
-        return False
+            t_obj_var_assertion: int = obj_var_assert[ 0 ]
+            # if time points can be equal return false
+            if not (min_stn.is_strictly_less_than( t_obj_var_assertion, t_change ) or
+                    min_stn.is_strictly_less_than( t_change, t_obj_var_assertion )):
+                return False
+    return True
 
 
 # returns True if no conflicting persistence exists for the specified change assertion, else False
 # conflict exists if t_now >= t_peristence_start and t_now <= t_persistence_end and bool_val contradicts
 def check_change_persistences_safe(
         new_change_assertion: ObjectVarAssertion, persistence_lst: List[ ObjectVarPersistence ],
-        persistence_index: int, min_stn: TemporalNetwork
+        persistence_index: int, min_stn: TemporalNetwork,
 ) -> bool:
     # get values for determining relevance
     t_change: int = new_change_assertion[ 0 ]
@@ -417,7 +423,7 @@ def tga_move_block_to_table_start(
                 type( block ) == Block,
                 type( start_pos ) == Block,
                 verify_object_assertion( state_references, state_values, object_var_assertion ),
-            ]
+            ],
     ):
         # this action is t_start and only checks constraints, return
         return state_references
