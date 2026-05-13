@@ -68,6 +68,55 @@ def test_safe_list_update_5():
     assert lst == [ 0, 6, 7, 8, 4, 5 ]
 
 
+# verify_object_assertion
+# only match
+# only negation
+# later match
+# later negation
+# absent True
+# absent False
+
+# check_change_existing_changes_safe
+# safe
+# safe, negation at time point with exclusive value
+# unsafe, negation at time point
+# unsafe, negation at nonexclusive time point
+
+# check_change_persistences_safe
+# safe
+# safe, negation interval exclusive  before
+# safe, negation interval exclusive after
+# unsafe, at endpoint of negation interval
+# unsafe, at startpoint of negation interval
+# unsafe, within negation interval
+# unsafe, potentially within negation interval
+
+# check_persistence_changes_safe
+# safe
+# safe, negation at time point with exclusive value
+# unsafe, negation at time point
+# unsafe, negation at nonexclusive time point
+
+# check_persistence_existing_persistences_safe
+# safe
+# safe, negation interval exclusive  before
+# safe, negation interval exclusive after
+# unsafe, start point at endpoint of negation interval
+# unsafe, end point at startpoint of negation interval
+# unsafe, within negation interval
+# unsafe, potentially within negation interval
+
+# add_changes
+# safe
+# new-new contradiction
+# new-existing changes contradiction
+# new-existing persistences contradiction
+
+# add_persistences
+# safe
+# new-new contradiction
+# new-existing changes contradiction
+# new-existing persistences contradiction
 """
 Author(s): Paul Zaidins
 Repository: https://github.com/pzaidins2/IPyHOPPER.git

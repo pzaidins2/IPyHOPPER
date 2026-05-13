@@ -92,35 +92,12 @@ if deadend is reached and not previous decision point exists there is no solutio
 '''
 
 
+# class for manipulating and querying chronicle reference/value pairs
 class ChronicleInterface():
 
     def __init__(self):
         return
 
-    # helper functions
-    # bulk insert elements into list overwriting and appending as needed
-    # this return the new last_valid_index
-    def safe_list_update(self, lst: List, update_element_lst: List, update_start_index: int):
-        # size of original list (including garbage)
-        lst_size = len( lst )
-        # size of update
-        update_size = len( update_element_lst )
-        # new last valid index
-        last_valid_index = update_start_index + update_size - 1
-        # if list exists at index replace else extend
-        current_index = -1
-        i = 0
-        for i in range( update_size ):
-            current_index = update_start_index + i
-            # out of bounds add remainder via extend
-            if current_index >= lst_size:
-                break
-            # in bounds insert into existing spot
-            lst[ current_index ] = update_element_lst[ i ]
-        if current_index >= lst_size:
-            print( update_element_lst[ i: ] )
-            lst.extend( update_element_lst[ i: ] )
-        return last_valid_index
 
     # given state specified by reference_chronicle and value_chronicle find whether change_assertion
     # is true
@@ -182,7 +159,7 @@ class ChronicleInterface():
     # add list of change assertions to the state values and update indices as needed
     # terminate without altering state values if any change assertion would fail
     # returns True on success and False on failure
-    def add_change_changes(
+    def add_changes(
             self,
             reference_chronicle: ReferenceChronicle,
             value_chronicle: ValueChronicle,
@@ -247,7 +224,7 @@ class ChronicleInterface():
     # updates reference dictionary and state values if successful, no alterations if failed
     # on success returns True
     # persistence_update_dict: stores original indices before additions
-    def add_change_persistences(
+    def add_persistences(
             self,
             reference_chronicle: ReferenceChronicle,
             value_chronicle: ValueChronicle,
@@ -433,6 +410,31 @@ class ChronicleInterface():
             else:
                 return False
         return True
+
+    # bulk insert elements into list overwriting and appending as needed
+
+    # this return the new last_valid_index
+    def safe_list_update(self, lst: List, update_element_lst: List, update_start_index: int):
+        # size of original list (including garbage)
+        lst_size = len( lst )
+        # size of update
+        update_size = len( update_element_lst )
+        # new last valid index
+        last_valid_index = update_start_index + update_size - 1
+        # if list exists at index replace else extend
+        current_index = -1
+        i = 0
+        for i in range( update_size ):
+            current_index = update_start_index + i
+            # out of bounds add remainder via extend
+            if current_index >= lst_size:
+                break
+            # in bounds insert into existing spot
+            lst[ current_index ] = update_element_lst[ i ]
+        if current_index >= lst_size:
+            print( update_element_lst[ i: ] )
+            lst.extend( update_element_lst[ i: ] )
+        return last_valid_index
 
 
 # NEED universal low priority methods for advancing time and choosing next timepoint
