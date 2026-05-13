@@ -6,7 +6,7 @@ for interfacing with them
 from itertools import groupby
 from typing import Any, Dict, List, Protocol, Tuple
 
-from ipyhop import TemporalNetwork
+from ipyhop.temporal import TemporalNetwork
 
 # type aliases for object variable change and persistence assertions
 type ObjectVarChange = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
@@ -124,33 +124,60 @@ class ChronicleInterface():
 
     # given state specified by reference_chronicle and value_chronicle find whether change_assertion
     # is true
-    # this happens if change[1:] is found at a time point before change[0] and the negation is not
-    # ASSUMPTION: assertions inserted in same order as t_ordered
+    # this requires the assertion hold at a time point no later than the change_assertion
+    # and a negation does not exist between those time points
+    # can only be done for time points in t_ordered as we can only add change assertions to members of t_ordered
     def verify_object_assertion(
             self,
             reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-            change_assertion: ObjectVarChange,
+            change_assertion: ObjectVarChange, t_ordered: List[ int ]
     ):
         # object variable assertion without time
-        generic_assertion: GenericObjectVarChange = change_assertion[ 2:-1 ]
+        generic_assertion: GenericObjectVarChange = change_assertion[ 2: ]
         # object variable assertion negated
         negated_generic_assertion: GenericObjectVarChange = (
             *generic_assertion[ :-1 ], not (generic_assertion[ -1 ]),
         )
         # predicate to search
         predicate_label: str = change_assertion[ 1 ]
-        # list to be searched (cutoff based on reference index)
-        # assertions are placed in order of t_ordered
-        search_lst: List[ ObjectVarChange ] = \
-            value_chronicle.change[ predicate_label ][ :reference_chronicle.change[ predicate_label ] ]
-        # iterate over list in reverse
-        for obj_var_assert in reversed( search_lst ):
-            generic_this: GenericObjectVarChange = (obj_var_assert[ 1 ], *obj_var_assert[ 2: ])
-            if generic_this == negated_generic_assertion:
-                return False
-            elif generic_this == generic_assertion:
-                return True
-        return False
+        # relevant assertions
+        search_lst: List[ ObjectVarChange ] = value_chronicle.change[ predicate_label ][
+            reference_chronicle.change[ predicate_label ] ]
+        # time of verifying assertion
+        t_verify: int = change_assertion[ 0 ]
+        # find latest time point in yes_lst and no_lst no later than t_verify
+        # order time points
+        t_verify_index = t_ordered.index( t_verify )
+        # get all matches for time points no later than the assertion to verify
+        yes_lst: List[ ObjectVarChange ] = [
+            *filter(
+                    lambda x: x[ 2: ] == generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index, search_lst,
+            ),
+        ]
+        # negated macthes for time points no later than the assertion to verify
+        no_lst: List[ ObjectVarChange ] = [
+            *filter(
+                    lambda x: x[ 2: ] == negated_generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
+                    search_lst,
+            ),
+        ]
+        # if yes_lst has any members and no_lst doesn't then True
+        if len( yes_lst ) > 0 and len( no_lst ) == 0:
+            return True
+        # if no_lst has any member and yes_lst doesn't then False
+        if len( yes_lst ) == 0 and len( no_lst ) > 0:
+            return False
+        # if both lists are empty False is the bool val
+        if len( yes_lst ) == 0 and len( no_lst ) == 0:
+            return not (change_assertion[ -1 ])
+        # find last occurrence of match and negation
+        last_yes = max( yes_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
+        last_no = max( no_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
+        # later one to occur is the value we want
+        if t_ordered.index( last_yes ) > t_ordered.index( last_no ):
+            return True
+        else:
+            return False
 
     # add list of change assertions to the state values and update indices as needed
     # terminate without altering state values if any change assertion would fail

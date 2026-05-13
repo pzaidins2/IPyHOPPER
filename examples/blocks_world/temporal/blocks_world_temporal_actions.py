@@ -4,7 +4,7 @@ File Description: temporal variant of blocksworld domain. Actions have duration 
 """
 from typing import Dict, List, NewType, Protocol
 
-from ipyhop import Actions, State, TemporalNetwork
+from ipyhop import Actions, ObjectVarChange, ObjectVarPersistence
 
 # domain typing
 Surface = NewType( "Surface", str )
@@ -15,7 +15,7 @@ class TemporalBlocksWorldDomainObjects( Protocol ):
     table: Table
     surfaces: List[ Surface ]
 class TemporalBlocksWorldStateValues( Protocol ):
-    object_var: Dict[ str, List[ ObjectVarAssertion ] ]
+    object_var: Dict[ str, List[ ObjectVarChange ] ]
     # t_now: int
     t_ordered: List[ int ]
     t_unordered: List[ int ]
@@ -24,33 +24,32 @@ class TemporalBlocksWorldStateValues( Protocol ):
 
 actions = Actions()
 
-
-# from t_start to t_end=t_start+1 move block from being on start_pos to being on the table
-# corresponds to pseudoaction move_block_to_table
-# tga_move_block_to_table_start checks conditions at t_start
-# tga_move_block_to_table_end check
-def tga_move_block_to_table_start(
-        state_references: State, temporal_network: TemporalNetwork, state_values: TemporalBlocksWorldStateValues,
-        t_start: int, block: Block, start_pos: Block,
-):
-    object_var_assertion: ObjectVarAssertion = (t_start, "on", block, start_pos, True)
-    # check assertion and constraints
-    # conditions at t_start are met
-    # [t_start] on(block) = start_pos, start_pos is a block
-    # check that on(block) = start_pos
-    if all(
-            [
-                type( block ) == Block,
-                type( start_pos ) == Block,
-                verify_object_assertion( state_references, state_values, object_var_assertion ),
-            ],
-    ):
-        # this action is t_start and only checks constraints, return
-        return state_references
+# # from t_start to t_end=t_start+1 move block from being on start_pos to being on the table
+# # corresponds to pseudoaction move_block_to_table
+# # tga_move_block_to_table_start checks conditions at t_start
+# # tga_move_block_to_table_end check
+# def tga_move_block_to_table_start(
+#         state_references: State, temporal_network: TemporalNetwork, state_values: TemporalBlocksWorldStateValues,
+#         t_start: int, block: Block, start_pos: Block,
+# ):
+#     object_var_assertion: ObjectVarChange = (t_start, "on", block, start_pos, True)
+#     # check assertion and constraints
+#     # conditions at t_start are met
+#     # [t_start] on(block) = start_pos, start_pos is a block
+#     # check that on(block) = start_pos
+#     if all(
+#             [
+#                 type( block ) == Block,
+#                 type( start_pos ) == Block,
+#                 verify_object_assertion( state_references, state_values, object_var_assertion ),
+#             ],
+#     ):
+#         # this action is t_start and only checks constraints, return
+#         return state_references
 
 
 # NEED temporal extension of actions
-actions.declare_actions( [ tga_move_block_to_table_start, ] )
+# actions.declare_actions( [ tga_move_block_to_table_start, ] )
 
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':
