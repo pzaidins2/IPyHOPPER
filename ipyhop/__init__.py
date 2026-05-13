@@ -1,13 +1,12 @@
 """
 Project:
+    IPyHOPPER - 
+    Author: Paul Zaidins
+
+Derived from:
     IPyHOP - Iteration based Hierarchical Ordered Planner
     Author: Yash Bansod
     Copyright (c) 2022, Yash Bansod
-
-Derived from:
-    GTPyhop
-    Author: Dana S. Nau, July 22, 2021
-    Copyright (c) 2021, University of Maryland
 """
 
 from ipyhop.actions import Actions
