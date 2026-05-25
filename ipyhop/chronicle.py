@@ -4,7 +4,7 @@ File Description: gives protocol for references and values in chronicles and fun
 for interfacing with them
 """
 from itertools import groupby
-from typing import Any, Dict, List, Protocol, Tuple
+from typing import Any, Dict, List, Protocol, Tuple, Type
 
 from ipyhop.temporal import TemporalNetwork
 
@@ -16,20 +16,46 @@ type ObjectVarPersistence = Tuple[ int, int, str, *Tuple[ Any, ... ], bool ]
 
 # skeletons for reference and value chronicles
 class ReferenceChronicle( Protocol ):
-    change: Dict[ str, int ]
-    t_now: int
+    changes: Dict[ str, int ]
     t_ordered: int
     t_unordered: int
     persistences: Dict[ str, int ]
 
+    def __init__(
+            self, changes: Dict[ str, int ], t_ordered: int, t_unordered: int,
+            persistences: Dict[ str, int ],
+    ):
+        self.changes = changes
+        self.t_ordered = t_ordered
+        self.t_unordered = t_unordered
+        self.persistences = persistences
+
 
 class ValueChronicle( Protocol ):
-    change: Dict[ str, List ]
+    changes: Dict[ str, List[ ObjectVarChange ] ]
     t_now: int
-    t_ordered: List
-    t_unordered: List
-    persistences: Dict[ str, List ]
+    t_ordered: List[ int ]
+    t_unordered: List[ int ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ]
     temporal_network: TemporalNetwork
+    domain_objects: Dict[ str, List ]
+
+    def __init__(
+            self, changes: Dict[ str, List[ ObjectVarChange ] ],
+            t_now: int,
+            t_ordered: List[ int ],
+            t_unordered: List[ int ],
+            persistences: Dict[ str, List[ ObjectVarPersistence ] ],
+            temporal_network: TemporalNetwork,
+            domain_objects: Dict[ str, List ],
+    ):
+        self.changes = changes
+        self.t_now = t_now
+        self.t_ordered = t_ordered
+        self.t_unordered = t_unordered
+        self.persistences = persistences
+        self.temporal_network = temporal_network
+        self.domain_objects = domain_objects
 
 
 '''
@@ -98,63 +124,90 @@ class ChronicleInterface():
     def __init__(self):
         return
 
-
-    # given state specified by reference_chronicle and value_chronicle find whether change_assertion
-    # is true
-    # this requires the assertion hold at a time point no later than the change_assertion
-    # and a negation does not exist between those time points
-    # can only be done for time points in t_ordered as we can only add change assertions to members of t_ordered
-    def verify_object_assertion(
+    # function that initializes a reference-value chronicle pair given the starting values of a chronicle
+    # must additionally be given the classes that implement the chronicle protocols
+    def make_chronicle_pair(
             self,
-            reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-            change_assertion: ObjectVarChange, t_ordered: List[ int ]
+            ReferenceChronicleClass: Type[ ReferenceChronicle ],
+            ValueChronicleClass: Type[ ValueChronicle ],
+            changes: Dict[ str, List[ ObjectVarChange ] ],
+            t_now: int,
+            t_ordered: List[ int ],
+            t_unordered: List[ int ],
+            persistences: Dict[ str, List[ ObjectVarPersistence ] ],
+            temporal_network: TemporalNetwork,
+            domain_objects: Dict[ str, List ],
     ):
-        # object variable assertion without time
-        generic_assertion: GenericObjectVarChange = change_assertion[ 2: ]
-        # object variable assertion negated
-        negated_generic_assertion: GenericObjectVarChange = (
-            *generic_assertion[ :-1 ], not (generic_assertion[ -1 ]),
+        value_chronicle: ValueChronicle = ValueChronicleClass(
+                changes, t_now, t_ordered, t_unordered, persistences, temporal_network, domain_objects,
         )
-        # predicate to search
-        predicate_label: str = change_assertion[ 1 ]
-        # relevant assertions
-        search_lst: List[ ObjectVarChange ] = value_chronicle.change[ predicate_label ][
-            reference_chronicle.change[ predicate_label ] ]
-        # time of verifying assertion
-        t_verify: int = change_assertion[ 0 ]
-        # find latest time point in yes_lst and no_lst no later than t_verify
-        # order time points
-        t_verify_index = t_ordered.index( t_verify )
-        # get all matches for time points no later than the assertion to verify
-        yes_lst: List[ ObjectVarChange ] = [
-            *filter(
-                    lambda x: x[ 2: ] == generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index, search_lst,
-            ),
-        ]
-        # negated macthes for time points no later than the assertion to verify
-        no_lst: List[ ObjectVarChange ] = [
-            *filter(
-                    lambda x: x[ 2: ] == negated_generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
-                    search_lst,
-            ),
-        ]
-        # if yes_lst has any members and no_lst doesn't then True
-        if len( yes_lst ) > 0 and len( no_lst ) == 0:
-            return True
-        # if no_lst has any member and yes_lst doesn't then False
-        if len( yes_lst ) == 0 and len( no_lst ) > 0:
-            return False
-        # if both lists are empty False is the bool val
-        if len( yes_lst ) == 0 and len( no_lst ) == 0:
-            return not (change_assertion[ -1 ])
-        # find last occurrence of match and negation
-        last_yes = max( yes_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
-        last_no = max( no_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
-        # later one to occur is the value we want
-        if t_ordered.index( last_yes ) > t_ordered.index( last_no ):
-            return True
-        else:
-            return False
+        changes_len_dict: Dict[ str, int ] = { k: len( v ) - 1 for k, v in changes.items() }
+        persistences_len_dict: Dict[ str, int ] = { k: len( v ) - 1 for k, v in persistences.items() }
+        reference_chronicle: ReferenceChronicle = ReferenceChronicleClass(
+                changes_len_dict, len( t_ordered ) - 1, len( t_unordered ) - 1, persistences_len_dict,
+        )
+        return reference_chronicle, value_chronicle
+
+    # # given state specified by reference_chronicle and value_chronicle find whether change_assertion
+    # # is true
+    # # this requires the assertion hold at a time point no later than the change_assertion
+    # # and a negation does not exist between those time points
+    # # can only be done for time points in t_ordered as we can only add change assertions to members of t_ordered
+    # def verify_object_assertion(
+    #         self,
+    #         reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+    #         change_assertion: ObjectVarChange, t_ordered: List[ int ]
+    # ):
+    #     # object variable assertion without time
+    #     generic_assertion: GenericObjectVarChange = change_assertion[ 2: ]
+    #     # object variable assertion negated
+    #     negated_generic_assertion: GenericObjectVarChange = (
+    #         *generic_assertion[ :-1 ], not (generic_assertion[ -1 ]),
+    #     )
+    #     # predicate to search
+    #     predicate_label: str = change_assertion[ 1 ]
+    #     # relevant assertions
+    #     valid_idx: int = reference_chronicle.changes[ predicate_label ] + 1
+    #     search_lst: List[ ObjectVarChange ] = value_chronicle.changes[ predicate_label ][
+    #         :valid_idx ]
+    #     # time of verifying assertion
+    #     t_verify: int = change_assertion[ 0 ]
+    #     # find latest time point in yes_lst and no_lst no later than t_verify
+    #     # order time points
+    #     t_verify_index = t_ordered.index( t_verify )
+    #     # get all matches for time points no later than the assertion to verify
+    #     yes_lst: List[ ObjectVarChange ] = [
+    #         *filter(
+    #                 lambda x: x[ 2: ] == generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
+    #                 search_lst,
+    #         ),
+    #     ]
+    #     # negated matches for time points no later than the assertion to verify
+    #     no_lst: List[ ObjectVarChange ] = [
+    #         *filter(
+    #                 lambda x: x[ 2: ] == negated_generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
+    #                 search_lst,
+    #         ),
+    #     ]
+    #     # if yes_lst has any members and no_lst doesn't then True
+    #     if len( yes_lst ) > 0 and len( no_lst ) == 0:
+    #         return True
+    #     # if no_lst has any member and yes_lst doesn't then False
+    #     if len( yes_lst ) == 0 and len( no_lst ) > 0:
+    #         return False
+    #     # if both lists are empty False is the bool val
+    #     if len( yes_lst ) == 0 and len( no_lst ) == 0:
+    #         return not (change_assertion[ -1 ])
+    #     # find last occurrence of match and negation
+    #     last_yes: ObjectVarChange = max( yes_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
+    #     last_no: ObjectVarChange = max( no_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
+    #     # later one to occur is the value we want
+    #     last_yes_time_point: int = last_yes[ 0 ]
+    #     last_no_time_point: int = last_no[ 0 ]
+    #     if t_ordered.index( last_yes_time_point ) > t_ordered.index( last_no_time_point ):
+    #         return True
+    #     else:
+    #         return False
 
     # add list of change assertions to the state values and update indices as needed
     # terminate without altering state values if any change assertion would fail
@@ -171,9 +224,9 @@ class ChronicleInterface():
         check_change_persistences_safe = self.check_change_persistences_safe
         safe_list_update = self.safe_list_update
         # get dictionaries
-        change_value_dict: Dict[ str, List[ ObjectVarChange ] ] = value_chronicle.change
+        change_value_dict: Dict[ str, List[ ObjectVarChange ] ] = value_chronicle.changes
         persistence_value_dict: Dict[ str, List[ ObjectVarPersistence ] ] = value_chronicle.persistences
-        change_reference_dict: Dict[ str, int ] = reference_chronicle.change
+        change_reference_dict: Dict[ str, int ] = reference_chronicle.changes
         persistence_reference_dict: Dict[ str, int ] = reference_chronicle.persistences
 
         # check for contradictions in list
@@ -183,7 +236,7 @@ class ChronicleInterface():
             # current assertion
             change_assertion: ObjectVarChange = change_assertion_lst[ i ]
             # don't need reverse of pairs
-            new_change_lst: List[ ObjectVarChange ] = change_assertion_lst[ i + 1: ]
+            new_change_lst: List[ ObjectVarChange ] = change_assertion_lst[ (i + 1): ]
             new_change_index: int = len( new_change_lst )
             safe_flag = check_change_existing_changes_safe( change_assertion, new_change_lst, new_change_index )
             if not safe_flag:
@@ -236,9 +289,9 @@ class ChronicleInterface():
         check_persistence_changes_safe = self.check_persistence_changes_safe
         safe_list_update = self.safe_list_update
         # get dictionaries
-        change_value_dict: Dict[ str, List[ ObjectVarChange ] ] = value_chronicle.change
+        change_value_dict: Dict[ str, List[ ObjectVarChange ] ] = value_chronicle.changes
         persistence_value_dict: Dict[ str, List[ ObjectVarPersistence ] ] = value_chronicle.persistences
-        change_reference_dict: Dict[ str, int ] = reference_chronicle.change
+        change_reference_dict: Dict[ str, int ] = reference_chronicle.changes
         persistence_reference_dict: Dict[ str, int ] = reference_chronicle.persistences
 
         # check for contradictions in list
