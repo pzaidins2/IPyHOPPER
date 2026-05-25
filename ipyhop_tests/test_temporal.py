@@ -391,6 +391,34 @@ def test_is_strictly_less_than_2():
     min_stn.add_temporal_constraints_from( [ temporal_constraint ] )
     assert not (min_stn.is_strictly_less_than( 0, 1 ))
 
+
+# tests for is_strictly_less_than_or_equal
+def test_is_strictly_less_than_or_equal_0():
+    t_min = 0
+    t_max = 10
+    min_stn = TemporalNetwork( t_min, t_max )
+    temporal_constraint = (0, "<", 1, 0)
+    min_stn.add_temporal_constraints_from( [ temporal_constraint ] )
+    assert min_stn.is_strictly_less_than_or_equal( 0, 1 )
+
+
+def test_is_strictly_less_than_or_equal_1():
+    t_min = 0
+    t_max = 10
+    min_stn = TemporalNetwork( t_min, t_max )
+    temporal_constraint = (0, "<=", 1, 0)
+    min_stn.add_temporal_constraints_from( [ temporal_constraint ] )
+    assert min_stn.is_strictly_less_than_or_equal( 0, 1 )
+
+
+def test_is_strictly_less_than_or_equal_2():
+    t_min = 0
+    t_max = 10
+    min_stn = TemporalNetwork( t_min, t_max )
+    temporal_constraint = (0, "<", 1, 5)
+    min_stn.add_temporal_constraints_from( [ temporal_constraint ] )
+    assert not (min_stn.is_strictly_less_than_or_equal( 0, 1 ))
+
 # tests for restore_graph
 # vertices added
 def test_restore_graph_0():
