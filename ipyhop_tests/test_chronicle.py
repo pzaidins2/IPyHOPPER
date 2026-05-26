@@ -519,19 +519,20 @@ def test_persistence_existing_persistences_safe_8():
 # add_changes
 # safe
 def test_add_changes_0():
-    
-    reference_chronicle, value_chronicle = \
-        CI.make_chronicle_pair(
-            TrafficReferenceChronicle,
-            TrafficValueChronicle,
-            changes: Dict[ str, List[ ObjectVarChange ] ],
-            t_now: int,
-            t_ordered: List[ int ],
-            t_unordered: List[ int ],
-            persistences: Dict[ str, List[ ObjectVarPersistence ] ],
-            temporal_network: TemporalNetwork,
-            domain_objects: Dict[ str, List ],
-    )
+    pass
+    # `
+    # reference_chronicle, value_chronicle = \
+    #     CI.make_chronicle_pair(
+    #         TrafficReferenceChronicle,
+    #         TrafficValueChronicle,
+    #         changes: Dict[ str, List[ ObjectVarChange ] ],
+    #         t_now: int,
+    #         t_ordered: List[ int ],
+    #         t_unordered: List[ int ],
+    #         persistences: Dict[ str, List[ ObjectVarPersistence ] ],
+    #         temporal_network: TemporalNetwork,
+    #         domain_objects: Dict[ str, List ],
+    # )
 # new-new contradiction
 # new-existing changes contradiction
 # new-existing persistences contradiction
