@@ -220,37 +220,318 @@ def test_safe_list_update_5():
 # # absent False
 
 # check_change_existing_changes_safe
-# safe
+# safe, empty
+def test_check_change_existing_changes_safe_0():
+    new_change_assertion: ObjectVarChange = (0, "light_color", "green", True)
+    existing_change_lst: List[ ObjectVarChange ] = [ ]
+    existing_change_index: int = -1
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    assert CI.check_change_existing_changes_safe(
+            new_change_assertion, existing_change_lst, existing_change_index, min_stn,
+    )
+
+
+# safe, duplicate
+def test_check_change_existing_changes_safe_1():
+    new_change_assertion: ObjectVarChange = (0, "light_color", "green", True)
+    existing_change_lst: List[ ObjectVarChange ] = [ (0, "light_color", "green", True) ]
+    existing_change_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    assert CI.check_change_existing_changes_safe(
+            new_change_assertion, existing_change_lst, existing_change_index, min_stn,
+    )
+
+
 # safe, negation at time point with exclusive value
+def test_check_change_existing_changes_safe_2():
+    new_change_assertion: ObjectVarChange = (0, "light_color", "green", True)
+    existing_change_lst: List[ ObjectVarChange ] = [ (1, "light_color", "green", False) ]
+    existing_change_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<", 1, 0) ] )
+    assert CI.check_change_existing_changes_safe(
+            new_change_assertion, existing_change_lst, existing_change_index, min_stn, )
 # unsafe, negation at time point
+def test_check_change_existing_changes_safe_3():
+    new_change_assertion: ObjectVarChange = (0, "light_color", "green", True)
+    existing_change_lst: List[ ObjectVarChange ] = [ (0, "light_color", "green", False) ]
+    existing_change_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    assert not CI.check_change_existing_changes_safe(
+            new_change_assertion, existing_change_lst, existing_change_index, min_stn,
+    )
 # unsafe, negation at nonexclusive time point
+def test_check_change_existing_changes_safe_4():
+    new_change_assertion: ObjectVarChange = (0, "light_color", "green", True)
+    existing_change_lst: List[ ObjectVarChange ] = [ (1, "light_color", "green", False) ]
+    existing_change_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 1, 0) ] )
+    assert not CI.check_change_existing_changes_safe(
+            new_change_assertion, existing_change_lst, existing_change_index, min_stn, )
 
 # check_change_persistences_safe
-# safe
+# safe, empty
+def test_check_change_persistences_safe_0():
+    new_change_assertion: ObjectVarChange = (0, "light_color", "yellow", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ ]
+    persistence_index: int = -1
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    assert CI.check_change_persistences_safe(
+            new_change_assertion, persistence_lst,
+            persistence_index, min_stn, )
+
+
+# safe, matching bool val
+def test_check_change_persistences_safe_1():
+    new_change_assertion: ObjectVarChange = (0, "light_color", "yellow", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (0, 1, "light_color", "yellow", True) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 1, 0) ] )
+    assert CI.check_change_persistences_safe(
+            new_change_assertion, persistence_lst,
+            persistence_index, min_stn, )
 # safe, negation interval exclusive  before
+def test_check_change_persistences_safe_2():
+    new_change_assertion: ObjectVarChange = (2, "light_color", "yellow", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (0, 1, "light_color", "yellow", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 1, 0), (1, "<", 2, 0) ] )
+
+    assert CI.check_change_persistences_safe(
+            new_change_assertion, persistence_lst,
+            persistence_index, min_stn, )
 # safe, negation interval exclusive after
+def test_check_change_persistences_safe_3():
+    new_change_assertion: ObjectVarChange = (2, "light_color", "yellow", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (0, 1, "light_color", "yellow", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 1, 0), (0, ">", 2, 0) ] )
+
+    assert CI.check_change_persistences_safe(
+            new_change_assertion, persistence_lst,
+            persistence_index, min_stn, )
 # unsafe, at endpoint of negation interval
+def test_check_change_persistences_safe_4():
+    new_change_assertion: ObjectVarChange = (2, "light_color", "yellow", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (0, 1, "light_color", "yellow", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 1, 0), (1, "<=", 2, 0) ] )
+
+    assert not CI.check_change_persistences_safe(
+            new_change_assertion, persistence_lst,
+            persistence_index, min_stn, )
 # unsafe, at startpoint of negation interval
+def test_check_change_persistences_safe_5():
+    new_change_assertion: ObjectVarChange = (2, "light_color", "yellow", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [
+        (0, 1, "light_color", "yellow", False), (0, 1, "light_color", "green", True),
+    ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 1, 0), (0, ">=", 2, 0) ] )
+
+    assert not CI.check_change_persistences_safe(
+            new_change_assertion, persistence_lst,
+            persistence_index, min_stn, )
 # unsafe, within negation interval
+def test_check_change_persistences_safe_6():
+    new_change_assertion: ObjectVarChange = (2, "light_color", "yellow", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (0, 1, "light_color", "yellow", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 1, 0), (0, "<", 2, 0), (1, ">", 2, 0) ] )
+
+    assert not CI.check_change_persistences_safe(
+            new_change_assertion, persistence_lst,
+            persistence_index, min_stn, )
 # unsafe, potentially within negation interval
+def test_check_change_persistences_safe_7():
+    new_change_assertion: ObjectVarChange = (2, "light_color", "yellow", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (0, 1, "light_color", "yellow", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 1, 0) ] )
+
+    assert not CI.check_change_persistences_safe(
+            new_change_assertion, persistence_lst,
+            persistence_index, min_stn, )
 
 # check_persistence_changes_safe
-# safe
+# safe, empty
+def test_persistence_changes_safe_0():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "red", True)
+    change_lst: List[ ObjectVarChange ] = [ ]
+    change_index: int = -1
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+
+    assert CI.check_persistence_changes_safe( new_persistence, change_lst, change_index, min_stn, )
+
+
+# safe, matching
+def test_persistence_changes_safe_1():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "red", True)
+    change_lst: List[ ObjectVarChange ] = [ (0, "light_color", "red", True) ]
+    change_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+
+    assert CI.check_persistence_changes_safe( new_persistence, change_lst, change_index, min_stn, )
 # safe, negation at time point with exclusive value
+def test_persistence_changes_safe_2():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "red", True)
+    change_lst: List[ ObjectVarChange ] = [ (1, "light_color", "red", True) ]
+    change_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (1, ">", 2, 0) ] )
+
+    assert CI.check_persistence_changes_safe( new_persistence, change_lst, change_index, min_stn, )
 # unsafe, negation at time point
+def test_persistence_changes_safe_3():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "red", True)
+    change_lst: List[ ObjectVarChange ] = [ (2, "light_color", "red", True) ]
+    change_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<", 2, 0) ] )
+
+    assert CI.check_persistence_changes_safe( new_persistence, change_lst, change_index, min_stn, )
 # unsafe, negation at nonexclusive time point
+def test_persistence_changes_safe_4():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "red", True)
+    change_lst: List[ ObjectVarChange ] = [ (1, "light_color", "red", False) ]
+    change_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<", 2, 0) ] )
+    assert not CI.check_persistence_changes_safe( new_persistence, change_lst, change_index, min_stn, )
 
 # check_persistence_existing_persistences_safe
-# safe
+# safe,empty
+def test_persistence_existing_persistences_safe_0():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ ]
+    persistence_index: int = -1
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    assert CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
+
+
+# safe, matching
+def test_persistence_existing_persistences_safe_1():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (1, 3, "light_color", "green", True) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    assert CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
 # safe, negation interval exclusive  before
+def test_persistence_existing_persistences_safe_2():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (1, 3, "light_color", "green", True) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 2, 0), (1, "<=", 3, 0), (3, "<", 2, 0) ] )
+    assert CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
 # safe, negation interval exclusive after
+def test_persistence_existing_persistences_safe_3():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (1, 3, "light_color", "green", True) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 2, 0), (1, "<=", 3, 0), (2, "<", 1, 0) ] )
+    assert CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
 # unsafe, start point at endpoint of negation interval
+def test_persistence_existing_persistences_safe_4():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (1, 3, "light_color", "green", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 2, 0), (1, "<=", 3, 0), (0, "==", 3, 0) ] )
+    assert not CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
 # unsafe, end point at startpoint of negation interval
+def test_persistence_existing_persistences_safe_5():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (1, 3, "light_color", "green", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from( [ (0, "<=", 2, 0), (1, "<=", 3, 0), (2, "==", 1, 0) ] )
+    assert not CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
 # unsafe, within negation interval
+def test_persistence_existing_persistences_safe_6():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (1, 3, "light_color", "green", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from(
+            [
+                (0, "<=", 2, 0), (1, "<=", 3, 0),
+                (0, ">", 1, 0), (2, "<", 3, 0),
+            ],
+    )
+    assert not CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
+
+
+# unsafe, contains negation interval
+def test_persistence_existing_persistences_safe_7():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (1, 3, "light_color", "green", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from(
+            [
+                (0, "<=", 2, 0), (1, "<=", 3, 0),
+                (0, "<", 1, 0), (2, ">", 3, 0),
+            ],
+    )
+    assert not CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
 # unsafe, potentially within negation interval
+def test_persistence_existing_persistences_safe_8():
+    new_persistence: ObjectVarPersistence = (0, 2, "light_color", "green", True)
+    persistence_lst: List[ ObjectVarPersistence ] = [ (1, 3, "light_color", "green", False) ]
+    persistence_index: int = 0
+    min_stn: TemporalNetwork = TemporalNetwork( 0, 10 )
+    min_stn.add_temporal_constraints_from(
+            [
+                (0, "<=", 2, 0), (1, "<=", 3, 0),
+            ],
+    )
+    assert not CI.check_persistence_existing_persistences_safe(
+            new_persistence, persistence_lst,
+            persistence_index, min_stn, )
+
 
 # add_changes
 # safe
+def test_add_changes_0():
+    
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+            TrafficReferenceChronicle,
+            TrafficValueChronicle,
+            changes: Dict[ str, List[ ObjectVarChange ] ],
+            t_now: int,
+            t_ordered: List[ int ],
+            t_unordered: List[ int ],
+            persistences: Dict[ str, List[ ObjectVarPersistence ] ],
+            temporal_network: TemporalNetwork,
+            domain_objects: Dict[ str, List ],
+    )
 # new-new contradiction
 # new-existing changes contradiction
 # new-existing persistences contradiction

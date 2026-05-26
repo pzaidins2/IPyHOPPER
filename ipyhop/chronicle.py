@@ -389,11 +389,12 @@ class ChronicleInterface():
         new_generic_change_assertion: GenericObjectVarChange = new_change_assertion[ 2: ]
         is_strictly_less_than = min_stn.is_strictly_less_than
         # only search elements below index
-        search_lst: List[ ObjectVarPersistence ] = persistence_lst[ :persistence_index + 1 ]
+        search_lst: List[ ObjectVarPersistence ] = persistence_lst[ :(persistence_index + 1) ]
         # only persistences for the same predicate label, args, and negated boolean value can conflict
         filtered_search_lst = filter(
-                lambda x: (*x[ 2:-1 ], not (x[ -1 ])) == new_generic_change_assertion, search_lst,
+                lambda x: (*x[ 3:-1 ], not (x[ -1 ])) == new_generic_change_assertion, search_lst
         )
+
         # ensure that t_change is excluded from being between start and end time points for each remainging persistance
         for persistence in filtered_search_lst:
             t_start: int = persistence[ 0 ]
@@ -422,7 +423,9 @@ class ChronicleInterface():
         # only search elements below index
         search_lst: List[ ObjectVarChange ] = change_lst[ :change_index + 1 ]
         # only change assertions that share a predicate label, args and negated boolean value can clash
-        filtered_search_lst = filter( lambda x: (*x[ 1:-1 ], not (x[ -1 ])) == new_generic_persistence, search_lst )
+        filtered_search_lst = [
+            *filter( lambda x: (*x[ 2:-1 ], not (x[ -1 ])) == new_generic_persistence, search_lst ),
+        ]
         # ensure that t_change is excluded from being between start and end time points for each remainging persistance
         for change_assert in filtered_search_lst:
             t_change: int = change_assert[ 0 ]
@@ -442,7 +445,6 @@ class ChronicleInterface():
             persistence_index: int, min_stn: TemporalNetwork,
     ) -> bool:
         # get values for determining relevance
-        predicate_label: str = new_persistence[ 2 ]
         t_start_0: int = new_persistence[ 0 ]
         t_end_0: int = new_persistence[ 1 ]
         new_generic_persistence: GenericObjectVarChange = new_persistence[ 3: ]
@@ -450,7 +452,7 @@ class ChronicleInterface():
         # only search elements below index
         search_lst: List[ ObjectVarPersistence ] = persistence_lst[ :persistence_index + 1 ]
         # only change assertions that share a predicate label, args and negated boolean value can clash
-        filtered_search_lst = filter( lambda x: (*x[ 1:-1 ], not (x[ -1 ])) == new_generic_persistence, search_lst )
+        filtered_search_lst = filter( lambda x: (*x[ 3:-1 ], not (x[ -1 ])) == new_generic_persistence, search_lst )
         # ensure that t_change is excluded from being between start and end time points for each remaining persistence
         for existing_persistence in filtered_search_lst:
             t_start_1: int = existing_persistence[ 0 ]
