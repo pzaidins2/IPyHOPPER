@@ -11,16 +11,13 @@ from ipyhop import (ChronicleInterface, ObjectVarChange, ObjectVarPersistence,
 CI = ChronicleInterface()
 
 
+# UPDATE TO INCLUDE RIGID RELATIONS
 # classes implementing chronicle protocols
 class TrafficReferenceChronicle( ReferenceChronicle ):
     def __init__(
             self, changes: Dict[ str, int ], t_ordered: int, t_unordered: int,
             persistences: Dict[ str, int ],
     ):
-        self.changes = changes
-        self.t_ordered = t_ordered
-        self.t_unordered = t_unordered
-        self.persistences = persistences
         super().__init__(
                 changes,
                 t_ordered,
@@ -57,7 +54,7 @@ def test_safe_list_update_0():
     update_index = 6
     update_element_lst = [ 6, 7, 8 ]
     last_valid_index = CI.safe_list_update( lst, update_element_lst, update_index )
-    assert last_valid_index == 8
+    assert last_valid_index == 9
     assert lst == [ *range( 9 ) ]
 
 
@@ -67,7 +64,7 @@ def test_safe_list_update_1():
     update_index = 0
     update_element_lst = [ 6, 7, 8 ]
     last_valid_index = CI.safe_list_update( lst, update_element_lst, update_index )
-    assert last_valid_index == 2
+    assert last_valid_index == 3
     assert lst == [ 6, 7, 8, 3, 4, 5 ]
 
 
@@ -77,7 +74,7 @@ def test_safe_list_update_2():
     update_index = 3
     update_element_lst = [ 6, 7, 8 ]
     last_valid_index = CI.safe_list_update( lst, update_element_lst, update_index )
-    assert last_valid_index == 5
+    assert last_valid_index == 6
     assert lst == [ 0, 1, 2, 6, 7, 8 ]
 
 
@@ -87,7 +84,7 @@ def test_safe_list_update_3():
     update_index = 4
     update_element_lst = [ 6, 7, 8 ]
     last_valid_index = CI.safe_list_update( lst, update_element_lst, update_index )
-    assert last_valid_index == 6
+    assert last_valid_index == 7
     assert lst == [ 0, 1, 2, 3, 6, 7, 8 ]
 
 
@@ -97,7 +94,7 @@ def test_safe_list_update_4():
     update_index = 5
     update_element_lst = [ 6, 7, 8 ]
     last_valid_index = CI.safe_list_update( lst, update_element_lst, update_index )
-    assert last_valid_index == 7
+    assert last_valid_index == 8
     assert lst == [ 0, 1, 2, 3, 4, 6, 7, 8 ]
 
 
@@ -107,7 +104,7 @@ def test_safe_list_update_5():
     update_index = 1
     update_element_lst = [ 6, 7, 8 ]
     last_valid_index = CI.safe_list_update( lst, update_element_lst, update_index )
-    assert last_valid_index == 3
+    assert last_valid_index == 4
     assert lst == [ 0, 6, 7, 8, 4, 5 ]
 
 
@@ -517,31 +514,602 @@ def test_persistence_existing_persistences_safe_8():
 
 
 # add_changes
-# safe
+# safe, empty
 def test_add_changes_0():
-    pass
-    # `
-    # reference_chronicle, value_chronicle = \
-    #     CI.make_chronicle_pair(
-    #         TrafficReferenceChronicle,
-    #         TrafficValueChronicle,
-    #         changes: Dict[ str, List[ ObjectVarChange ] ],
-    #         t_now: int,
-    #         t_ordered: List[ int ],
-    #         t_unordered: List[ int ],
-    #         persistences: Dict[ str, List[ ObjectVarPersistence ] ],
-    #         temporal_network: TemporalNetwork,
-    #         domain_objects: Dict[ str, List ],
-    # )
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [ (0, 1, "light_color", "yellow", False) ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    change_assertion_lst = [ ]
+    change_update_dict: Dict[ str, int ] = dict()
+    assert CI.add_changes( reference_chronicle, value_chronicle, change_assertion_lst, change_update_dict )
+
+    assert value_chronicle.changes == {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    assert reference_chronicle.changes == {
+        "light_color": 1,
+        "can_go":      1,
+    }
+    assert change_update_dict == { }
+
+
+# safe
+def test_add_changes_1():
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [ (0, 1, "light_color", "yellow", False) ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    change_assertion_lst = [
+        (1, "light_color", "red", False),
+        (1, "light_color", "green", True),
+        (2, "light_color", "green", False),
+        (2, "light_color", "yellow", True),
+        (1, "can_go", True),
+    ]
+    change_update_dict: Dict[ str, int ] = dict()
+    assert CI.add_changes( reference_chronicle, value_chronicle, change_assertion_lst, change_update_dict )
+    assert value_chronicle.changes == {
+        "light_color": [
+            (0, "light_color", "red", True),
+            (1, "light_color", "red", False),
+            (1, "light_color", "green", True),
+            (2, "light_color", "green", False),
+            (2, "light_color", "yellow", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+            (1, "can_go", True),
+        ],
+    }
+    assert reference_chronicle.changes == {
+        "light_color": 5,
+        "can_go":      2,
+    }
+    assert change_update_dict == {
+        "light_color": 1,
+        "can_go":      1,
+    }
+
+
 # new-new contradiction
+def test_add_changes_2():
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [ (0, 1, "light_color", "yellow", False) ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    change_assertion_lst = [
+        (1, "light_color", "red", False),
+        (1, "light_color", "green", True),
+        (1, "light_color", "green", False),
+        (2, "light_color", "yellow", True),
+        (1, "can_go", True),
+    ]
+    change_update_dict: Dict[ str, int ] = dict()
+    assert not CI.add_changes( reference_chronicle, value_chronicle, change_assertion_lst, change_update_dict )
+    assert value_chronicle.changes == {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    assert reference_chronicle.changes == {
+        "light_color": 1,
+        "can_go":      1,
+    }
+    assert change_update_dict == { }
 # new-existing changes contradiction
+def test_add_changes_3():
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [ (0, 1, "light_color", "yellow", False) ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    change_assertion_lst = [
+        (0, "light_color", "red", False),
+        (1, "light_color", "green", True),
+        (2, "light_color", "green", False),
+        (2, "light_color", "yellow", True),
+        (1, "can_go", True),
+    ]
+    change_update_dict: Dict[ str, int ] = dict()
+    assert not CI.add_changes( reference_chronicle, value_chronicle, change_assertion_lst, change_update_dict )
+    assert value_chronicle.changes == {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    assert reference_chronicle.changes == {
+        "light_color": 1,
+        "can_go":      1,
+    }
+    assert change_update_dict == { }
 # new-existing persistences contradiction
+def test_add_changes_4():
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [ (0, 1, "light_color", "yellow", False) ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    change_assertion_lst = [
+        (1, "light_color", "red", False),
+        (1, "light_color", "green", True),
+        (2, "light_color", "green", False),
+        (1, "light_color", "yellow", True),
+        (1, "can_go", True),
+    ]
+    change_update_dict: Dict[ str, int ] = dict()
+    assert not CI.add_changes( reference_chronicle, value_chronicle, change_assertion_lst, change_update_dict )
+    assert value_chronicle.changes == {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    assert reference_chronicle.changes == {
+        "light_color": 1,
+        "can_go":      1,
+    }
+    assert change_update_dict == { }
 
 # add_persistences
+# safe, empty
+def test_add_persistences_0():
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [
+            (0, 1, "light_color", "yellow", False),
+            (1, 2, "light_color", "red", False),
+        ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    persistence_assertion_lst: List[ ObjectVarPersistence ] = [ ]
+    persistence_update_dict: Dict[ str, int ] = dict()
+    assert CI.add_persistences(
+            reference_chronicle, value_chronicle, persistence_assertion_lst, persistence_update_dict,
+    )
+
+    assert value_chronicle.persistences == {
+        "light_color": [
+            (0, 1, "light_color", "yellow", False),
+            (1, 2, "light_color", "red", False),
+
+        ],
+        "can_go":      [ ],
+    }
+    assert reference_chronicle.persistences == {
+        "light_color": 2,
+        "can_go":      0,
+    }
+    assert persistence_update_dict == { }
 # safe
+def test_add_persistences_1():
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [
+            (0, 1, "light_color", "yellow", False),
+            (1, 2, "light_color", "red", False),
+        ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    persistence_assertion_lst: List[ ObjectVarPersistence ] = [
+        (0, 1, "light_color", "green", False), (1, 2, "light_color", "red", False),
+    ]
+    persistence_update_dict: Dict[ str, int ] = dict()
+    assert CI.add_persistences(
+            reference_chronicle, value_chronicle, persistence_assertion_lst, persistence_update_dict,
+    )
+
+    assert value_chronicle.persistences == {
+        "light_color": [
+            (0, 1, "light_color", "yellow", False),
+            (1, 2, "light_color", "red", False),
+            (0, 1, "light_color", "green", False),
+            (1, 2, "light_color", "red", False),
+
+        ],
+        "can_go":      [ ],
+    }
+    assert reference_chronicle.persistences == {
+        "light_color": 4,
+        "can_go":      0,
+    }
+    assert persistence_update_dict == { "light_color": 2 }
 # new-new contradiction
+def test_add_persistences_2():
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [
+            (0, "light_color", "red", True),
+
+        ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [
+            (0, 1, "light_color", "yellow", False),
+            (1, 2, "light_color", "red", False),
+        ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    persistence_assertion_lst: List[ ObjectVarPersistence ] = [
+        (1, 2, "light_color", "yellow", True),
+        (1, 2, "light_color", "yellow", False),
+    ]
+    persistence_update_dict: Dict[ str, int ] = dict()
+    assert not CI.add_persistences(
+            reference_chronicle, value_chronicle, persistence_assertion_lst, persistence_update_dict,
+    )
+
+    assert value_chronicle.persistences == {
+        "light_color": [
+            (0, 1, "light_color", "yellow", False),
+            (1, 2, "light_color", "red", False),
+
+        ],
+        "can_go":      [ ],
+    }
+    assert reference_chronicle.persistences == {
+        "light_color": 2,
+        "can_go":      0,
+    }
+    assert persistence_update_dict == { }
 # new-existing changes contradiction
-# new-existing persistences contradiction
+def test_add_persistences_3():
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "light_color": [ ],
+        "can_go":      [
+            (0, "can_go", False),
+        ],
+    }
+    t_now: int = 2
+    t_ordered: List[ int ] = [ 0, 1 ]
+    t_unordered: List[ int ] = [ 2 ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "light_color": [
+            (0, 1, "light_color", "yellow", False),
+            (1, 2, "light_color", "red", False),
+        ],
+        "can_go":      [ ],
+    }
+    temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
+    temporal_network.add_temporal_constraints_from(
+            [
+                (0, "<", 1, 0),
+                (1, "<", 2, 0),
+            ],
+    )
+    domain_objects: Dict[ str, List ] = {
+        "light_color": [ "green", "yellow", "red" ],
+    }
+
+    reference_chronicle, value_chronicle = \
+        CI.make_chronicle_pair(
+                TrafficReferenceChronicle,
+                TrafficValueChronicle,
+                changes,
+                t_now,
+                t_ordered,
+                t_unordered,
+                persistences,
+                temporal_network,
+                domain_objects,
+        )
+
+    persistence_assertion_lst: List[ ObjectVarPersistence ] = [
+        (0, 1, "light_color", "yellow", True),
+    ]
+    persistence_update_dict: Dict[ str, int ] = dict()
+    assert not CI.add_persistences(
+            reference_chronicle, value_chronicle, persistence_assertion_lst, persistence_update_dict,
+    )
+
+    assert value_chronicle.persistences == {
+        "light_color": [
+            (0, 1, "light_color", "yellow", False),
+            (1, 2, "light_color", "red", False),
+
+        ],
+        "can_go":      [ ],
+    }
+    assert reference_chronicle.persistences == {
+        "light_color": 2,
+        "can_go":      0,
+    }
+    assert persistence_update_dict == { }
 """
 Author(s): Paul Zaidins
 Repository: https://github.com/pzaidins2/IPyHOPPER.git

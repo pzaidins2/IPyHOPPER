@@ -6,7 +6,7 @@ for interfacing with them
 from itertools import groupby
 from typing import Any, Dict, List, Protocol, Tuple, Type
 
-from ipyhop.temporal import TemporalNetwork
+from ipyhop.temporal import NetEdgeInput, TemporalNetwork
 
 # type aliases for object variable change and persistence assertions
 type ObjectVarChange = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
@@ -141,10 +141,10 @@ class ChronicleInterface():
         value_chronicle: ValueChronicle = ValueChronicleClass(
                 changes, t_now, t_ordered, t_unordered, persistences, temporal_network, domain_objects,
         )
-        changes_len_dict: Dict[ str, int ] = { k: len( v ) - 1 for k, v in changes.items() }
-        persistences_len_dict: Dict[ str, int ] = { k: len( v ) - 1 for k, v in persistences.items() }
+        changes_len_dict: Dict[ str, int ] = { k: len( v ) for k, v in changes.items() }
+        persistences_len_dict: Dict[ str, int ] = { k: len( v ) for k, v in persistences.items() }
         reference_chronicle: ReferenceChronicle = ReferenceChronicleClass(
-                changes_len_dict, len( t_ordered ) - 1, len( t_unordered ) - 1, persistences_len_dict,
+                changes_len_dict, len( t_ordered ), len( t_unordered ), persistences_len_dict,
         )
         return reference_chronicle, value_chronicle
 
@@ -216,10 +216,11 @@ class ChronicleInterface():
             self,
             reference_chronicle: ReferenceChronicle,
             value_chronicle: ValueChronicle,
-            min_stn: TemporalNetwork, change_assertion_lst: List[ ObjectVarChange ],
+            change_assertion_lst: List[ ObjectVarChange ],
             change_update_dict: Dict[ str, int ],
     ) -> bool:
         # localize variables
+        min_stn: TemporalNetwork = value_chronicle.temporal_network
         check_change_existing_changes_safe = self.check_change_existing_changes_safe
         check_change_persistences_safe = self.check_change_persistences_safe
         safe_list_update = self.safe_list_update
@@ -238,7 +239,9 @@ class ChronicleInterface():
             # don't need reverse of pairs
             new_change_lst: List[ ObjectVarChange ] = change_assertion_lst[ (i + 1): ]
             new_change_index: int = len( new_change_lst )
-            safe_flag = check_change_existing_changes_safe( change_assertion, new_change_lst, new_change_index )
+            safe_flag = check_change_existing_changes_safe(
+                    change_assertion, new_change_lst, new_change_index, min_stn,
+            )
             if not safe_flag:
                 return False
         # iterate over new change assertions for existing change and persistence assertions
@@ -247,7 +250,7 @@ class ChronicleInterface():
             predicate_label: str = obj_var_assertion[ 1 ]
             change_value_lst: List[ ObjectVarChange ] = change_value_dict[ predicate_label ]
             change_index: int = change_reference_dict[ predicate_label ]
-            safe_flag = check_change_existing_changes_safe( obj_var_assertion, change_value_lst, change_index )
+            safe_flag = check_change_existing_changes_safe( obj_var_assertion, change_value_lst, change_index, min_stn )
             if not safe_flag:
                 return False
             # change vs persistence
@@ -262,14 +265,17 @@ class ChronicleInterface():
         # add new changes to chronicle
         # alter change_update_dict for new object variable changes
         # group changes by predicate label and insert/update as appropriate
-        for k, g in groupby( change_assertion_lst, key=lambda x: x[ 2 ] ):
+        for k, v in groupby( change_assertion_lst, key=lambda x: x[ 1 ] ):
             change_value_lst: List[ ObjectVarChange ] = change_value_dict[ k ]
             change_index: int = change_reference_dict[ k ]
             # extends (in place) the list with new changes and gives value of updated index
-            updated_index: int = safe_list_update( change_value_lst, change_assertion_lst, change_index )
-            # store only the oldest value (allows rollback if failure occurs later in action if multiple calls)
+            updated_index: int = safe_list_update( change_value_lst, [ *v ], change_index )
+            # store original index for rollback, passes forward accumulating and tracking the original
+            # index before all passes
             if k not in change_update_dict.keys():
-                change_update_dict[ k ] = updated_index
+                change_update_dict[ k ] = change_index
+            # update index in referencer chronicle
+            change_reference_dict[ k ] = updated_index
         return True
 
     # add list of persistence assertions to the state values and update indices as needed
@@ -281,10 +287,11 @@ class ChronicleInterface():
             self,
             reference_chronicle: ReferenceChronicle,
             value_chronicle: ValueChronicle,
-            min_stn: TemporalNetwork, persistence_assertion_lst: List[ ObjectVarPersistence ],
+            persistence_assertion_lst: List[ ObjectVarPersistence ],
             persistence_update_dict: Dict[ str, int ],
     ) -> bool:
         # localize variables
+        min_stn: TemporalNetwork = value_chronicle.temporal_network
         check_persistence_existing_persistences_safe = self.check_persistence_existing_persistences_safe
         check_persistence_changes_safe = self.check_persistence_changes_safe
         safe_list_update = self.safe_list_update
@@ -338,7 +345,9 @@ class ChronicleInterface():
             updated_index: int = safe_list_update( persistence_value_lst, persistence_assertion_lst, persistence_index )
             # store only the oldest value (allows rollback if failure occurs later in action if multiple calls)
             if k not in persistence_update_dict.keys():
-                persistence_update_dict[ k ] = updated_index
+                persistence_update_dict[ k ] = persistence_index
+            # update with new values
+            persistence_reference_dict[ k ] = updated_index
         return True
 
     # returns true if the negation of the given object var assertion does not exist else False
@@ -475,7 +484,7 @@ class ChronicleInterface():
         # size of update
         update_size = len( update_element_lst )
         # new last valid index
-        last_valid_index = update_start_index + update_size - 1
+        last_valid_index = update_start_index + update_size
         # if list exists at index replace else extend
         current_index = -1
         i = 0
@@ -487,9 +496,30 @@ class ChronicleInterface():
             # in bounds insert into existing spot
             lst[ current_index ] = update_element_lst[ i ]
         if current_index >= lst_size:
-            print( update_element_lst[ i: ] )
             lst.extend( update_element_lst[ i: ] )
         return last_valid_index
+
+    # uses the chronicle update dicts to undo changes by resetting reference chronicle indices and
+    # uses the lists of added nodes, added edges, and removed edges to restore temporal network
+    def rollback(
+            self,
+            reference_chronicle: ReferenceChronicle,
+            value_chronicle: ValueChronicle,
+            change_update_dict: Dict[ str, int ],
+            persistence_update_dict: Dict[ str, int ],
+            node_add_lst: List[ int ],
+            edge_add_lst: List[ NetEdgeInput ],
+            edge_remove_lst: List[ NetEdgeInput ],
+    ):
+        # localize variables
+        min_stn: TemporalNetwork = value_chronicle.temporal_network
+        # restore temporal graph
+        min_stn.restore_graph( node_add_lst, edge_add_lst, edge_remove_lst )
+        # restore changes
+        reference_chronicle.changes.update( change_update_dict )
+        # restore persistences
+        reference_chronicle.persistences.update( persistence_update_dict )
+        return
 
 
 # NEED universal low priority methods for advancing time and choosing next timepoint

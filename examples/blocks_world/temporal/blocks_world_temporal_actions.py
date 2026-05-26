@@ -10,17 +10,11 @@ from ipyhop import Actions, ObjectVarChange, ObjectVarPersistence
 Surface = NewType( "Surface", str )
 Block = NewType( "Block", Surface )
 Table = NewType( "Table", Surface )
-class TemporalBlocksWorldDomainObjects( Protocol ):
-    blocks: List[ Block ]
-    table: Table
-    surfaces: List[ Surface ]
-class TemporalBlocksWorldStateValues( Protocol ):
-    object_var: Dict[ str, List[ ObjectVarChange ] ]
-    # t_now: int
-    t_ordered: List[ int ]
-    t_unordered: List[ int ]
-    persistences: Dict[ str, List[ ObjectVarPersistence ] ]
-    domain_objects: TemporalBlocksWorldDomainObjects
+# class TemporalBlocksWorldDomainObjects( Protocol ):
+#     blocks: List[ Block ]
+#     table: Table
+#     surfaces: List[ Surface ]
+class
 
 actions = Actions()
 
