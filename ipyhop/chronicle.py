@@ -6,12 +6,12 @@ for interfacing with them
 from itertools import groupby
 from typing import Any, Dict, List, Protocol, Tuple, Type
 
-from ipyhop.temporal import NetEdgeInput, TemporalNetwork
+from ipyhop.temporal import NetEdgeInput, TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 
 # type aliases for object variable change and persistence assertions
-type ObjectVarChange = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
-type GenericObjectVarChange = Tuple[ *Tuple[ Any, ... ], bool ]
-type ObjectVarPersistence = Tuple[ int, int, str, *Tuple[ Any, ... ], bool ]
+ObjectVarChange = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
+GenericObjectVarChange = Tuple[ *Tuple[ Any, ... ], bool ]
+ObjectVarPersistence = Tuple[ int, int, str, *Tuple[ Any, ... ], bool ]
 
 
 # skeletons for reference and value chronicles
@@ -58,6 +58,8 @@ class ValueChronicle( Protocol ):
         self.domain_objects = domain_objects
 
 
+# given the reference chronicle and the temporal restoration tuple of the previous node visited, rollback is possible
+RestorationTuple = Tuple[ ReferenceChronicle, TemporalRestorationTuple ]
 '''
 note: we handle time points by integer label rather than temporal value
 state description
@@ -501,25 +503,33 @@ class ChronicleInterface():
 
     # uses the chronicle update dicts to undo changes by resetting reference chronicle indices and
     # uses the lists of added nodes, added edges, and removed edges to restore temporal network
-    def rollback(
+    def restore_chronicle(
             self,
             reference_chronicle: ReferenceChronicle,
             value_chronicle: ValueChronicle,
             change_update_dict: Dict[ str, int ],
             persistence_update_dict: Dict[ str, int ],
-            node_add_lst: List[ int ],
-            edge_add_lst: List[ NetEdgeInput ],
-            edge_remove_lst: List[ NetEdgeInput ],
+            temporal_rest_tuple: TemporalRestorationTuple,
     ):
         # localize variables
         min_stn: TemporalNetwork = value_chronicle.temporal_network
         # restore temporal graph
-        min_stn.restore_graph( node_add_lst, edge_add_lst, edge_remove_lst )
+        min_stn.restore_graph( *temporal_rest_tuple )
         # restore changes
         reference_chronicle.changes.update( change_update_dict )
         # restore persistences
         reference_chronicle.persistences.update( persistence_update_dict )
         return
+
+    # pass through to temporal module to add temporal constraints
+    def add_temporal_constraints_from(
+            self, value_chronicle: ValueChronicle, new_edge_lst: List[ TemporalConstraint ],
+    ) -> Tuple[ bool, List[ int ], List[ NetEdgeInput ], List[ NetEdgeInput ] ]:
+        return value_chronicle.temporal_network.add_temporal_constraints_from( new_edge_lst )
+
+    # pass through to temporal module to get time point labels
+    def get_n_new_time_point_labels(self, value_chronicle: ValueChronicle, n: int) -> List[ int ]:
+        return value_chronicle.temporal_network.get_n_new_time_point_labels( n )
 
 
 # NEED universal low priority methods for advancing time and choosing next timepoint

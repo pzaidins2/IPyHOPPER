@@ -14,6 +14,12 @@ NetEdgeInput = Tuple[int,int,Dict[str,int]]
 TemporalConstraint = Tuple[int,str,int,int]
 # test constraint (x,@,y,z) = x @ y + z
 
+# type alias for tuple containing everything for temporal graph restoration
+# (node_add_lst: List[ int ],
+#  edge_add_lst: List[ NetEdgeInput ],
+#  edge_remove_lst: List[ NetEdgeInput ], )
+TemporalRestorationTuple = Tuple[ List[ int ], List[ NetEdgeInput ], List[ NetEdgeInput ] ]
+
 # class for representing and manipulating temporal networks
 class TemporalNetwork:
     # initialize empty minimal temporal network, a node -1 and -2 are generated corresponding to the first and last
@@ -28,6 +34,7 @@ class TemporalNetwork:
             raise ValueError("Maximum time point value must be greater than minimum time point value")
         self.t_min = t_min
         self.t_max = t_max
+        self.last_time_point_label = -1
 
     # returns True if tp_0 cannot be greater than or equal to tp_1
     def is_strictly_less_than(self, tp_0: int, tp_1: int) -> bool:
@@ -174,9 +181,10 @@ class TemporalNetwork:
         min_stn.add_edges_from( [updated_edge] )
         edge_add_lst.append( updated_edge )
         # iterate over all node triplets (i,j,k) such that i < k, i != j, j != k
-        for j in sorted( min_stn.nodes ):
-            for i in sorted( filter( lambda x: x != j, min_stn.nodes ) ):
-                for k in sorted( filter( lambda x: x > i and x != j, min_stn.nodes) ):
+        nodes: List[ int ] = [ *min_stn.nodes ]
+        for j in sorted( nodes ):
+            for i in sorted( filter( lambda x: x != j, nodes ) ):
+                for k in sorted( filter( lambda x: x > i and x != j, nodes ) ):
                     # get each edge
                     # tail - tail, composing
                     edge_ij = find_edge( i, j )
@@ -198,6 +206,7 @@ class TemporalNetwork:
                         continue
                     # edge has constricted, add old edge to remove list, and new edge list to add list
                     else:
+                        updated_edge_ik: NetEdgeInput
                         standardized_updated_edge_ik = standardize_edge(updated_edge_ik)
                         if edge_ik is not None:
                             standardized_edge_ik = standardize_edge(edge_ik)
@@ -307,7 +316,16 @@ class TemporalNetwork:
             }
             return (node_1, node_0, edge_dict)
 
-
+    # get n time point labels that have not been used
+    def get_n_new_time_point_labels(self, n: int) -> List[ int ]:
+        last_time_point_label = self.last_time_point_label + n + 1
+        new_time_point_label_lst = [
+            *range(
+                    self.last_time_point_label + 1,
+                    last_time_point_label,
+            ),
+        ]
+        return new_time_point_label_lst
 """
 Author(s): Paul Zaidins
 Repository: https://github.com/pzaidins2/IPyHOPPER.git
