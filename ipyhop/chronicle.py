@@ -4,7 +4,7 @@ File Description: gives protocol for references and values in chronicles and fun
 for interfacing with them
 """
 from itertools import groupby
-from typing import Any, Dict, List, Protocol, Tuple, Type
+from typing import Any, Dict, List, Protocol, Tuple, Type, Union
 
 from ipyhop.temporal import NetEdgeInput, TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 
@@ -210,6 +210,54 @@ class ChronicleInterface():
     #         return True
     #     else:
     #         return False
+
+    # combine add_changes, add_persistences, and add_temporal_constraints_from into single function call
+    # defaults to empty change and persistence dicts and temporal restoration tuple
+    # if non-empty will restore all built up changes in these
+    # if all changes succeed will have updated restoration data structures and returns True
+    # if any change fails will rollback everything (including preexisting changes in restoration data structures)
+    def update_chronicle(
+            self,
+            reference_chronicle: ReferenceChronicle,
+            value_chronicle: ValueChronicle,
+            change_assertion_lst: List[ ObjectVarChange ],
+            persistence_assertion_lst: List[ ObjectVarPersistence ],
+            temporal_constraint_lst: List[ TemporalConstraint ],
+            change_update_dict: Union[ Dict[ str, int ], None ] = None,
+            persistence_update_dict: Union[ Dict[ str, int ], None ] = None,
+            temporal_restoration_tup: Union[ TemporalRestorationTuple, None ] = None,
+    ):
+        # handle optional args
+        change_update_dict: Dict[ str, int ] = { } if change_update_dict is None else change_update_dict
+        persistence_update_dict: Dict[ str, int ] = { } if persistence_update_dict is None else persistence_update_dict
+        temporal_restoration_tup: TemporalRestorationTuple = (
+            [ ], [ ], [ ],
+        ) if temporal_restoration_tup is None else temporal_restoration_tup
+        # add temporal constraints
+        temporal_success, *current_temporal_restoration_tup = self.add_temporal_constraints_from(
+                value_chronicle, temporal_constraint_lst,
+        )
+        # add to restoration tuple
+        for i in range( 3 ):
+            temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
+        if temporal_success:
+            # add persistence assertions
+            if self.add_persistences(
+                    reference_chronicle, value_chronicle,
+                    persistence_assertion_lst, persistence_update_dict,
+            ):
+                # add change assertions
+                if self.add_changes(
+                        reference_chronicle, value_chronicle,
+                        change_assertion_lst, change_update_dict,
+                ):
+                    return True
+        # if any alterations fail, rollback everything
+        self.restore_chronicle(
+                reference_chronicle, value_chronicle, change_update_dict, persistence_update_dict,
+                temporal_restoration_tup,
+        )
+        return False
 
     # add list of change assertions to the state values and update indices as needed
     # terminate without altering state values if any change assertion would fail

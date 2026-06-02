@@ -8,7 +8,7 @@ File Description: temporal variant of blocksworld domain. Actions have duration 
 from typing import Any, Callable, Dict, Iterator, List, NewType, Tuple, Union
 
 from ipyhop import (ChronicleInterface, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, RestorationTuple,
-    TemporalNetwork, ValueChronicle)
+    TemporalConstraint, TemporalNetwork, ValueChronicle)
 
 # NEEDS TO BE EXPANDED, PLACEHOLDER FOR TYPE CHECKING
 # placeholder for temporal goal which is specified as timepoint and a predicate with its args
@@ -22,14 +22,14 @@ TemporalSingletonAction = Tuple[ int, List[ Tuple[ str, *Tuple[ Any, ... ], bool
 # middle level of hierarchy, corresponds to formalism actions
 # function given reference and value chronicles and a temporal goal (t,...) returns a list of
 # singleton actions (with restoration tuple) that will make said goal true at t
-TemporalActionOutput = Tuple[ RestorationTuple, List[ TemporalSingletonAction ] ]
+TemporalActionOutput = Union[ Tuple[ RestorationTuple, List[ TemporalSingletonAction ] ], None ]
 TemporalAction = Callable[
     [ ReferenceChronicle, ValueChronicle, TemporalGoal, ... ], List[ TemporalActionOutput ] ]
 # highest level of hierarchy, corresponds to formalism methods
 # function given reference and value chronicles and a temporal goal (t,...) returns a itertator
 # that returns all valid bindings one at a time  as a list of
 # temporal goals and or singleton actions (with restoration tuple)
-TemporalMethodOutput = Tuple[ RestorationTuple, List[ Union[ TemporalGoal, TemporalSingletonAction ] ] ]
+TemporalMethodOutput = Union[ Tuple[ RestorationTuple, List[ Union[ TemporalGoal, TemporalSingletonAction ] ] ], None ]
 TemporalMethod = Callable[
     [ ReferenceChronicle, ValueChronicle, TemporalGoal, ... ], Iterator[ List[ TemporalActionOutput ] ] ]
 
@@ -96,66 +96,25 @@ CI = ChronicleInterface()
 # tga_move_block_to_table_start does nothing
 # tga_move_block_to_table_end adds new change assertion
 
-# # does nothing
-# def tga_move_block_to_table_start(
-#         reference_chronicle: BlocksWorldReferenceChronicle,
-#         value_chronicle: BlocksWorldValueChronicle,
-# ) -> Union[ RestorationTuple, None ]:
-#     return (reference_chronicle, ([ ], [ ], [ ]))
+# action for moving block from being on block start_pos to the table
+def move_block_to_table(
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+        t_goal: TemporalGoal, block: Block, start_pos: Block,
+):
+    # localize variables
+    t_e, *goal = t_goal
+    table: Table = value_chronicle.domain_objects[ "table" ][ 0 ]
+    min_stn: TemporalNetwork = value_chronicle.temporal_network
+    t_s: int = min_stn.get_n_new_time_point_labels( 1 )[ 0 ]
+    change_assertion_lst: List[ ObjectVarChange ] = [
+        (t_e, "on", block, start_pos, False),
+        (t_e, "on", block, table, True),
+    ]
+    persistence_assertion_lst: List[ ObjectVarPersistence ] = [ ]
+    temporal_constraint_lst: List[ TemporalConstraint ] = [
+        (t_e, "==", t_s, 1),
+    ]
 
-
-# # move block from start_pos to the table at t_end
-# def tgs_move_block_to_table_end(
-#         reference_chronicle: BlocksWorldReferenceChronicle,
-#         value_chronicle: BlocksWorldValueChronicle,
-#         temporal_goal: TemporalGoal,
-#         block: Block,
-#         start_pos: Block,
-# ) -> Union[ ActionMethodOutput, None ]:
-#     (t_end, *goal) = temporal_goal
-#     change_assertion_lst = [
-#         (t_end, "is_on", block, start_pos, False),
-#         (t_end, "is_on", block, value_chronicle.domain_objects[ "table" ][ 0 ], True),
-#     ]
-#     change_update_dict: Dict[ str, int ] = { }
-#     success_flag = CI.add_changes(
-#             reference_chronicle, value_chronicle, change_assertion_lst, change_update_dict,
-#     )
-#     if success_flag:
-#         return ((reference_chronicle, ([ ], [ ], [ ])), [ ])
-#
-#     CI.restore_chronicle(
-#             reference_chronicle, value_chronicle,
-#             change_update_dict, { }, ([ ], [ ], [ ]),
-#     )
-#
-#
-# # corresponds to pseudoaction move_block_to_block
-# # # moves block from start_pos to end_pos
-# # def tga_move_block_to_block_start( reference_chronicle: BlocksWorldReferenceChronicle,)
-# #     return (reference_chronicle, ([ ], [ ], [ ]))
-#
-# # move block from start_pos to end_pos at t_end
-# def tgs_move_block_to_block_end(
-#         reference_chronicle: BlocksWorldReferenceChronicle,
-#         value_chronicle: BlocksWorldValueChronicle,
-#         t_end: int,
-#         block: Block,
-#         start_pos: Surface,
-#         end_pos: Block,
-# ) -> Union[ ActionMethodOutput, None ]:
-#     change_assertion_lst = [
-#         (t_end, "is_on", block, start_pos, False),
-#         (t_end, "is_on", block, end_pos, True),
-#     ]
-#     change_update_dict: Dict[ str, int ] = { }
-#     if CI.add_changes( reference_chronicle, value_chronicle, change_assertion_lst, { } ):
-#         return ((reference_chronicle, ([ ], [ ], [ ])), [ ])
-#
-#     CI.restore_chronicle(
-#             reference_chronicle, value_chronicle,
-#             change_update_dict, { }, ([ ], [ ], [ ]),
-#     )
 
 # NEED temporal extension of actions
 # actions = Actions()
