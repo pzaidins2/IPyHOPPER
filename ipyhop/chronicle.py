@@ -226,7 +226,7 @@ class ChronicleInterface():
             change_update_dict: Union[ Dict[ str, int ], None ] = None,
             persistence_update_dict: Union[ Dict[ str, int ], None ] = None,
             temporal_restoration_tup: Union[ TemporalRestorationTuple, None ] = None,
-    ):
+    ) -> bool:
         # handle optional args
         change_update_dict: Dict[ str, int ] = { } if change_update_dict is None else change_update_dict
         persistence_update_dict: Dict[ str, int ] = { } if persistence_update_dict is None else persistence_update_dict
