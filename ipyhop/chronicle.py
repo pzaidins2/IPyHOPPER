@@ -234,8 +234,16 @@ class ChronicleInterface():
             [ ], [ ], [ ],
         ) if temporal_restoration_tup is None else temporal_restoration_tup
         # add temporal constraints
+        # intervals on new persistences imply,temporal constraints so add those
+        # get unique members, should be order preserving for Python 3.7+
+        unique_interval_tup_lst: List[ Tuple[ int, int ] ] = [ (x[ 0 ], x[ 1 ]) for x in persistence_assertion_lst ]
+        unique_interval_tup_lst = list( dict.fromkeys( unique_interval_tup_lst ) )
+        persistence_temporal_constraint_lst: List[ TemporalConstraint ] = [
+            (x[ 0 ], "<=", x[ 1 ], 0) for x in persistence_assertion_lst
+        ]
+        # add temporal cosntraints included those from implied intervals
         temporal_success, *current_temporal_restoration_tup = self.add_temporal_constraints_from(
-                value_chronicle, temporal_constraint_lst,
+                value_chronicle, temporal_constraint_lst + persistence_temporal_constraint_lst,
         )
         # add to restoration tuple
         for i in range( 3 ):

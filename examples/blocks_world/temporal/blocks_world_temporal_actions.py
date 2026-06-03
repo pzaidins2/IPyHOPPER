@@ -20,25 +20,30 @@ TemporalGoal = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
 # extra layer helps with concurrent nature of temporal planning
 TemporalSingletonAction = Tuple[ int, List[ ObjectVarChange ] ]
 # middle level of hierarchy, corresponds to formalism actions
-# function given reference and value chronicles and a temporal goal (t,...) returns a list of
-# singleton actions (with restoration tuple) that will make said goal true at t
+# function given reference and value chronicles and temporal action call
+# and returns a tuple with restoration tuple and list of singleton actions if valid ones exist otherwise returns None
 TemporalActionOutput = Union[ Tuple[ RestorationTuple, List[ TemporalSingletonAction ] ], None ]
-TemporalAction = Callable[
-    [ ReferenceChronicle, ValueChronicle, TemporalGoal, ... ], List[ TemporalActionOutput ] ]
-# highest level of hierarchy, corresponds to formalism methods
-# function given reference and value chronicles and a temporal goal (t,...) returns a itertator
-# that returns all valid bindings one at a time  as a list of
-# temporal goals and or singleton actions (with restoration tuple)
-TemporalMethodOutput = Union[ Tuple[ RestorationTuple, List[ Union[ TemporalGoal, TemporalSingletonAction ] ] ], None ]
-TemporalMethod = Callable[
-    [ ReferenceChronicle, ValueChronicle, TemporalGoal, ... ], Iterator[ List[ TemporalActionOutput ] ] ]
+TemporalActionCall = Tuple[ Any, ... ]
+TemporalAction = Callable[ [ ReferenceChronicle, RestorationTuple, ... ],
+TemporalActionOutput ]
 
+# highest level of hierarchy, corresponds to formalism methods
+# function given reference and value chronicles and (a temporal goal (t,...) or method call)
+# gives an iterator that yields valid pairs of restoration tuples and sublists with temporal goals or
+# action calls
+TemporalMethodOutput = Union[
+    List[ Tuple[ RestorationTuple, List[ Union[ TemporalGoal, TemporalActionCall ] ] ] ], None ]
+
+TemporalMethod = Callable[
+    [ ReferenceChronicle, ValueChronicle, TemporalGoal, ... ],
+    Iterator[ Tuple[ RestorationTuple, TemporalMethodOutput ] ], ]
 
 # domain typing
 Surface = NewType( "Surface", str )
 Block = NewType( "Block", Surface )
 Table = NewType( "Table", Surface )
-
+IsOnGoal = Tuple[ int, str, Block, Surface, bool ]
+ClearGoal = Tuple[ int, str, Surface, bool ]
 
 # # take change assertion list and turn into singleton action list
 # def change_assertion_lst_to_singleton_action_lst(
@@ -115,12 +120,13 @@ CI = ChronicleInterface()
 # tga_move_block_to_table_end adds new change assertion
 
 # action for moving block from being on block start_pos to the table
+MoveBlockToTableCall = Tuple[ str, IsOnGoal, Block, Block ]
 def move_block_to_table(
         reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-        t_goal: TemporalGoal, block: Block, start_pos: Block,
+        temporal_goal: TemporalGoal, block: Block, start_pos: Block,
 ) -> TemporalActionOutput:
     # localize variables
-    t_e, *goal = t_goal
+    t_e, *goal = temporal_goal
     table: Table = value_chronicle.domain_objects[ "table" ][ 0 ]
     min_stn: TemporalNetwork = value_chronicle.temporal_network
     t_s: int = min_stn.get_n_new_time_point_labels( 1 )[ 0 ]
@@ -130,7 +136,9 @@ def move_block_to_table(
         (t_e, "is_on", block, table, True),
     ]
     # persistence assertions
-    persistence_assertion_lst: List[ ObjectVarPersistence ] = [ ]
+    persistence_assertion_lst: List[ ObjectVarPersistence ] = [
+        (t_s, t_e, "clear", block, True),
+    ]
     # temporal assertions
     temporal_constraint_lst: List[ TemporalConstraint ] = [
         (t_e, "==", t_s, 1),
@@ -151,13 +159,13 @@ def move_block_to_table(
 
 
 # action for moving block from being on block start_pos to block end_pos
+MoveBlockToBlockCall = Tuple[ str, IsOnGoal, Block, Surface, Block ]
 def move_block_to_block(
         reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-        t_goal: TemporalGoal, block: Block, start_pos: Surface, end_pos: Block,
+        temporal_goal: TemporalGoal, block: Block, start_pos: Surface, end_pos: Block,
 ) -> TemporalActionOutput:
     # localize variables
-    t_e, *goal = t_goal
-    table: Table = value_chronicle.domain_objects[ "table" ][ 0 ]
+    t_e, *goal = temporal_goal
     min_stn: TemporalNetwork = value_chronicle.temporal_network
     t_s: int = min_stn.get_n_new_time_point_labels( 1 )[ 0 ]
     # change assertions
