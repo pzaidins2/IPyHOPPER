@@ -13,15 +13,16 @@ from typing import List, Optional, Tuple, Union
 from networkx import DiGraph, descendants, dfs_preorder_nodes, is_tree
 
 from ipyhop.actions import Actions
-from ipyhop.chronicle import ReferenceChronicle, RestorationTuple, ValueChronicle
+from ipyhop.chronicle import ChronicleInterface, ReferenceChronicle, RestorationTuple, ValueChronicle
 from ipyhop.methods import Methods
 from ipyhop.mulitgoal import MultiGoal
 from ipyhop.state import State
 from ipyhop.temporal import TemporalRestorationTuple
-from ipyhop.temporal_actions import TemporalActionOutput, TemporalActions, TemporalSingletonAction
-from ipyhop.temporal_methods import TemporalMethods
+from ipyhop.temporal_actions import TemporalActionCall, TemporalActionOutput, TemporalActions, TemporalGoal, \
+    TemporalSingletonAction
+from ipyhop.temporal_methods import TemporalMethodOutput, TemporalMethods
 
-
+CI = ChronicleInterface()
 # ******************************************    Class Declaration Start     ****************************************** #
 class IPyHOP(object):
     """
@@ -114,9 +115,10 @@ class IPyHOP(object):
                     value_chronicle is not None,
                 ],
         )
+        self.value_chronicle = value_chronicle
         if how_many_temporal == 3:
             self.is_temporal = True
-            self.value_chronicle = value_chronicle
+
         # catch case of mixed temporal and atemporal
         elif how_many_temporal > 0 and how_many_temporal < 3:
             raise (TypeError(
@@ -279,9 +281,22 @@ class IPyHOP(object):
                 # If current node is a Goal
                 elif curr_node['type'] == 'G':
                     subgoals = None
-                    state_var, arg, desired_val = curr_node_info
+
                     # Skip goal refinement if already achieved
-                    if self.state.__dict__[state_var][arg] == desired_val:
+                    # if temporal, check that the state as of t_now would meet this goal
+                    goal_done = False
+                    if is_temporal:
+                        temporal_goal = curr_node_info
+                        if value_chronicle is not None and CI.verify_object_assertion(
+                                self.state.copy(),
+                                value_chronicle, temporal_goal,
+                        ):
+                            goal_done = True
+                    else:
+                        state_var, arg, desired_val = curr_node_info
+                        if self.state.__dict__[ state_var ][ arg ] == desired_val:
+                            goal_done = True
+                    if goal_done:
                         curr_node['status'] = 'C'
                         subgoals = []
                         if self._verbose > 2:
@@ -290,10 +305,30 @@ class IPyHOP(object):
                         # If methods are available for refining the goal, use them.
                         for method in curr_node['available_methods']:
                             curr_node['selected_method'] = method
-                            subgoals = method(self.state, *curr_node_info[1:])
+                            subgoals = None
+                            # adjust for temporal goal output and save info for back tracking
+                            if is_temporal:
+                                temporal_method_output: TemporalMethodOutput = method(
+                                        self.state.copy(), value_chronicle, *curr_node_info[ 2: ],
+                                )
+                                if temporal_method_output is not None:
+                                    restoration_tup: RestorationTuple = temporal_method_output[ 0 ]
+                                    reference_chronicle: ReferenceChronicle = restoration_tup[ 0 ]
+                                    temporal_restoration_tup: TemporalRestorationTuple = restoration_tup[ 1 ]
+                                    # these will handle temporal network rollback
+                                    curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
+                                    # this will handle object change and persistence rollback
+                                    if reference_chronicle is not None:
+                                        curr_node[ 'status' ] = 'C'
+                                        self.state.update( reference_chronicle )
+                                        subgoals: List[ Union[ TemporalGoal, TemporalActionCall ] ] = \
+                                            temporal_method_output[
+                                                1 ]
+                            else:
+                                subgoals = method( self.state, *curr_node_info[ 1: ] )
                             if subgoals is not None:
                                 curr_node['status'] = 'C'
-                                _id = self._add_nodes_and_edges(_id, curr_node_id, subgoals)
+                                _id = self._add_nodes_and_edges( _id, curr_node_id, subgoals )  # type: ignore
                                 parent_node_id = curr_node_id
                                 if self._verbose > 2:
                                     print('Iteration {}, Goal {} successfully refined'.format(

@@ -150,66 +150,66 @@ class ChronicleInterface():
         )
         return reference_chronicle, value_chronicle
 
-    # # given state specified by reference_chronicle and value_chronicle find whether change_assertion
-    # # is true
-    # # this requires the assertion hold at a time point no later than the change_assertion
-    # # and a negation does not exist between those time points
-    # # can only be done for time points in t_ordered as we can only add change assertions to members of t_ordered
-    # def verify_object_assertion(
-    #         self,
-    #         reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-    #         change_assertion: ObjectVarChange, t_ordered: List[ int ]
-    # ):
-    #     # object variable assertion without time
-    #     generic_assertion: GenericObjectVarChange = change_assertion[ 2: ]
-    #     # object variable assertion negated
-    #     negated_generic_assertion: GenericObjectVarChange = (
-    #         *generic_assertion[ :-1 ], not (generic_assertion[ -1 ]),
-    #     )
-    #     # predicate to search
-    #     predicate_label: str = change_assertion[ 1 ]
-    #     # relevant assertions
-    #     valid_idx: int = reference_chronicle.changes[ predicate_label ] + 1
-    #     search_lst: List[ ObjectVarChange ] = value_chronicle.changes[ predicate_label ][
-    #         :valid_idx ]
-    #     # time of verifying assertion
-    #     t_verify: int = change_assertion[ 0 ]
-    #     # find latest time point in yes_lst and no_lst no later than t_verify
-    #     # order time points
-    #     t_verify_index = t_ordered.index( t_verify )
-    #     # get all matches for time points no later than the assertion to verify
-    #     yes_lst: List[ ObjectVarChange ] = [
-    #         *filter(
-    #                 lambda x: x[ 2: ] == generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
-    #                 search_lst,
-    #         ),
-    #     ]
-    #     # negated matches for time points no later than the assertion to verify
-    #     no_lst: List[ ObjectVarChange ] = [
-    #         *filter(
-    #                 lambda x: x[ 2: ] == negated_generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
-    #                 search_lst,
-    #         ),
-    #     ]
-    #     # if yes_lst has any members and no_lst doesn't then True
-    #     if len( yes_lst ) > 0 and len( no_lst ) == 0:
-    #         return True
-    #     # if no_lst has any member and yes_lst doesn't then False
-    #     if len( yes_lst ) == 0 and len( no_lst ) > 0:
-    #         return False
-    #     # if both lists are empty False is the bool val
-    #     if len( yes_lst ) == 0 and len( no_lst ) == 0:
-    #         return not (change_assertion[ -1 ])
-    #     # find last occurrence of match and negation
-    #     last_yes: ObjectVarChange = max( yes_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
-    #     last_no: ObjectVarChange = max( no_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
-    #     # later one to occur is the value we want
-    #     last_yes_time_point: int = last_yes[ 0 ]
-    #     last_no_time_point: int = last_no[ 0 ]
-    #     if t_ordered.index( last_yes_time_point ) > t_ordered.index( last_no_time_point ):
-    #         return True
-    #     else:
-    #         return False
+    # given state specified by reference_chronicle and value_chronicle find whether change_assertion
+    # is true
+    # this requires the assertion hold at a time point no later than the change_assertion
+    # and a negation does not exist between those time points
+    # can only be done for time points in t_ordered as we can only add change assertions to members of t_ordered
+    def verify_object_assertion(
+            self,
+            reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+            change_assertion: ObjectVarChange,
+    ):
+        # object variable assertion without time
+        generic_assertion: GenericObjectVarChange = change_assertion[ 2: ]
+        # object variable assertion negated
+        negated_generic_assertion: GenericObjectVarChange = (
+            *generic_assertion[ :-1 ], not (generic_assertion[ -1 ]),
+        )
+        # predicate to search
+        predicate_label: str = change_assertion[ 1 ]
+        # relevant assertions
+        valid_idx: int = reference_chronicle.changes[ predicate_label ] + 1
+        search_lst: List[ ObjectVarChange ] = value_chronicle.changes[ predicate_label ][
+            :valid_idx ]
+        # time of verifying assertion
+        t_verify: int = change_assertion[ 0 ]
+        # find latest time point in yes_lst and no_lst no later than t_verify
+        # order time points
+        t_verify_index = t_ordered.index( t_verify )
+        # get all matches for time points no later than the assertion to verify
+        yes_lst: List[ ObjectVarChange ] = [
+            *filter(
+                    lambda x: x[ 2: ] == generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
+                    search_lst,
+            ),
+        ]
+        # negated matches for time points no later than the assertion to verify
+        no_lst: List[ ObjectVarChange ] = [
+            *filter(
+                    lambda x: x[ 2: ] == negated_generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
+                    search_lst,
+            ),
+        ]
+        # if yes_lst has any members and no_lst doesn't then True
+        if len( yes_lst ) > 0 and len( no_lst ) == 0:
+            return True
+        # if no_lst has any member and yes_lst doesn't then False
+        if len( yes_lst ) == 0 and len( no_lst ) > 0:
+            return False
+        # if both lists are empty False is the bool val
+        if len( yes_lst ) == 0 and len( no_lst ) == 0:
+            return not (change_assertion[ -1 ])
+        # find last occurrence of match and negation
+        last_yes: ObjectVarChange = max( yes_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
+        last_no: ObjectVarChange = max( no_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
+        # later one to occur is the value we want
+        last_yes_time_point: int = last_yes[ 0 ]
+        last_no_time_point: int = last_no[ 0 ]
+        if t_ordered.index( last_yes_time_point ) > t_ordered.index( last_no_time_point ):
+            return True
+        else:
+            return False
 
     # combine add_changes, add_persistences, and add_temporal_constraints_from into single function call
     # defaults to empty change and persistence dicts and temporal restoration tuple
