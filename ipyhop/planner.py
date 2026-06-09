@@ -4,15 +4,21 @@ File Description: File used for definition of IPyHOP Class.
 """
 
 # ******************************************    Libraries to be imported    ****************************************** #
-from __future__ import print_function, division
-from itertools import count
-from typing import List, Tuple, Union, Optional
-from ipyhop.methods import Methods
-from ipyhop.actions import Actions
-from ipyhop.state import State
-from ipyhop.mulitgoal import MultiGoal
-from networkx import DiGraph, dfs_preorder_nodes, descendants, is_tree
+from __future__ import division, print_function
+
 from copy import deepcopy
+from itertools import count
+from typing import List, Optional, Tuple, Union
+
+from networkx import DiGraph, descendants, dfs_preorder_nodes, is_tree
+
+from ipyhop.actions import Actions
+from ipyhop.methods import Methods
+from ipyhop.mulitgoal import MultiGoal
+from ipyhop.state import State
+from ipyhop.temporal import TemporalRestorationTuple
+from ipyhop.temporal_actions import TemporalActions
+from ipyhop.temporal_methods import TemporalMethods
 
 
 # ******************************************    Class Declaration Start     ****************************************** #
@@ -332,10 +338,21 @@ class IPyHOP(object):
                                        selected_method=None, available_methods=iter(relevant_methods),
                                        methods=relevant_methods, tag='new')
                 self.sol_tree.add_edge(parent_node_id, _id)
+                # if temporal, make spot for temporal restoration tuple
+                # this will be used to restore temporal network during back tracking
+                if isinstance( self.actions, TemporalMethods ):
+                    self.sol_tree.nodes[ _id ][ "temporal_restoration_tuple" ]: Union[
+                        None, TemporalRestorationTuple ] = None
             elif child_node_info[0] in self.actions.action_dict:
                 action = self.actions.action_dict[child_node_info[0]]
                 self.sol_tree.add_node(_id, info=child_node_info, type='A', status='O', action=action, tag='new')
                 self.sol_tree.add_edge(parent_node_id, _id)
+                # if temporal, make spot for temporal restoration tuple
+                # this will be used to restore temporal network during back tracking
+                if isinstance( self.actions, TemporalActions ):
+                    self.sol_tree.nodes[ _id ][ "temporal_restoration_tuple" ]: Union[
+                        None, TemporalRestorationTuple ] = None
+
             elif child_node_info[0] in self.methods.goal_method_dict:
                 relevant_methods = self.methods.goal_method_dict[child_node_info[0]]
                 self.sol_tree.add_node(_id, info=child_node_info, type='G', status='O', state=None,
