@@ -6,9 +6,10 @@ from itertools import product
 from typing import Iterator, List, Union, cast
 
 from blocks_world_temporal_actions import (Block, ClearGoal, IsOnGoal, MoveBlockToBlockCall, MoveBlockToTableCall,
-    Surface, Table, TemporalActionCall, TemporalGoal, TemporalMethodOutput)
+    Surface, Table, )
 from ipyhop import (ChronicleInterface, Methods, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle,
-    RestorationTuple, TemporalConstraint, TemporalNetwork, TemporalRestorationTuple, ValueChronicle)
+    RestorationTuple, TemporalActionCall, TemporalConstraint, TemporalGoal, TemporalMethodOutput, TemporalNetwork,
+    TemporalRestorationTuple, ValueChronicle)
 
 methods = Methods()
 
@@ -151,7 +152,7 @@ def tgm_clear_block(
                     action_call,
                 ]
                 restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
-                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)
                 yield method_output
 
 
@@ -197,7 +198,7 @@ if __name__ == '__main__':
     raise NotImplementedError("Test run / Demo routine for Temporal Blocks World not implemented.")
 
 """
-Author(s): Paul Zzaidins
+Author(s): Paul Zaidins
 Repository: https://github.com/pzaidins2/IPyHOPPER.git
 Organization: University of Maryland at College Park
 """

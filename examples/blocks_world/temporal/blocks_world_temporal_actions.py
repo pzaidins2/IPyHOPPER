@@ -5,38 +5,11 @@ File Description: temporal variant of blocksworld domain. Actions have duration 
 """
 from itertools import groupby
 # from __future__ import annotations
-from typing import Any, Callable, Dict, Iterator, List, NewType, Tuple, Union
+from typing import Dict, List, NewType, Tuple
 
 from ipyhop import (ChronicleInterface, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, RestorationTuple,
-    TemporalConstraint, TemporalNetwork, TemporalRestorationTuple, ValueChronicle)
-
-# NEEDS TO BE EXPANDED, PLACEHOLDER FOR TYPE CHECKING
-# placeholder for temporal goal which is specified as timepoint and a predicate with its args
-# and the bool value it should evaluate to at that timepoint
-TemporalGoal = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
-# lowest level of method-action hierarchy that declares that a list of predicate-arg-bools happens
-# at the timepoint, no logic/search when IPyHOPPER reads this it checks that no contradictions
-# are introduced
-# extra layer helps with concurrent nature of temporal planning
-TemporalSingletonAction = Tuple[ int, List[ ObjectVarChange ] ]
-# middle level of hierarchy, corresponds to formalism actions
-# function given reference and value chronicles and temporal action call
-# and returns a tuple with restoration tuple and list of singleton actions if valid ones exist otherwise returns None
-TemporalActionOutput = Union[ Tuple[ RestorationTuple, List[ TemporalSingletonAction ] ], None ]
-TemporalActionCall = Tuple[ Any, ... ]
-TemporalAction = Callable[ [ ReferenceChronicle, RestorationTuple, ... ],
-TemporalActionOutput ]
-
-# highest level of hierarchy, corresponds to formalism methods
-# function given reference and value chronicles and (a temporal goal (t,...) or method call)
-# gives an iterator that yields valid pairs of restoration tuples and sublists with temporal goals or
-# action calls
-TemporalMethodOutput = Union[
-    List[ Tuple[ RestorationTuple, List[ Union[ TemporalGoal, TemporalActionCall ] ] ] ], None ]
-
-TemporalMethod = Callable[
-    [ ReferenceChronicle, ValueChronicle, TemporalGoal, ... ],
-    Iterator[ Tuple[ RestorationTuple, TemporalMethodOutput ] ], ]
+    TemporalActionOutput, TemporalConstraint, TemporalGoal, TemporalNetwork, TemporalRestorationTuple,
+    TemporalSingletonAction, ValueChronicle)
 
 # domain typing
 Surface = NewType( "Surface", str )
