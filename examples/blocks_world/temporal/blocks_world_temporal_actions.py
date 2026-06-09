@@ -95,14 +95,12 @@ CI = ChronicleInterface()
 # action for moving block from being on block start_pos to the table
 MoveBlockToTableCall = Tuple[ str, IsOnGoal, Block, Block ]
 def move_block_to_table(
-        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, t_s: int,
         temporal_goal: TemporalGoal, block: Block, start_pos: Block,
 ) -> TemporalActionOutput:
     # localize variables
     t_e, *goal = temporal_goal
     table: Table = value_chronicle.domain_objects[ "table" ][ 0 ]
-    min_stn: TemporalNetwork = value_chronicle.temporal_network
-    t_s: int = min_stn.get_n_new_time_point_labels( 1 )[ 0 ]
     # change assertions
     change_assertion_lst: List[ ObjectVarChange ] = [
         (t_e, "is_on", block, start_pos, False),
@@ -134,13 +132,11 @@ def move_block_to_table(
 # action for moving block from being on block start_pos to block end_pos
 MoveBlockToBlockCall = Tuple[ str, IsOnGoal, Block, Surface, Block ]
 def move_block_to_block(
-        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, t_s: int,
         temporal_goal: TemporalGoal, block: Block, start_pos: Surface, end_pos: Block,
 ) -> TemporalActionOutput:
     # localize variables
     t_e, *goal = temporal_goal
-    min_stn: TemporalNetwork = value_chronicle.temporal_network
-    t_s: int = min_stn.get_n_new_time_point_labels( 1 )[ 0 ]
     # change assertions
     change_assertion_lst: List[ ObjectVarChange ] = [
         (t_e, "is_on", block, start_pos, False),

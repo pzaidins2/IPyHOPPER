@@ -21,11 +21,15 @@ TemporalGoal = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
 # extra layer helps with concurrent nature of temporal planning
 TemporalSingletonAction = Tuple[ int, List[ ObjectVarChange ] ]
 # middle level of hierarchy, corresponds to formalism actions
-# function given reference and value chronicles and temporal action call
+# the first 3 parameters must be as follows
+# 0: the reference chronicle (which will recieve the state deepcopy treatment)
+# 1: the value chronicle (which will be passed by reference and uses the reference chronicle to note current
+# list start and ends)
+# 2: the label of the earliest time point needed for the action
 # and returns a tuple with restoration tuple and list of singleton actions if valid ones exist otherwise returns None
 TemporalActionOutput = Union[ Tuple[ RestorationTuple, List[ TemporalSingletonAction ] ], None ]
 TemporalActionCall = Tuple[ Any, ... ]
-TemporalAction = Callable[ [ ReferenceChronicle, RestorationTuple, ... ],
+TemporalAction = Callable[ [ ReferenceChronicle, RestorationTuple, int, ... ],
 TemporalActionOutput ]
 
 

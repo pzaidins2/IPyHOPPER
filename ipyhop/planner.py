@@ -50,6 +50,28 @@ class IPyHOP(object):
 
         self._verbose = 0
 
+        # temporal planning additions
+        # temporal planning can't use tree dfs ordering
+        # if temporal, when node is visited add to the list
+        # during back tracking, use the list to determine which node to go to
+        self.node_id_visit_order: List[ int ] = [ ]
+
+        """ 
+        Planning cycle
+        when selecting goals or time points do so using semisort on temporal network
+        1) take input list of temporal goals, add new time points to unordered time points
+        2) add t_s and t_e as the first and last time point in the plan
+        3) current time, t_now, is set to t_s, let any time point t_now or later be pending time points
+        4) if any singleton action exists at a pending time point, resolve it
+        5) if any action starting at a pending time point exists, reduce to singleton actions
+        6) if any goal has not been expanded, decompose prioritizing goals by 
+        7) if any time point is unordered, add to ordering as == to t_now (said time point is now pending)
+        8) if any time point is unordered, add to ordering as < to t_now, then set that time point to t_now
+        9) if none of the above are possible, back track to previous node; if no previous node planning as failed
+        10) if there are no open goals, actions, or singleton actions terminate with success
+        
+        """
+
     _t_type = List[Tuple[str]]
     _m_type = Optional[Methods]
     _op_type = Optional[Actions]
