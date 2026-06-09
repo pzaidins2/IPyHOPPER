@@ -146,6 +146,17 @@ class IPyHOP(object):
             # 4) Add timepoint to total order
             # 5) Add seperation condition to total order, changing t_now
             # Get the first Open node from the immediate successors of parent node. (using BFS)
+            # NEEDS CHANGES
+            # time point ordering (new node type?, method that adds time point to ordering, semisort selection)
+            # time advancing (new node type?, method that changes t_now and adds temporal constraint for immediate
+            # prior time point in ordering, is there a principled way to do this?)
+            # Temporal method usage (format and state tracking as in actions)
+            # weigh whether temporal singleton actions as a seperate construct makes sense
+            # (using temporal singleton actions?) verify a temporal goal is met
+            # change how nodes are selected for expansion
+            # temporal goals need seperate class?
+            # change back track to restore temporal network
+
             for node_id in self.sol_tree.successors(parent_node_id):
                 if self.sol_tree.nodes[node_id]['status'] == 'O':
                     curr_node_id = node_id
