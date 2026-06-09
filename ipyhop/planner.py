@@ -13,11 +13,12 @@ from typing import List, Optional, Tuple, Union
 from networkx import DiGraph, descendants, dfs_preorder_nodes, is_tree
 
 from ipyhop.actions import Actions
+from ipyhop.chronicle import ReferenceChronicle, RestorationTuple, ValueChronicle
 from ipyhop.methods import Methods
 from ipyhop.mulitgoal import MultiGoal
 from ipyhop.state import State
 from ipyhop.temporal import TemporalRestorationTuple
-from ipyhop.temporal_actions import TemporalActions
+from ipyhop.temporal_actions import TemporalActionOutput, TemporalActions, TemporalSingletonAction
 from ipyhop.temporal_methods import TemporalMethods
 
 
@@ -56,7 +57,8 @@ class IPyHOP(object):
 
     # ******************************        Class Method Declaration        ****************************************** #
     def plan(self, state: State, task_list: _t_type, methods: _m_type = None, actions: _op_type = None,
-             verbose: Optional[int] = 0) -> _p_type:
+            verbose: Optional[ int ] = 0, value_chronicle: Optional[ ValueChronicle ] = None
+    ) -> _p_type:
         """
         IPyHOP.plan(state_1, tasks) tells IPyHOP to find a plan for accomplishing the task_list (a list of tasks)
         *tasks*, starting from an initial state *state_1*, using whatever methods and actions IPyHOP was constructed
@@ -82,6 +84,22 @@ class IPyHOP(object):
         :param verbose: [Optional] An integer specifying the level of verbosity for IPyHOP.
         :return: A list containing the solution plan.
         """
+        # handle temporal flagging
+        self.is_temporal = False
+        how_many_temporal = sum(
+                [
+                    isinstance( actions, TemporalActions ), isinstance( methods, TemporalMethods ),
+                    value_chronicle is not None,
+                ],
+        )
+        if how_many_temporal == 3:
+            self.is_temporal = True
+            self.value_chronicle = value_chronicle
+        # catch case of mixed temporal and atemporal
+        elif how_many_temporal > 0 and how_many_temporal < 3:
+            raise (TypeError(
+                    "Temporal methods, temporal actions, and the value chronicle parameter cannot be used separately",
+            ))
         self.state = state.copy()
         self.task_list = deepcopy(task_list)
         self.methods = self.methods if methods is None else methods
@@ -112,10 +130,21 @@ class IPyHOP(object):
 
     # ******************************        Class Method Declaration        ****************************************** #
     def _planning(self, _id, parent_node_id):
-
+        is_temporal = self.is_temporal
+        value_chronicle = self.value_chronicle
         _iter = 0
         for _iter in count(0):
             curr_node_id = None
+            # CHANGE NEEDED: should select from current nodes based on temporal ordering
+            # Goals have single time point
+            # Actions need some way to identify start time point
+            # Singular actions come with time point
+            # DESIRED BEHAVIOR
+            # 1) Singular action at timepoint, effects added as object variable constraints, check for contradiction
+            # 2) Choose action that completes goal, start time must be in ordering
+            # 3) Choose method that is relevant to goal
+            # 4) Add timepoint to total order
+            # 5) Add seperation condition to total order, changing t_now
             # Get the first Open node from the immediate successors of parent node. (using BFS)
             for node_id in self.sol_tree.successors(parent_node_id):
                 if self.sol_tree.nodes[node_id]['status'] == 'O':
@@ -181,7 +210,26 @@ class IPyHOP(object):
                     new_state = None
                     # If the Action is not blacklisted
                     if curr_node_info not in self.blacklist:
-                        new_state = curr_node['action'](self.state.copy(), *curr_node_info[1:])
+                        # handle temporal actions having RestorationTuple Output
+                        if is_temporal:
+                            temporal_action_output: TemporalActionOutput = curr_node[ 'action' ](
+                                    self.state.copy(), value_chronicle, *curr_node_info[ 2: ],
+                            )
+                            if temporal_action_output is not None:
+                                restoration_tup: RestorationTuple = temporal_action_output[ 0 ]
+                                temporal_singleton_action_lst: List[ TemporalSingletonAction ] = temporal_action_output[
+                                    1 ]
+                                reference_chronicle: ReferenceChronicle = restoration_tup[ 0 ]
+                                temporal_restoration_tup: TemporalRestorationTuple = restoration_tup[ 1 ]
+                                # this will handle object change and persistence rollback
+                                new_state = reference_chronicle
+                                # these will handle temporal network rollback
+                                curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
+                                curr_node[ "temporal_singleton_action_lst" ] = temporal_singleton_action_lst
+                            else:
+                                new_state = None
+                        else:
+                            new_state = curr_node[ 'action' ]( self.state.copy(), *curr_node_info[ 1: ] )
                         # If Action was successful, update the state.
                         if new_state is not None:
                             curr_node['status'] = 'C'
@@ -338,20 +386,17 @@ class IPyHOP(object):
                                        selected_method=None, available_methods=iter(relevant_methods),
                                        methods=relevant_methods, tag='new')
                 self.sol_tree.add_edge(parent_node_id, _id)
-                # if temporal, make spot for temporal restoration tuple
-                # this will be used to restore temporal network during back tracking
-                if isinstance( self.actions, TemporalMethods ):
-                    self.sol_tree.nodes[ _id ][ "temporal_restoration_tuple" ]: Union[
-                        None, TemporalRestorationTuple ] = None
+
             elif child_node_info[0] in self.actions.action_dict:
                 action = self.actions.action_dict[child_node_info[0]]
                 self.sol_tree.add_node(_id, info=child_node_info, type='A', status='O', action=action, tag='new')
                 self.sol_tree.add_edge(parent_node_id, _id)
                 # if temporal, make spot for temporal restoration tuple
                 # this will be used to restore temporal network during back tracking
-                if isinstance( self.actions, TemporalActions ):
-                    self.sol_tree.nodes[ _id ][ "temporal_restoration_tuple" ]: Union[
-                        None, TemporalRestorationTuple ] = None
+                if self.is_temporal:
+                    self.sol_tree.nodes[ _id ][ "temporal_restoration_tuple" ]: Optional[
+                        TemporalRestorationTuple ] = None
+                    self.temporal_singleton_action_lst = Optional[ List[ TemporalSingletonAction ] ]
 
             elif child_node_info[0] in self.methods.goal_method_dict:
                 relevant_methods = self.methods.goal_method_dict[child_node_info[0]]
@@ -359,6 +404,12 @@ class IPyHOP(object):
                                        selected_method=None, available_methods=iter(relevant_methods),
                                        methods=relevant_methods, tag='new')
                 self.sol_tree.add_edge(parent_node_id, _id)
+                # if temporal, make spot for temporal restoration tuple
+                # this will be used to restore temporal network during back tracking
+                if self.is_temporal:
+                    self.sol_tree.nodes[ _id ][ "temporal_restoration_tuple" ]: Optional[
+                        TemporalRestorationTuple ] = None
+                    self.temporal_singleton_action_lst = Optional[ List[ TemporalSingletonAction ] ]
 
         if self.sol_tree.nodes[parent_node_id]['type'] == 'G':
             _id += 1
