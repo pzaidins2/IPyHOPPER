@@ -174,11 +174,8 @@ class IPyHOP(object):
             # time point ordering (new node type?, method that adds time point to ordering, semisort selection)
             # time advancing (new node type?, method that changes t_now and adds temporal constraint for immediate
             # prior time point in ordering, is there a principled way to do this?)
-            # Temporal method usage (format and state tracking as in actions)
-            # weigh whether temporal singleton actions as a seperate construct makes sense
             # (using temporal singleton actions?) verify a temporal goal is met
             # change how nodes are selected for expansion
-            # temporal goals need seperate class?
             # change back track to restore temporal network
 
             for node_id in self.sol_tree.successors(parent_node_id):
@@ -527,13 +524,27 @@ class IPyHOP(object):
 
     # ******************************        Class Method Declaration        ****************************************** #
     def _backtrack(self, p_node_id: int, c_node_id: int):
+        is_temporal = self.is_temporal
+        value_chronicle = self.value_chronicle
         c_node = self.sol_tree.nodes[c_node_id]
         c_type = c_node['type']
+        # object variables get rolled back with indices in reference chronicle
+        # temporal network needs the temporal restoration tuple for reset
+        temporal_restoration_tup = None
         if c_type == 'T' or c_type == 'G' or c_type == 'M':
+            if is_temporal and value_chronicle is not None:
+                temporal_restoration_tup: TemporalRestorationTuple = c_node[ 'temporal_restoration_tuple' ]
+                value_chronicle.temporal_network.restore_graph(
+                        *temporal_restoration_tup,
+                )
+                c_node[ 'temporal_restoration_tuple' ] = None
             c_node['state'] = None
             c_node['selected_method'] = None
             c_node['available_methods'] = iter(c_node['methods'])
-
+        # NEEDS CHANGE
+        # backtrack cannot use the dfs list for temporal planning
+        # dealing with visitation order will change how this
+        # needs to be written
         dfs_list = list(dfs_preorder_nodes(self.sol_tree, source=p_node_id))
         for node_id in reversed(dfs_list):
             node = self.sol_tree.nodes[node_id]
