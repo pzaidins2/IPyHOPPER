@@ -174,9 +174,9 @@ class IPyHOP(object):
             # time point ordering (new node type?, method that adds time point to ordering, semisort selection)
             # time advancing (new node type?, method that changes t_now and adds temporal constraint for immediate
             # prior time point in ordering, is there a principled way to do this?)
-            # (using temporal singleton actions?) verify a temporal goal is met
+            # (using temporal singleton actions?) verify a temporal goal is met *
             # change how nodes are selected for expansion
-            # change back track to restore temporal network
+            # change back track to restore temporal network *
 
             for node_id in self.sol_tree.successors(parent_node_id):
                 if self.sol_tree.nodes[node_id]['status'] == 'O':

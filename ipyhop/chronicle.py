@@ -150,63 +150,47 @@ class ChronicleInterface():
         )
         return reference_chronicle, value_chronicle
 
-    # given state specified by reference_chronicle and value_chronicle find whether change_assertion
-    # is true
-    # this requires the assertion hold at a time point no later than the change_assertion
-    # and a negation does not exist between those time points
-    # can only be done for time points in t_ordered as we can only add change assertions to members of t_ordered
+    # Given a pair of reference and value chronicles determine whether the given change assertion holds
+    # returns bool based on this premise
+    # t_equivalent is a list of time points that are equal in value to t_change of the change_assertion
+    # t_pending for t_now is such a use case
+    # ONLY WORKS IF THE CHANGE ASSERTION OCCURS NO LATER THAN t_now
     def verify_object_assertion(
             self,
             reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-            change_assertion: ObjectVarChange,
-    ):
-        # object variable assertion without time
-        generic_assertion: GenericObjectVarChange = change_assertion[ 2: ]
-        # object variable assertion negated
-        negated_generic_assertion: GenericObjectVarChange = (
-            *generic_assertion[ :-1 ], not (generic_assertion[ -1 ]),
-        )
-        # predicate to search
+            change_assertion: ObjectVarChange, t_equivalent_lst: List[ int ]
+    ) -> bool:
+        t_query: int = change_assertion[ 0 ]
         predicate_label: str = change_assertion[ 1 ]
-        # relevant assertions
-        valid_idx: int = reference_chronicle.changes[ predicate_label ] + 1
-        search_lst: List[ ObjectVarChange ] = value_chronicle.changes[ predicate_label ][
-            :valid_idx ]
-        # time of verifying assertion
-        t_verify: int = change_assertion[ 0 ]
-        # find latest time point in yes_lst and no_lst no later than t_verify
-        # order time points
-        t_verify_index = t_ordered.index( t_verify )
-        # get all matches for time points no later than the assertion to verify
-        yes_lst: List[ ObjectVarChange ] = [
+        predicate_args: Tuple = change_assertion[ 2:-1 ]
+        target_bool: bool = change_assertion[ -1 ]
+        # get t_ordered
+        t_ordered_idx: int = reference_chronicle.t_ordered
+        t_ordered: List[ int ] = value_chronicle.t_ordered[ :(t_ordered_idx + 1) ]
+        # get the maximum index in t_ordered that would be relevant to the change assertion
+        t_max_idx: int = t_ordered.index( change_assertion[ 0 ] )
+        for t_i in t_equivalent_lst:
+            t_max_idx = max( t_ordered.index( t_i ), t_max_idx )
+
+        # collect all change assertions that are relevant (same label and args as well as being a time point in
+        # t_ordered that is not outside the range of the equivalent time points)
+        change_assertion_reference_idx: int = reference_chronicle.changes[ predicate_label ]
+        change_assertion_lst: List[ ObjectVarChange ] = value_chronicle.changes[ predicate_label ][
+            :(change_assertion_reference_idx + 1) ]
+        relevant_change_lst: List[ ObjectVarChange ] = [
             *filter(
-                    lambda x: x[ 2: ] == generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
-                    search_lst,
+                    lambda x: x[ 2:-1 ] == change_assertion[ 2:-1 ] and x[ 0 ] in t_ordered and t_ordered.index(
+                            x[ 0 ],
+                    ) <= t_max_idx, change_assertion_lst,
             ),
         ]
-        # negated matches for time points no later than the assertion to verify
-        no_lst: List[ ObjectVarChange ] = [
-            *filter(
-                    lambda x: x[ 2: ] == negated_generic_assertion and t_ordered.index( x[ 0 ] ) <= t_verify_index,
-                    search_lst,
-            ),
-        ]
-        # if yes_lst has any members and no_lst doesn't then True
-        if len( yes_lst ) > 0 and len( no_lst ) == 0:
-            return True
-        # if no_lst has any member and yes_lst doesn't then False
-        if len( yes_lst ) == 0 and len( no_lst ) > 0:
-            return False
-        # if both lists are empty False is the bool val
-        if len( yes_lst ) == 0 and len( no_lst ) == 0:
+        # if no relevant assertions then default is False
+        if len( relevant_change_lst ) == 0:
             return not (change_assertion[ -1 ])
-        # find last occurrence of match and negation
-        last_yes: ObjectVarChange = max( yes_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
-        last_no: ObjectVarChange = max( no_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
-        # later one to occur is the value we want
-        last_yes_time_point: int = last_yes[ 0 ]
-        last_no_time_point: int = last_no[ 0 ]
-        if t_ordered.index( last_yes_time_point ) > t_ordered.index( last_no_time_point ):
+        # find the assertion with the highest index in t_ordered
+        last_change_assertion: ObjectVarChange = max( relevant_change_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
+        # true if last change assertion matches with the querying change assertions
+        if last_change_assertion[ 2: ] == change_assertion[ 2: ]:
             return True
         else:
             return False
@@ -235,9 +219,9 @@ class ChronicleInterface():
         ) if temporal_restoration_tup is None else temporal_restoration_tup
         # add temporal constraints
         # intervals on new persistences imply,temporal constraints so add those
-        # get unique members, should be order preserving for Python 3.7+
-        unique_interval_tup_lst: List[ Tuple[ int, int ] ] = [ (x[ 0 ], x[ 1 ]) for x in persistence_assertion_lst ]
-        unique_interval_tup_lst = list( dict.fromkeys( unique_interval_tup_lst ) )
+        # # get unique members, should be order preserving for Python 3.7+
+        # unique_interval_tup_lst: List[ Tuple[ int, int ] ] = [ (x[ 0 ], x[ 1 ]) for x in persistence_assertion_lst ]
+        # unique_interval_tup_lst = list( dict.fromkeys( unique_interval_tup_lst ) )
         persistence_temporal_constraint_lst: List[ TemporalConstraint ] = [
             (x[ 0 ], "<=", x[ 1 ], 0) for x in persistence_assertion_lst
         ]
