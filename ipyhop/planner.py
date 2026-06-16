@@ -8,7 +8,7 @@ from __future__ import division, print_function
 
 from copy import deepcopy
 from itertools import count
-from typing import List, Optional, Tuple, Union
+from typing import Hashable, Iterator, List, Optional, Tuple, Union
 
 from networkx import DiGraph, descendants, dfs_preorder_nodes, is_tree
 
@@ -17,7 +17,7 @@ from ipyhop.chronicle import ChronicleInterface, ReferenceChronicle, Restoration
 from ipyhop.methods import Methods
 from ipyhop.mulitgoal import MultiGoal
 from ipyhop.state import State
-from ipyhop.temporal import TemporalRestorationTuple
+from ipyhop.temporal import TemporalNetwork, TemporalRestorationTuple
 from ipyhop.temporal_actions import TemporalActionCall, TemporalActionOutput, TemporalActions, TemporalGoal, \
     TemporalSingletonAction
 from ipyhop.temporal_methods import TemporalMethodOutput, TemporalMethods
@@ -55,7 +55,9 @@ class IPyHOP(object):
         # temporal planning can't use tree dfs ordering
         # if temporal, when node is visited add to the list
         # during back tracking, use the list to determine which node to go to
-        self.node_id_visit_order: List[ int ] = [ ]
+        # root has node id 0 and is first element of visitation list
+        self.node_id_visit_order: List[ int ] = [ 0 ]
+        self.current_node_id_idx: int = 0
 
         """ 
         Planning cycle
@@ -137,6 +139,7 @@ class IPyHOP(object):
         self.sol_plan = []
         self.sol_tree = DiGraph()
 
+
         _id = 0
         parent_node_id = _id
         self.sol_tree.add_node(_id, info=('root',), type='D', status='NA')
@@ -153,247 +156,400 @@ class IPyHOP(object):
         return self.sol_plan
 
     # ******************************        Class Method Declaration        ****************************************** #
+    # returns the node id of the next element to be expanded
+    # for atemporal planning this is done in dfs order
+    # for temporal planning, all open nodes in the frontier are candidates
+    def select_next_open_node(
+            self, _iter: int, parent_node_id, reference_chronicle: ReferenceChronicle,
+            value_chronicle: Optional[ ValueChronicle ],
+    ) -> Iterator[ Hashable ]:
+        # CHANGE NEEDED: should select from current nodes based on temporal ordering
+        # Goals have single time point
+        # Actions need some way to identify start time point
+        # Singular actions come with time point
+
+        # Get the first Open node from the immediate successors of parent node. (using BFS)
+        # NEEDS CHANGES
+        # time point ordering (new node type?, method that adds time point to ordering, semisort selection)
+        # time advancing (new node type?, method that changes t_now and adds temporal constraint for immediate
+        # prior time point in ordering, is there a principled way to do this?)
+        # change how nodes are selected for expansion
+        # change back track to restore temporal network *
+        curr_node_id = None
+        sol_tree = self.sol_tree
+        # select next node to attempt
+        if self.is_temporal and value_chronicle is not None:
+            # anchoring time point: the time point associated with a temporal goal, the starting time point in the
+            # temporal action parameters, the time point which a temporal singleton action occurs
+            # for a node to be considered:
+            # 1) must be open
+            # 2) must have no children (on the frontier)
+            # 3) the anchoring time point must be no less than t_now
+            # 4) the anchoring time point must not be required to occur after a time point not in t_ordered
+
+            # filter out nodes not meeting (1) and (2)
+            open_frontier_node_tup_filter: Iterator[ Tuple[ Hashable, int ] ] = filter(
+                    lambda x: x[ 1 ] == 0 and sol_tree.nodes[ x[ 0 ] ][ "status" ] == "O", sol_tree.out_degree,
+            )
+            open_frontier_node_map: Iterator[ int ] = map( lambda x: x[ 0 ], open_frontier_node_tup_filter )
+
+            # extract anchoring time point
+            # temporal singleton actions have this has the 0 index element of tuple
+            # temporal actions have this as the 2 index element of tuple
+            # temporal goals have this as the 0 index element of tuple
+
+            # track node id, anchoring time point, type
+            node_id_anchor_time_point_tup_lst: List[ Tuple[ Hashable, int, int ] ] = [ ]
+            for node_id in open_frontier_node_map:
+                node = sol_tree.nodes[ node_id ]
+                node_type: str = node[ "type" ]
+                node_info = node[ "info" ]
+                node_type_enum: int = -1
+                # temporal action
+                if node_type == "A":
+                    anchor_idx = 2
+                    node_type_enum = 1
+                # temporal goal
+                elif node_type == "G":
+                    anchor_idx = 0
+                    node_type_enum = 2
+                # temporal singleton action
+                elif node_type == "TSA":
+                    anchor_idx = 0
+                    node_type_enum = 0
+                else:
+                    raise (ValueError( "Invalid node type for temporal planning: " + node_type ))
+                node_id_anchor_time_point_tup_lst.append( (node_id, node_info[ anchor_idx ], node_type_enum) )
+
+            # filter nodes that do not meet (3) or (4)
+            stn: TemporalNetwork = value_chronicle.temporal_network
+            # potentially from ordered time points
+            t_ordered: List[ int ] = value_chronicle.t_ordered[ :(reference_chronicle.t_ordered + 1) ]
+            t_unordered: List[ int ] = value_chronicle.t_unordered[ :(reference_chronicle.t_ordered + 1) ]
+            t_now: int = value_chronicle.t_now
+            t_now_idx: int = t_ordered.index( t_now )
+            potential_time_points: List[ int ] = t_ordered[ t_now_idx: ]
+            # potentially from unordered time points
+            potential_time_points += stn.get_potential_next_time_points( t_unordered )
+            # remove nodes that do not have these time points as anchors
+            node_id_anchor_time_point_tup_lst = [
+                *filter( lambda x: x[ 1 ] in potential_time_points, node_id_anchor_time_point_tup_lst ),
+            ]
+            # sort TSA < A < G
+            node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
+            for node_id_anchor_time_point_tup in node_id_anchor_time_point_tup_lst:
+                if self._verbose > 1:
+                    print(
+                            'Iteration {}, Refining node {}.'.format(
+                                    _iter, repr( sol_tree.nodes[ node_id ][ 'info' ] ),
+                            ),
+                    )
+                yield node_id_anchor_time_point_tup[ 0 ]
+
+
+        # expand nodes in dfs order for atemporal planning
+        else:
+            print( "atemporal" )
+            for node_id in sol_tree.successors( parent_node_id ):
+
+                if sol_tree.nodes[ node_id ][ 'status' ] == 'O':
+
+                    curr_node_id = node_id
+                    if self._verbose > 1:
+                        print(
+                                'Iteration {}, Refining node {}.'.format(
+                                        _iter, repr( sol_tree.nodes[ node_id ][ 'info' ] ),
+                                ),
+                        )
+                    break
+            yield curr_node_id
+
+    # ******************************        Class Method Declaration        ****************************************** #
     def _planning(self, _id, parent_node_id):
         is_temporal = self.is_temporal
         value_chronicle = self.value_chronicle
+        select_next_open_node = self.select_next_open_node
+        sol_tree = self.sol_tree
+        node_id_visit_order = self.node_id_visit_order
         _iter = 0
-        for _iter in count(0):
-            curr_node_id = None
-            # CHANGE NEEDED: should select from current nodes based on temporal ordering
-            # Goals have single time point
-            # Actions need some way to identify start time point
-            # Singular actions come with time point
-            # DESIRED BEHAVIOR
-            # 1) Singular action at timepoint, effects added as object variable constraints, check for contradiction
-            # 2) Choose action that completes goal, start time must be in ordering
-            # 3) Choose method that is relevant to goal
-            # 4) Add timepoint to total order
-            # 5) Add seperation condition to total order, changing t_now
-            # Get the first Open node from the immediate successors of parent node. (using BFS)
-            # NEEDS CHANGES
-            # time point ordering (new node type?, method that adds time point to ordering, semisort selection)
-            # time advancing (new node type?, method that changes t_now and adds temporal constraint for immediate
-            # prior time point in ordering, is there a principled way to do this?)
-            # (using temporal singleton actions?) verify a temporal goal is met *
-            # change how nodes are selected for expansion
-            # change back track to restore temporal network *
+        gen_inactive = True
+        curr_node_id_iter = count
+        while True:
+            print( parent_node_id )
+            print( gen_inactive )
+            # increment iteration count
+            _iter += 1
+            # make generator when no generator is valid
 
-            for node_id in self.sol_tree.successors(parent_node_id):
-                if self.sol_tree.nodes[node_id]['status'] == 'O':
-                    curr_node_id = node_id
-                    if self._verbose > 1:
-                        print('Iteration {}, Refining node {}.'.format(
-                            _iter, repr(self.sol_tree.nodes[node_id]['info'])))
-                    break
+            curr_node_id_iter = select_next_open_node( _iter, parent_node_id, self.state, value_chronicle )
+            gen_inactive = False
+            print( "past gen" )
+            # create generator for valid node ids to explore
+            # for atemporal there is only one candidate
+            # pull from generator
 
+            curr_node_id = next( curr_node_id_iter )
+            print( "used gen node id: " + str( curr_node_id ) )
+            # empty generator back track
+            print( "gen empty" )
+            gen_inactive = True
             # If Open node wasn't found from the immediate successors
             if curr_node_id is None:
                 # Set the parent_node_id as predecessor of parent_node_id if available.
                 try:
-                    parent_node_id = next(self.sol_tree.predecessors(parent_node_id))
+                    parent_node_id = next( sol_tree.predecessors( parent_node_id ) )
+                    if self._verbose > 2:
+                        print(
+                                'Iteration {}, Parent node modified to {}.'.format(
+                                        _iter, repr( sol_tree.nodes[ parent_node_id ][ 'info' ] ),
+                                ),
+                        )
+                    continue
                 except StopIteration:  # if the parent_node_id has no predecessors (i.e. it is root) end refinement.
                     if self._verbose > 2:
-                        print('Iteration {}, Planning Complete.'.format(_iter))
+                        print( 'Iteration {}, Planning Complete.'.format( _iter ) )
                     break
-                if self._verbose > 2:
-                    print('Iteration {}, Parent node modified to {}.'.format(
-                        _iter, repr(self.sol_tree.nodes[parent_node_id]['info'])))
 
-            # Else, it means that an Open node was found in the subgraph. Refine the node.
-            else:
-                curr_node = self.sol_tree.nodes[curr_node_id]
-                if 'state' in curr_node:
-                    # If curr_node already has a value for state, it means that the algorithm backtracked to this node.
-                    if curr_node['state']:
-                        # Modify the current state as the saved state at that node.
-                        self.state.update(curr_node['state'].copy())
-                    # If curr_node doesn't have value for state, it means that the node is visited for the first time.
-                    else:
-                        # Save the current state in the node.
-                        curr_node['state'] = self.state.copy()
-                curr_node_info = curr_node['info']
+            # Open node was found in the subgraph. Refine the node.
+            curr_node = self.sol_tree.nodes[ curr_node_id ]
+            if 'state' in curr_node:
+                # If curr_node already has a value for state, it means that the algorithm backtracked to this node.
+                if curr_node[ 'state' ]:
+                    # Modify the current state as the saved state at that node.
+                    self.state.update( curr_node[ 'state' ].copy() )
+                # If curr_node doesn't have value for state, it means that the node is visited for the first time.
+                else:
+                    # Save the current state in the node.
+                    curr_node[ 'state' ] = self.state.copy()
+            curr_node_info = curr_node[ 'info' ]
 
-                # If current node is a Task
-                if curr_node['type'] == 'T':
-                    subtasks = None
-                    # If methods are available for refining the task, use them.
-                    for method in curr_node['available_methods']:
-                        curr_node['selected_method'] = method
-                        subtasks = method(self.state, *curr_node_info[1:])
-                        if subtasks is not None:
-                            curr_node['status'] = 'C'
-                            _id = self._add_nodes_and_edges(_id, curr_node_id, subtasks)
-                            parent_node_id = curr_node_id
-                            if self._verbose > 2:
-                                print('Iteration {}, Task {} successfully refined'.format(_iter,
-                                                                                          repr(curr_node_info)))
-                                print('Iteration {}, Parent node modified to {}.'.format(
-                                    _iter, repr(self.sol_tree.nodes[parent_node_id]['info'])))
-                            break
-                    if subtasks is None:
-                        parent_node_id, curr_node_id = self._backtrack(parent_node_id, curr_node_id)
-                        if self._verbose > 2:
-                            print('Iteration {}, Task {} refinement failed'.format(_iter, repr(curr_node_info)))
-                            print('Iteration {}, Backtracking to {}.'.format(
-                                _iter, repr(self.sol_tree.nodes[curr_node_id]['info'])))
-
-                # If current node is an Action
-                elif curr_node['type'] == 'A':
-                    new_state = None
-                    # If the Action is not blacklisted
-                    if curr_node_info not in self.blacklist:
-                        # handle temporal actions having RestorationTuple Output
-                        if is_temporal:
-                            temporal_action_output: TemporalActionOutput = curr_node[ 'action' ](
-                                    self.state.copy(), value_chronicle, *curr_node_info[ 2: ],
-                            )
-                            if temporal_action_output is not None:
-                                restoration_tup: RestorationTuple = temporal_action_output[ 0 ]
-                                temporal_singleton_action_lst: List[ TemporalSingletonAction ] = temporal_action_output[
-                                    1 ]
-                                reference_chronicle: ReferenceChronicle = restoration_tup[ 0 ]
-                                temporal_restoration_tup: TemporalRestorationTuple = restoration_tup[ 1 ]
-                                # this will handle object change and persistence rollback
-                                new_state = reference_chronicle
-                                # these will handle temporal network rollback
-                                curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
-                                curr_node[ "temporal_singleton_action_lst" ] = temporal_singleton_action_lst
-                            else:
-                                new_state = None
-                        else:
-                            new_state = curr_node[ 'action' ]( self.state.copy(), *curr_node_info[ 1: ] )
-                        # If Action was successful, update the state.
-                        if new_state is not None:
-                            curr_node['status'] = 'C'
-                            self.state.update(new_state)
-                            if self._verbose > 2:
-                                print('Iteration {}, Action {} successful.'.format(_iter, repr(curr_node_info)))
-                    if new_state is None:
-                        parent_node_id, curr_node_id = self._backtrack(parent_node_id, curr_node_id)
-                        if self._verbose > 2:
-                            print('Iteration {}, Action {} failed.'.format(_iter, repr(curr_node_info)))
-                            print('Iteration {}, Backtracking to {}.'.format(
-                                _iter, repr(self.sol_tree.nodes[curr_node_id]['info'])))
-
-                # If current node is a Goal
-                elif curr_node['type'] == 'G':
-                    subgoals = None
-
-                    # Skip goal refinement if already achieved
-                    # if temporal, check that the state as of t_now would meet this goal
-                    goal_done = False
-                    if is_temporal:
-                        temporal_goal = curr_node_info
-                        if value_chronicle is not None and CI.verify_object_assertion(
-                                self.state.copy(),
-                                value_chronicle, temporal_goal,
-                        ):
-                            goal_done = True
-                    else:
-                        state_var, arg, desired_val = curr_node_info
-                        if self.state.__dict__[ state_var ][ arg ] == desired_val:
-                            goal_done = True
-                    if goal_done:
-                        curr_node['status'] = 'C'
-                        subgoals = []
-                        if self._verbose > 2:
-                            print('Iteration {}, Goal {} already achieved'.format(_iter, repr(curr_node_info)))
-                    else:
-                        # If methods are available for refining the goal, use them.
-                        for method in curr_node['available_methods']:
-                            curr_node['selected_method'] = method
-                            subgoals = None
-                            # adjust for temporal goal output and save info for back tracking
-                            if is_temporal:
-                                temporal_method_output: TemporalMethodOutput = method(
-                                        self.state.copy(), value_chronicle, *curr_node_info[ 2: ],
-                                )
-                                if temporal_method_output is not None:
-                                    restoration_tup: RestorationTuple = temporal_method_output[ 0 ]
-                                    reference_chronicle: ReferenceChronicle = restoration_tup[ 0 ]
-                                    temporal_restoration_tup: TemporalRestorationTuple = restoration_tup[ 1 ]
-                                    # these will handle temporal network rollback
-                                    curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
-                                    # this will handle object change and persistence rollback
-                                    if reference_chronicle is not None:
-                                        curr_node[ 'status' ] = 'C'
-                                        self.state.update( reference_chronicle )
-                                        subgoals: List[ Union[ TemporalGoal, TemporalActionCall ] ] = \
-                                            temporal_method_output[
-                                                1 ]
-                            else:
-                                subgoals = method( self.state, *curr_node_info[ 1: ] )
-                            if subgoals is not None:
-                                curr_node['status'] = 'C'
-                                _id = self._add_nodes_and_edges( _id, curr_node_id, subgoals )  # type: ignore
-                                parent_node_id = curr_node_id
-                                if self._verbose > 2:
-                                    print('Iteration {}, Goal {} successfully refined'.format(
-                                        _iter, repr(curr_node_info)))
-                                    print('Iteration {}, Parent node modified to {}.'.format(
-                                        _iter, repr(self.sol_tree.nodes[parent_node_id]['info'])))
-                                break
-                    if subgoals is None:
-                        parent_node_id, curr_node_id = self._backtrack(parent_node_id, curr_node_id)
-                        if self._verbose > 2:
-                            print('Iteration {}, Goal {} refinement failed'.format(_iter, repr(curr_node_info)))
-                            print('Iteration {}, Backtracking to {}.'.format(
-                                _iter, repr(self.sol_tree.nodes[curr_node_id]['info'])))
-
-                # If current node is a MultiGoal
-                elif curr_node['type'] == 'M':
-                    subgoals = None
-                    unachieved_goals = self._goals_not_achieved(curr_node_id)
-                    if not unachieved_goals:
-                        curr_node['status'] = "C"
-                        subgoals = []
-                        if self._verbose > 2:
-                            print('Iteration {}, MultiGoal {} already achieved'.format(_iter, repr(curr_node_info)))
-                    else:
-                        # If methods are available for refining the goal, use them.
-                        for method in curr_node['available_methods']:
-                            curr_node['selected_method'] = method
-                            subgoals = method(self.state, curr_node_info)
-                            if subgoals is not None:
-                                curr_node['status'] = 'C'
-                                _id = self._add_nodes_and_edges(_id, curr_node_id, subgoals)
-                                parent_node_id = curr_node_id
-                                if self._verbose > 2:
-                                    print('Iteration {}, MultiGoal {} successfully refined'.format(
-                                        _iter, repr(curr_node_info)))
-                                    print('Iteration {}, Parent node modified to {}.'.format(
-                                        _iter, repr(self.sol_tree.nodes[parent_node_id]['info'])))
-                                break
-                    if subgoals is None:
-                        parent_node_id, curr_node_id = self._backtrack(parent_node_id, curr_node_id)
+            # If current node is a Task
+            if curr_node[ 'type' ] == 'T':
+                subtasks = None
+                # If methods are available for refining the task, use them.
+                for method in curr_node[ 'available_methods' ]:
+                    curr_node[ 'selected_method' ] = method
+                    subtasks = method( self.state, *curr_node_info[ 1: ] )
+                    if subtasks is not None:
+                        curr_node[ 'status' ] = 'C'
+                        gen_inactive = True
+                        _id = self._add_nodes_and_edges( _id, curr_node_id, subtasks )
+                        parent_node_id = curr_node_id
                         if self._verbose > 2:
                             print(
-                                'Iteration {}, MultiGoal {} refinement failed'.format(_iter, repr(curr_node_info)))
-                            print('Iteration {}, Backtracking to {}.'.format(
-                                _iter, repr(self.sol_tree.nodes[curr_node_id]['info'])))
+                                    'Iteration {}, Task {} successfully refined'.format(
+                                            _iter,
+                                            repr( curr_node_info ),
+                                    ),
+                            )
+                            print(
+                                    'Iteration {}, Parent node modified to {}.'.format(
+                                            _iter, repr( self.sol_tree.nodes[ parent_node_id ][ 'info' ] ),
+                                    ),
+                            )
+                        break
+                if subtasks is None:
+                    parent_node_id, curr_node_id = self._backtrack( parent_node_id, curr_node_id )
+                    if self._verbose > 2:
+                        print( 'Iteration {}, Task {} refinement failed'.format( _iter, repr( curr_node_info ) ) )
+                        print(
+                                'Iteration {}, Backtracking to {}.'.format(
+                                        _iter, repr( self.sol_tree.nodes[ curr_node_id ][ 'info' ] ),
+                                ),
+                        )
 
-                elif curr_node['type'] == 'VG':
-                    state_var, arg, desired_val = self.sol_tree.nodes[parent_node_id]['info']
-                    if self.state.__dict__[state_var][arg] == desired_val:
-                        curr_node['status'] = "C"
-                    else:
-                        parent_node_id, curr_node_id = self._backtrack(parent_node_id, curr_node_id)
-                        if self._verbose > 2:
-                            curr_node_info = self.sol_tree.nodes[curr_node_id]['info']
-                            print('Iteration {}, Goal {} Verification failed.'.format(_iter, repr(curr_node_info)))
-                            print('Iteration {}, Backtracking to {}.'.format(_iter, repr(curr_node_info)))
 
-                elif curr_node['type'] == 'VM':
-                    unachieved_goals = self._goals_not_achieved(parent_node_id)
-                    if not unachieved_goals:
-                        curr_node['status'] = "C"
+            # If current node is an Action
+            elif curr_node[ 'type' ] == 'A':
+                new_state = None
+                # If the Action is not blacklisted
+                if curr_node_info not in self.blacklist:
+                    # handle temporal actions having RestorationTuple Output
+                    if is_temporal:
+                        temporal_action_output: TemporalActionOutput = curr_node[ 'action' ](
+                                self.state.copy(), value_chronicle, *curr_node_info[ 2: ],
+                        )
+                        if temporal_action_output is not None:
+                            restoration_tup: RestorationTuple = temporal_action_output[ 0 ]
+                            temporal_singleton_action_lst: List[ TemporalSingletonAction ] = temporal_action_output[
+                                1 ]
+                            reference_chronicle: ReferenceChronicle = restoration_tup[ 0 ]
+                            temporal_restoration_tup: TemporalRestorationTuple = restoration_tup[ 1 ]
+                            # this will handle object change and persistence rollback
+                            new_state = reference_chronicle
+                            # these will handle temporal network rollback
+                            curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
+                            curr_node[ "temporal_singleton_action_lst" ] = temporal_singleton_action_lst
+                        else:
+                            new_state = None
                     else:
-                        parent_node_id, curr_node_id = self._backtrack(parent_node_id, curr_node_id)
+                        new_state = curr_node[ 'action' ]( self.state.copy(), *curr_node_info[ 1: ] )
+                    # If Action was successful, update the state.
+                    if new_state is not None:
+                        curr_node[ 'status' ] = 'C'
+                        gen_inactive = True
+                        self.state.update( new_state )
                         if self._verbose > 2:
-                            curr_node_info = self.sol_tree.nodes[curr_node_id]['info']
-                            print('Iteration {}, MultiGoal {} Verification failed.'.format(_iter,
-                                                                                           repr(curr_node_info)))
-                            print('Iteration {}, Backtracking to {}.'.format(_iter, repr(curr_node_info)))
+                            print( 'Iteration {}, Action {} successful.'.format( _iter, repr( curr_node_info ) ) )
+                if new_state is None:
+                    parent_node_id, curr_node_id = self._backtrack( parent_node_id, curr_node_id )
+                    if self._verbose > 2:
+                        print( 'Iteration {}, Action {} failed.'.format( _iter, repr( curr_node_info ) ) )
+                        print(
+                                'Iteration {}, Backtracking to {}.'.format(
+                                        _iter, repr( self.sol_tree.nodes[ curr_node_id ][ 'info' ] ),
+                                ),
+                        )
+
+            # If current node is a Goal
+            elif curr_node[ 'type' ] == 'G':
+                subgoals = None
+
+                # Skip goal refinement if already achieved
+                # if temporal, check that the state as of t_now would meet this goal
+                goal_done = False
+                if is_temporal:
+                    temporal_goal = curr_node_info
+                    if value_chronicle is not None and CI.verify_object_assertion(
+                            self.state.copy(),
+                            value_chronicle, temporal_goal,
+                    ):
+                        goal_done = True
+                else:
+                    state_var, arg, desired_val = curr_node_info
+                    if self.state.__dict__[ state_var ][ arg ] == desired_val:
+                        goal_done = True
+                if goal_done:
+                    curr_node[ 'status' ] = 'C'
+                    gen_inactive = True
+                    subgoals = [ ]
+                    if self._verbose > 2:
+                        print( 'Iteration {}, Goal {} already achieved'.format( _iter, repr( curr_node_info ) ) )
+                else:
+                    # If methods are available for refining the goal, use them.
+                    for method in curr_node[ 'available_methods' ]:
+                        curr_node[ 'selected_method' ] = method
+                        subgoals = None
+                        # adjust for temporal goal output and save info for back tracking
+                        if is_temporal:
+                            temporal_method_output: TemporalMethodOutput = method(
+                                    self.state.copy(), value_chronicle, *curr_node_info[ 2: ],
+                            )
+                            if temporal_method_output is not None:
+                                restoration_tup: RestorationTuple = temporal_method_output[ 0 ]
+                                reference_chronicle: ReferenceChronicle = restoration_tup[ 0 ]
+                                temporal_restoration_tup: TemporalRestorationTuple = restoration_tup[ 1 ]
+                                # these will handle temporal network rollback
+                                curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
+                                # this will handle object change and persistence rollback
+                                if reference_chronicle is not None:
+                                    curr_node[ 'status' ] = 'C'
+                                    gen_inactive = True
+                                    self.state.update( reference_chronicle )
+                                    subgoals: List[ Union[ TemporalGoal, TemporalActionCall ] ] = \
+                                        temporal_method_output[
+                                            1 ]
+                        else:
+                            subgoals = method( self.state, *curr_node_info[ 1: ] )
+                        if subgoals is not None:
+                            curr_node[ 'status' ] = 'C'
+                            gen_inactive = True
+                            _id = self._add_nodes_and_edges( _id, curr_node_id, subgoals )  # type: ignore
+                            parent_node_id = curr_node_id
+                            if self._verbose > 2:
+                                print(
+                                        'Iteration {}, Goal {} successfully refined'.format(
+                                                _iter, repr( curr_node_info ),
+                                        ),
+                                )
+                                print(
+                                        'Iteration {}, Parent node modified to {}.'.format(
+                                                _iter, repr( self.sol_tree.nodes[ parent_node_id ][ 'info' ] ),
+                                        ),
+                                )
+                            break
+                if subgoals is None:
+                    parent_node_id, curr_node_id = self._backtrack( parent_node_id, curr_node_id )
+                    if self._verbose > 2:
+                        print( 'Iteration {}, Goal {} refinement failed'.format( _iter, repr( curr_node_info ) ) )
+                        print(
+                                'Iteration {}, Backtracking to {}.'.format(
+                                        _iter, repr( self.sol_tree.nodes[ curr_node_id ][ 'info' ] ),
+                                ),
+                        )
+
+            # If current node is a MultiGoal
+            elif curr_node[ 'type' ] == 'M':
+                subgoals = None
+                unachieved_goals = self._goals_not_achieved( curr_node_id )
+                if not unachieved_goals:
+                    curr_node[ 'status' ] = "C"
+                    gen_inactive = True
+                    subgoals = [ ]
+                    if self._verbose > 2:
+                        print( 'Iteration {}, MultiGoal {} already achieved'.format( _iter, repr( curr_node_info ) ) )
+                else:
+                    # If methods are available for refining the goal, use them.
+                    for method in curr_node[ 'available_methods' ]:
+                        curr_node[ 'selected_method' ] = method
+                        subgoals = method( self.state, curr_node_info )
+                        if subgoals is not None:
+                            curr_node[ 'status' ] = 'C'
+                            gen_inactive = True
+                            _id = self._add_nodes_and_edges( _id, curr_node_id, subgoals )
+                            parent_node_id = curr_node_id
+                            if self._verbose > 2:
+                                print(
+                                        'Iteration {}, MultiGoal {} successfully refined'.format(
+                                                _iter, repr( curr_node_info ),
+                                        ),
+                                )
+                                print(
+                                        'Iteration {}, Parent node modified to {}.'.format(
+                                                _iter, repr( self.sol_tree.nodes[ parent_node_id ][ 'info' ] ),
+                                        ),
+                                )
+                            break
+                if subgoals is None:
+                    parent_node_id, curr_node_id = self._backtrack( parent_node_id, curr_node_id )
+                    if self._verbose > 2:
+                        print(
+                                'Iteration {}, MultiGoal {} refinement failed'.format( _iter, repr( curr_node_info ) ),
+                        )
+                        print(
+                                'Iteration {}, Backtracking to {}.'.format(
+                                        _iter, repr( self.sol_tree.nodes[ curr_node_id ][ 'info' ] ),
+                                ),
+                        )
+
+            elif curr_node[ 'type' ] == 'VG':
+                state_var, arg, desired_val = self.sol_tree.nodes[ parent_node_id ][ 'info' ]
+                if self.state.__dict__[ state_var ][ arg ] == desired_val:
+                    curr_node[ 'status' ] = "C"
+                    gen_inactive = True
+                else:
+                    parent_node_id, curr_node_id = self._backtrack( parent_node_id, curr_node_id )
+                    if self._verbose > 2:
+                        curr_node_info = self.sol_tree.nodes[ curr_node_id ][ 'info' ]
+                        print( 'Iteration {}, Goal {} Verification failed.'.format( _iter, repr( curr_node_info ) ) )
+                        print( 'Iteration {}, Backtracking to {}.'.format( _iter, repr( curr_node_info ) ) )
+
+            elif curr_node[ 'type' ] == 'VM':
+                unachieved_goals = self._goals_not_achieved( parent_node_id )
+                if not unachieved_goals:
+                    curr_node[ 'status' ] = "C"
+                    gen_inactive = True
+                else:
+                    parent_node_id, curr_node_id = self._backtrack( parent_node_id, curr_node_id )
+                    if self._verbose > 2:
+                        curr_node_info = self.sol_tree.nodes[ curr_node_id ][ 'info' ]
+                        print(
+                                'Iteration {}, MultiGoal {} Verification failed.'.format(
+                                        _iter,
+                                        repr( curr_node_info ),
+                                ),
+                        )
+                        print( 'Iteration {}, Backtracking to {}.'.format( _iter, repr( curr_node_info ) ) )
 
         return _iter
 
