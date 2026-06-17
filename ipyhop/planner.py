@@ -8,7 +8,7 @@ from __future__ import division, print_function
 
 from copy import deepcopy
 from itertools import count
-from typing import Hashable, Iterator, List, Optional, Tuple, Union
+from typing import Hashable, Iterator, List, Optional, Tuple, Union, cast
 
 from networkx import DiGraph, descendants, dfs_preorder_nodes, is_tree
 
@@ -57,7 +57,6 @@ class IPyHOP(object):
         # during back tracking, use the list to determine which node to go to
         # root has node id 0 and is first element of visitation list
         self.node_id_visit_order: List[ int ] = [ 0 ]
-        self.current_node_id_idx: int = 0
 
         """ 
         Planning cycle
@@ -109,6 +108,7 @@ class IPyHOP(object):
         :param verbose: [Optional] An integer specifying the level of verbosity for IPyHOP.
         :return: A list containing the solution plan.
         """
+
         # handle temporal flagging
         self.is_temporal = False
         how_many_temporal = sum(
@@ -139,11 +139,12 @@ class IPyHOP(object):
         self.sol_plan = []
         self.sol_tree = DiGraph()
 
-
+        self.node_id_visit_order: List[ int ] = [ 0 ]
         _id = 0
         parent_node_id = _id
         self.sol_tree.add_node(_id, info=('root',), type='D', status='NA')
         _id = self._add_nodes_and_edges(_id, _id, self.task_list)
+
 
         self.iterations = self._planning(_id, parent_node_id)
         assert is_tree(self.sol_tree), "Error! Solution graph is not a tree."
@@ -152,6 +153,9 @@ class IPyHOP(object):
         for node_id in dfs_preorder_nodes(self.sol_tree, source=0):
             if self.sol_tree.nodes[node_id]['type'] == 'A':
                 self.sol_plan.append(self.sol_tree.nodes[node_id]['info'])
+
+        if not self.is_temporal:
+            assert self.node_id_visit_order == [ *dfs_preorder_nodes( self.sol_tree, source=0 ) ]
 
         return self.sol_plan
 
@@ -162,7 +166,7 @@ class IPyHOP(object):
     def select_next_open_node(
             self, _iter: int, parent_node_id, reference_chronicle: ReferenceChronicle,
             value_chronicle: Optional[ ValueChronicle ],
-    ) -> Iterator[ Hashable ]:
+    ) -> Iterator[ int ]:
         # CHANGE NEEDED: should select from current nodes based on temporal ordering
         # Goals have single time point
         # Actions need some way to identify start time point
@@ -244,13 +248,13 @@ class IPyHOP(object):
                                     _iter, repr( sol_tree.nodes[ node_id ][ 'info' ] ),
                             ),
                     )
-                yield node_id_anchor_time_point_tup[ 0 ]
+                yield cast( int, node_id_anchor_time_point_tup[ 0 ] )
 
 
         # expand nodes in dfs order for atemporal planning
         else:
             print( "atemporal" )
-            for node_id in sol_tree.successors( parent_node_id ):
+            for node_id in dfs_preorder_nodes( sol_tree, 0 ):
 
                 if sol_tree.nodes[ node_id ][ 'status' ] == 'O':
 
@@ -332,6 +336,7 @@ class IPyHOP(object):
                     subtasks = method( self.state, *curr_node_info[ 1: ] )
                     if subtasks is not None:
                         curr_node[ 'status' ] = 'C'
+                        node_id_visit_order.append( curr_node_id )
                         gen_inactive = True
                         _id = self._add_nodes_and_edges( _id, curr_node_id, subtasks )
                         parent_node_id = curr_node_id
@@ -387,6 +392,7 @@ class IPyHOP(object):
                     # If Action was successful, update the state.
                     if new_state is not None:
                         curr_node[ 'status' ] = 'C'
+                        node_id_visit_order.append( curr_node_id )
                         gen_inactive = True
                         self.state.update( new_state )
                         if self._verbose > 2:
@@ -421,6 +427,7 @@ class IPyHOP(object):
                         goal_done = True
                 if goal_done:
                     curr_node[ 'status' ] = 'C'
+                    node_id_visit_order.append( curr_node_id )
                     gen_inactive = True
                     subgoals = [ ]
                     if self._verbose > 2:
@@ -444,6 +451,7 @@ class IPyHOP(object):
                                 # this will handle object change and persistence rollback
                                 if reference_chronicle is not None:
                                     curr_node[ 'status' ] = 'C'
+                                    node_id_visit_order.append( curr_node_id )
                                     gen_inactive = True
                                     self.state.update( reference_chronicle )
                                     subgoals: List[ Union[ TemporalGoal, TemporalActionCall ] ] = \
@@ -453,6 +461,7 @@ class IPyHOP(object):
                             subgoals = method( self.state, *curr_node_info[ 1: ] )
                         if subgoals is not None:
                             curr_node[ 'status' ] = 'C'
+                            node_id_visit_order.append( curr_node_id )
                             gen_inactive = True
                             _id = self._add_nodes_and_edges( _id, curr_node_id, subgoals )  # type: ignore
                             parent_node_id = curr_node_id
@@ -495,6 +504,7 @@ class IPyHOP(object):
                         subgoals = method( self.state, curr_node_info )
                         if subgoals is not None:
                             curr_node[ 'status' ] = 'C'
+                            node_id_visit_order.append( curr_node_id )
                             gen_inactive = True
                             _id = self._add_nodes_and_edges( _id, curr_node_id, subgoals )
                             parent_node_id = curr_node_id
@@ -706,6 +716,7 @@ class IPyHOP(object):
             node = self.sol_tree.nodes[node_id]
             if node['status'] == 'C':
                 node['status'] = 'O'
+                self.node_id_visit_order.pop()
                 descendant_list = list(descendants(self.sol_tree, node_id))
                 if descendant_list:
                     self.sol_tree.remove_nodes_from(descendant_list)
