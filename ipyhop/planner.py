@@ -193,7 +193,7 @@ class IPyHOP(object):
 
             # filter out nodes not meeting (1) and (2)
             open_frontier_node_tup_filter: Iterator[ Tuple[ Hashable, int ] ] = filter(
-                    lambda x: x[ 1 ] == 0 and sol_tree.nodes[ x[ 0 ] ][ "status" ] == "O", sol_tree.out_degree,
+                    lambda x: x[ 1 ] == 0 and sol_tree.nodes[ x[ 0 ] ][ "status" ] in { "O", "M" }, sol_tree.out_degree,
             )
             open_frontier_node_map: Iterator[ int ] = map( lambda x: x[ 0 ], open_frontier_node_tup_filter )
 
@@ -245,7 +245,7 @@ class IPyHOP(object):
                 if self._verbose > 1:
                     print(
                             'Iteration {}, Refining node {}.'.format(
-                                    _iter, repr( sol_tree.nodes[ node_id ][ 'info' ] ),
+                                    _iter, repr( sol_tree.nodes[ node_id_anchor_time_point_tup[ 1 ] ][ 'info' ] ),
                             ),
                     )
                 yield cast( int, node_id_anchor_time_point_tup[ 0 ] )
@@ -258,7 +258,7 @@ class IPyHOP(object):
 
                 if sol_tree.nodes[ node_id ][ 'status' ] == 'O':
 
-                    curr_node_id = node_id
+                    curr_node_id = cast( int, node_id )
                     if self._verbose > 1:
                         print(
                                 'Iteration {}, Refining node {}.'.format(
@@ -283,13 +283,10 @@ class IPyHOP(object):
             print( gen_inactive )
             # increment iteration count
             _iter += 1
-            # make generator when no generator is valid
+            #
 
             curr_node_id_iter = select_next_open_node( _iter, parent_node_id, self.state, value_chronicle )
-            gen_inactive = False
             print( "past gen" )
-            # create generator for valid node ids to explore
-            # for atemporal there is only one candidate
             # pull from generator
 
             curr_node_id = next( curr_node_id_iter )
