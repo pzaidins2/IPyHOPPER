@@ -173,7 +173,7 @@ class IPyHOP(object):
     # for atemporal planning this is done in dfs order
     # for temporal planning, all open nodes in the frontier are candidates
     def select_next_open_node(
-            self, _iter: int, parent_node_id, reference_chronicle: ReferenceChronicle,
+            self, _iter: int, prev_node_id, reference_chronicle: ReferenceChronicle,
             value_chronicle: Optional[ ValueChronicle ],
     ) -> Iterator[ int ]:
         # CHANGE NEEDED: should select from current nodes based on temporal ordering
@@ -190,6 +190,7 @@ class IPyHOP(object):
         # change back track to restore temporal network *
         curr_node_id = None
         sol_tree = self.sol_tree
+        node_id_visit_order = self.node_id_visit_order
         # select next node to attempt
         if self.is_temporal and value_chronicle is not None:
             # anchoring time point: the time point associated with a temporal goal, the starting time point in the
@@ -253,8 +254,10 @@ class IPyHOP(object):
             for node_id_anchor_time_point_tup in node_id_anchor_time_point_tup_lst:
                 if self._verbose > 1:
                     print(
-                            'Iteration {}, Refining Node {}.'.format(
-                                    _iter, repr( sol_tree.nodes[ node_id_anchor_time_point_tup[ 1 ] ][ 'info' ] ),
+                            'Iteration {}, Refining Node {}:\n {}'.format(
+                                    _iter, node_id_anchor_time_point_tup[ 1 ],
+                                    repr( sol_tree.nodes[ node_id_anchor_time_point_tup[ 1 ] ][ 'info' ] ),
+
                             ),
                     )
                 yield cast( int, node_id_anchor_time_point_tup[ 0 ] )
@@ -262,20 +265,20 @@ class IPyHOP(object):
 
         # expand nodes in dfs order for atemporal planning
         else:
-            print( "atemporal" )
-            for node_id in dfs_preorder_nodes( sol_tree, 0 ):
-                print( sol_tree.nodes[ node_id ][ 'info' ] )
-                if sol_tree.nodes[ node_id ][ 'status' ] == 'O':
-
+            # print( "atemporal" )
+            for node_id in dfs_preorder_nodes( sol_tree, source=0 ):
+                node = sol_tree.nodes[ node_id ]
+                if node[ 'status' ] == "O":
                     curr_node_id = cast( int, node_id )
                     if self._verbose > 1:
                         print(
-                                'Iteration {}, Refining Node {}.'.format(
-                                        _iter, repr( sol_tree.nodes[ node_id ][ 'info' ] ),
-                                ),
-                        )
+                                'Iteration {}, Refining Node {}:\n {}'.format(
+                                        _iter, curr_node_id,
+                                        str( sol_tree.nodes[ curr_node_id ][ 'info' ] ),
+                                )
+                        ),
+                    yield curr_node_id
                     break
-            yield curr_node_id
 
     # ******************************        Class Method Declaration        ****************************************** #
     def _planning(self, root_node_id):
@@ -305,10 +308,11 @@ class IPyHOP(object):
 
             # increment iteration count
             _iter += 1
+            assert _iter < 20
             # get previous node from node_id_visit_order
             # curr_node will be gotten from prev_node
             prev_node_id = node_id_visit_order[ -1 ]
-            print( prev_node_id )
+            # print( prev_node_id )
             prev_node = sol_tree.nodes[ prev_node_id ]
             # if prev_node does not have an iterator to find current node, instantiate one
             # having the iterator on the node allows for us to avoid nodes we checked already
@@ -335,22 +339,30 @@ class IPyHOP(object):
                                     prev_node[ "info" ],
                             ) + ", has no next_node_id, preparing to select",
                     )
+                    # print( "next_node_id was None" )
                     need_new_curr_node = True
             # some current nodes (as of now goals and tasks) will need multiple iterations to
             # exhaust all potential methods, here we check if a new current node should be set
             # or to use the old (same as previous iteration) current node again
             else:
                 curr_node_id = cast( int, prev_node[ "next_node_id" ] )
+                print( node_id_visit_order )
+                print( sol_tree.nodes[ prev_node_id ][ 'info' ] )
+                print( curr_node_id )
                 curr_node = sol_tree.nodes[ curr_node_id ]
                 # check if goal or task
                 if curr_node[ "type" ] in { "G", "T", "M" }:
                     # check if methods have been exhausted
-                    if verbose > 2:
-                        print( "Node " + str( curr_node_id ) + " has exhausted methods for present current node" )
-                    if curr_node[ "methods_exhausted" ]:
+                    if curr_node[ "exhausted_methods" ]:
                         need_new_curr_node = True
+                        if verbose > 2:
+                            print( "Node " + str( curr_node_id ) + " has exhausted methods for present current node" )
+                            # print( "curr_node was " + str( curr_node_id ) )
                 else:
                     need_new_curr_node = True
+                    # print( "type was not in {G,T,M}" )
+                    # print( "curr_node was " + str( curr_node_id ) )
+                    # print( "curr_node_type was " + str( curr_node[ "type" ] ) )
 
             # set current node for this iteration, need_new_curr_node pull from iterator
             # if the iterator has been exhausted, we will need to reopen the previous node and set as current node,
@@ -360,10 +372,6 @@ class IPyHOP(object):
                 try:
                     curr_node_id = next( prev_node[ "next_node_id_iter" ] )
                     prev_node[ "next_node_id" ] = curr_node_id
-                    if verbose > 2:
-                        print(
-                                "Current node is now " + str( curr_node_id ),
-                        )
                 except StopIteration:
 
                     # current prev_node_id is the root_node_id, planning has failed
@@ -372,8 +380,8 @@ class IPyHOP(object):
                         print( "Cannot backtrack from root node, terminating planning" )
                         return _iter
                     # otherwise backtrack
-                    print( node_id_visit_order )
-                    backtrack( prev_node_id )
+                    # print( node_id_visit_order )
+                    backtrack()
                     if verbose > 2:
                         print(
                                 "Node " + str(
@@ -407,15 +415,19 @@ class IPyHOP(object):
                     subtasks = method( self.state, *curr_node_info[ 1: ] )
                     if subtasks is not None:
                         curr_node[ 'status' ] = 'C'
-                        node_id_visit_order.append( curr_node_id )
+                        if curr_node_id not in node_id_visit_order:
+                            node_id_visit_order.append( curr_node_id )
                         _id = add_nodes_and_edges( curr_node_id, subtasks )
                         if self._verbose > 2:
                             print(
-                                    'Iteration {}, Task {} successfully refined'.format(
+                                    'Iteration {}, Task {} successfully refined\n Subtasks: {}'.format(
                                             _iter,
                                             repr( curr_node_info ),
+                                            str( subtasks ),
                                     ),
                             )
+                            print( sol_tree.edges )
+
                         break
                 if subtasks is None:
                     # parent_node_id, curr_node_id = backtrack( -1, curr_node_id )
@@ -423,7 +435,7 @@ class IPyHOP(object):
                     # set flag and restore available methods
                     if verbose > 2:
                         print( 'Iteration {}, Task {} refinement failed'.format( _iter, repr( curr_node_info ) ) )
-                    curr_node[ 'methods_exhausted' ] = True
+                    curr_node[ 'exhausted_methods' ] = True
                     curr_node[ 'available_methods' ] = iter( curr_node[ 'methods' ] )
 
 
@@ -455,7 +467,8 @@ class IPyHOP(object):
                     # If Action was successful, update the state.
                     if new_state is not None:
                         curr_node[ 'status' ] = 'C'
-                        node_id_visit_order.append( curr_node_id )
+                        if curr_node_id not in node_id_visit_order:
+                            node_id_visit_order.append( curr_node_id )
                         self.state.update( new_state )
                         if verbose > 2:
                             print( 'Iteration {}, Action {} successful.'.format( _iter, repr( curr_node_info ) ) )
@@ -483,7 +496,8 @@ class IPyHOP(object):
                         goal_done = True
                 if goal_done:
                     curr_node[ 'status' ] = 'C'
-                    node_id_visit_order.append( curr_node_id )
+                    if curr_node_id not in node_id_visit_order:
+                        node_id_visit_order.append( curr_node_id )
                     subgoals = [ ]
                     if self._verbose > 2:
                         print( 'Iteration {}, Goal {} already achieved'.format( _iter, repr( curr_node_info ) ) )
@@ -513,7 +527,8 @@ class IPyHOP(object):
                             subgoals = method( self.state, *curr_node_info[ 1: ] )
                         if subgoals is not None:
                             curr_node[ 'status' ] = 'C'
-                            node_id_visit_order.append( curr_node_id )
+                            if curr_node_id not in node_id_visit_order:
+                                node_id_visit_order.append( curr_node_id )
                             _id = add_nodes_and_edges( curr_node_id, subgoals )  # type: ignore
                             if self._verbose > 2:
                                 print(
@@ -525,7 +540,7 @@ class IPyHOP(object):
                 if subgoals is None:
                     if self._verbose > 2:
                         print( 'Iteration {}, Goal {} refinement failed'.format( _iter, repr( curr_node_info ) ) )
-                    curr_node[ 'methods_exhausted' ] = True
+                    curr_node[ 'exhausted_methods' ] = True
                     curr_node[ 'available_methods' ] = iter( curr_node[ 'methods' ] )
 
             # If current node is a MultiGoal
@@ -559,17 +574,19 @@ class IPyHOP(object):
                         print(
                                 'Iteration {}, MultiGoal {} refinement failed'.format( _iter, repr( curr_node_info ) ),
                         )
-                    curr_node[ 'methods_exhausted' ] = True
+                    curr_node[ 'exhausted_methods' ] = True
                     curr_node[ 'available_methods' ] = iter( curr_node[ 'methods' ] )
                     continue
                 else:
-                    node_id_visit_order.append( curr_node_id )
+                    if curr_node_id not in node_id_visit_order:
+                        node_id_visit_order.append( curr_node_id )
 
             elif curr_node[ 'type' ] == 'VG':
                 state_var, arg, desired_val = self.sol_tree.nodes[ parent_node_id ][ 'info' ]
                 if self.state.__dict__[ state_var ][ arg ] == desired_val:
                     curr_node[ 'status' ] = "C"
-                    node_id_visit_order.append( curr_node_id )
+                    if curr_node_id not in node_id_visit_order:
+                        node_id_visit_order.append( curr_node_id )
                 else:
                     if verbose > 2:
                         curr_node_info = self.sol_tree.nodes[ curr_node_id ][ 'info' ]
@@ -580,7 +597,8 @@ class IPyHOP(object):
                 unachieved_goals = goals_not_achieved( parent_node_id )
                 if not unachieved_goals:
                     curr_node[ 'status' ] = "C"
-                    node_id_visit_order.append( curr_node_id )
+                    if curr_node_id not in node_id_visit_order:
+                        node_id_visit_order.append( curr_node_id )
                 else:
                     if self._verbose > 2:
                         curr_node_info = self.sol_tree.nodes[ curr_node_id ][ 'info' ]
@@ -736,45 +754,78 @@ class IPyHOP(object):
         return max_id
 
     # ******************************        Class Method Declaration        ****************************************** #
-    # unexpands current node: resets attributes to new initialization:
-    # status becomes 'O'
-    # state, selected_methods, next_node_id_iter, next_node_id, temporal_restoration_tup become None (if applicable)
-    # available_methods is restored to an iterator of all methods
-    # exhausted_methods becomes False (if applicable)
-    # children are removed (if applicable)
-    # temporal network is rolled back (if applicable)
-    def _backtrack(self, curr_node_id: int):
+    # unexpands last node closed
+    # set status to open, removes children if any
+    ### CURRENT PROBLEM ###
+    # types of backtrack: right sibling, parent, rightmost descendant of left sibling
+    # conversely going forward: left sibling, child, the first right sibling of an ancestor going up the tree
+    # when backtracking to task/goal the next_node_id will point to original first child (no longer in tree)
+    # resetting the next_node or iter causes backtracking to root (exact reason unclear)
+    # resetting selected_method and method iter with above causes infinite loop (cant determine previous attempts)
+    # restting state with next_node+ gives incorrect plan
+    # likely needs to manipulate current prev_node and the one before
+    # resets the current prev_node
+    # reopens the previous prev_node and makes the planners current state the same as the previous prev_node state
+    def _backtrack(self):
         is_temporal = self.is_temporal
         value_chronicle = self.value_chronicle
         node_id_visit_order = self.node_id_visit_order
+        sol_tree = self.sol_tree
         # object variables get rolled back with indices in reference chronicle
         # temporal network needs the temporal restoration tuple for reset
-        curr_node = self.sol_tree.nodes[ curr_node_id ]
-        curr_type = curr_node[ 'type' ]
-        # task and goals
-        if curr_type in { 'G', 'T', 'M' }:
-            # curr_node[ 'selected_method' ] = None
-            # curr_node[ 'available_methods' ] = iter( curr_node[ 'methods' ] )
-            # curr_node[ 'exhausted_methods' ] = False
-            # removes children
-            self.sol_tree.remove_nodes_from( dfs_successors( self.sol_tree, curr_node_id ) )
+        prev_node_id = node_id_visit_order[ -1 ]
+        prev_node = sol_tree.nodes[ prev_node_id ]
+        # print( prev_node )
+        prev_type = prev_node[ 'type' ]
+        # reset previous node (as it was at creation)
+        # nodes with methods
+        if prev_type in [ 'G', 'M', 'T' ]:
+            # print( dfs_successors( self.sol_tree, prev_node_id )[ prev_node_id ] )
+            sol_tree.remove_nodes_from( dfs_successors( self.sol_tree, prev_node_id )[ prev_node_id ] )
+            prev_node[ 'selected_method' ] = None
+            prev_node[ 'available_methods' ] = iter( prev_node[ 'methods' ] )
+            prev_node[ 'exhausted_methods' ] = False
+
         # temporal
         if is_temporal and value_chronicle is not None:
-            temporal_restoration_tup: TemporalRestorationTuple = curr_node[ 'temporal_restoration_tuple' ]
+            temporal_restoration_tup: TemporalRestorationTuple = prev_node[ 'temporal_restoration_tuple' ]
             value_chronicle.temporal_network.restore_graph(
                     *temporal_restoration_tup,
             )
-            curr_node[ 'temporal_restoration_tuple' ] = None
-        # universal
-        # curr_node[ 'state' ] = None
-        curr_node[ 'status' ] = 'O'
-        # curr_node[ 'next_node_id_iter' ] = None
-        # curr_node[ 'next_node_id' ] = None
-
+            prev_node[ 'temporal_restoration_tuple' ] = None
+        # all nodes
+        prev_node[ 'status' ] = 'O'
+        prev_node[ 'next_node_id_iter' ] = None
+        prev_node[ 'next_node_id' ] = None
+        prev_node[ 'state' ] = None
         # remove from visitation order list
-        curr_node_idx = node_id_visit_order.index( curr_node_id )
-        node_id_visit_order.pop( curr_node_idx )
+        node_id_visit_order.pop()
+        # reopen previous prev_node (set status to open, remove children, copy node state into self.state)
+        prev_prev_node_id = node_id_visit_order[ -1 ]
+        prev_prev_node = sol_tree.nodes[ prev_prev_node_id ]
+        prev_prev_type = prev_prev_node[ 'type' ]
+        # nodes with methods
+        if prev_prev_type in [ 'G', 'M', 'T' ]:
+            # print( [ *sol_tree.edges ] )
+            # print( sol_tree.nodes[ prev_node_id ][ 'info' ] )
+            # print( dfs_successors( self.sol_tree, prev_node_id ) )
+            # prev_prev_node[ 'selected_method' ] = None
+            # prev_prev_node[ 'available_methods' ] = iter( prev_prev_node[ 'methods' ] )
+            sol_tree.remove_nodes_from( dfs_successors( self.sol_tree, prev_prev_node_id )[ prev_prev_node_id ] )
+        # temporal
+        if is_temporal and value_chronicle is not None:
+            temporal_restoration_tup: TemporalRestorationTuple = prev_prev_node[ 'temporal_restoration_tuple' ]
+            value_chronicle.temporal_network.restore_graph(
+                    *temporal_restoration_tup,
+            )
+            prev_prev_node[ 'temporal_restoration_tuple' ] = None
+        # all nodes
+        prev_prev_node[ 'status' ] = 'O'
+        prev_prev_node[ 'next_node_id_iter' ] = None
+        prev_prev_node[ 'next_node_id' ] = None
 
+        # print( prev_prev_node )
+        # self.state.update( prev_prev_node[ 'state' ].copy() )
         return
 
     # ******************************        Class Method Declaration        ****************************************** #
