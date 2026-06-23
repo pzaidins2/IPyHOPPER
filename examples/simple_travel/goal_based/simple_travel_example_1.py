@@ -40,7 +40,7 @@ def main():
         print('\t', action)
 
     # Lets try a, multigoal.
-    plan = planner.plan(init_state, [multigoal1], verbose=1)
+    plan = planner.plan(init_state, [multigoal1], verbose=3)
     assert plan == exp_1, "Result plan and expected plan are not same"
     graph = planner.sol_tree
 

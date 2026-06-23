@@ -63,21 +63,21 @@ def tm_do_nothing(state, p, y):
     if is_a(state, p, 'person') and is_a(state, y, 'location'):
         x = state.loc[p]
         if x == y:
-            return []
+            yield []
 
 
 def tm_travel_by_foot(state, p, y):
     if is_a(state, p, 'person') and is_a(state, y, 'location'):
         x = state.loc[p]
         if x != y and distance(state, x, y) <= 2:
-            return [('a_walk', p, x, y)]
+            yield [('a_walk', p, x, y)]
 
 
 def tm_travel_by_taxi(state, p, y):
     if is_a(state, p, 'person') and is_a(state, y, 'location'):
         x = state.loc[p]
         if x != y and state.cash[p] >= taxi_rate(distance(state, x, y)):
-            return [('a_call_taxi', p, x), ('a_ride_taxi', p, y), ('a_pay_driver', p, y)]
+            yield [('a_call_taxi', p, x), ('a_ride_taxi', p, y), ('a_pay_driver', p, y)]
 
 
 methods = Methods()

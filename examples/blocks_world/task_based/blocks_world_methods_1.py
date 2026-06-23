@@ -59,19 +59,19 @@ def tm_move_blocks(state, goal):
     for b1 in all_blocks(state):
         s = status(b1, state, goal)
         if s == 'move-to-table':
-            return [('move_one', b1, 'table'), ('move_blocks', goal)]
+            yield [('move_one', b1, 'table'), ('move_blocks', goal)]
         elif s == 'move-to-block':
-            return [('move_one', b1, goal.pos[b1]), ('move_blocks', goal)]
+            yield [('move_one', b1, goal.pos[b1]), ('move_blocks', goal)]
         else:
             continue
     #
     # if we get here, no blocks can be moved to their final locations
     b1 = find_if(lambda x: status(x, state, goal) == 'waiting', all_blocks(state))
     if b1 is not None:
-        return [('move_one', b1, 'table'), ('move_blocks', goal)]
+        yield [('move_one', b1, 'table'), ('move_blocks', goal)]
     #
     # if we get here, there are no blocks that need moving
-    return []
+    yield []
 
 
 # Create a IPyHOP Methods object. A Methods object stores all the methods defined for the planning domain.
@@ -87,7 +87,7 @@ def tm_move1(state, b1, dest):
     """
     Generate subtasks to get b1 and put it at dest.
     """
-    return [('get', b1), ('put', b1, dest)]
+    yield [('get', b1), ('put', b1, dest)]
 
 
 methods.declare_task_methods('move_one', [tm_move1])
@@ -99,9 +99,9 @@ def tm_get(state, b1):
     """
     if state.clear[b1]:
         if state.pos[b1] == 'table':
-            return [('a_pickup', b1)]
+            yield [('a_pickup', b1)]
         else:
-            return [('a_unstack', b1, state.pos[b1])]
+            yield [('a_unstack', b1, state.pos[b1])]
 
 
 methods.declare_task_methods('get', [tm_get])
@@ -113,9 +113,9 @@ def tm_put(state, b1, b2):
     """
     if state.holding['hand'] == b1:
         if b2 == 'table':
-            return [('a_putdown', b1)]
+            yield [('a_putdown', b1)]
         else:
-            return [('a_stack', b1, b2)]
+            yield [('a_stack', b1, b2)]
 
 
 methods.declare_task_methods('put', [tm_put])

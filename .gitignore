@@ -24,3 +24,6 @@ temp??.*
 # ignore logs
 **/logs/
 **/logs*/
+examples/dragons/domain/methods.py
+examples/dragons/domain/actions.py
+ipyhop/.idea/workspace.xml

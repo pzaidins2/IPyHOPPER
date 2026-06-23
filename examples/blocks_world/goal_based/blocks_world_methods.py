@@ -31,19 +31,19 @@ def mgm_move_blocks(state, multigoal):
         s = status(b1, state, multigoal)
         if s == 'move-to-block':
             b2 = multigoal.pos[b1]
-            return [('pos', b1, b2), multigoal]
+            yield [('pos', b1, b2), multigoal]
         elif s == 'move-to-table':
-            return [('pos', b1, 'table'), multigoal]
+            yield [('pos', b1, 'table'), multigoal]
         else:
             continue
     #
     # if we get here, no blocks can be moved to their final locations
     for b1 in all_clear_blocks(state):
         if status(b1, state, multigoal) == 'waiting':
-            return [('pos', b1, 'table'), multigoal]
+            yield [('pos', b1, 'table'), multigoal]
     #
     # if we get here, there are no blocks that need moving
-    return []
+    yield []
 
 
 # Create a IPyHOP Methods object. A Methods object stores all the methods defined for the planning domain.
@@ -62,7 +62,7 @@ def gm_move1(state, b1, b2):
     """
     if b2 != 'hand' and state.clear[b1] and state.holding['hand'] == False:
         if b2 == 'table' or state.clear[b2]:
-            return [('pos', b1, 'hand'), ('pos', b1, b2)]
+            yield [('pos', b1, 'hand'), ('pos', b1, b2)]
 
 
 def gm_get(state, b1, b2):
@@ -72,9 +72,9 @@ def gm_get(state, b1, b2):
     """
     if b2 == 'hand' and state.clear[b1] and state.holding['hand'] == False:
         if state.pos[b1] == 'table':
-            return [('a_pickup', b1)]
+            yield [('a_pickup', b1)]
         else:
-            return [('a_unstack', b1, state.pos[b1])]
+            yield [('a_unstack', b1, state.pos[b1])]
 
 
 def gm_put(state, b1, b2):
@@ -85,9 +85,9 @@ def gm_put(state, b1, b2):
     """
     if b2 != 'hand' and state.pos[b1] == 'hand':
         if b2 == 'table':
-            return [('a_putdown', b1)]
+            yield [('a_putdown', b1)]
         elif state.clear[b2]:
-            return [('a_stack', b1, b2)]
+            yield [('a_stack', b1, b2)]
 
 
 methods.declare_goal_methods('pos', [gm_move1, gm_get, gm_put])

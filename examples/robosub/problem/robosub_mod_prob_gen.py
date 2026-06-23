@@ -5,7 +5,7 @@ File Description: Robosub mod problem file. Initial state and task list for the 
 # ******************************************    Libraries to be imported    ****************************************** #
 from random import sample, seed
 from ipyhop import State
-
+from functools import partial
 
 # ******************************************        Problem Definition      ****************************************** #
 class StateSampler(object):
@@ -30,7 +30,7 @@ class StateSampler(object):
         self.options['s1'] = ['l5']
         seed(seed_val)
 
-    def sample(self, state_name="init_state"):
+    def sample(self, actions, methods, state_name="init_state"):
         state = State(state_name)
         rigid_relations = dict()
         rigid_relations['adj'] = \
@@ -39,7 +39,7 @@ class StateSampler(object):
             {'l0': 'l', 'l1': 'l', 'l2': 'l', 'l3': 'l', 'l4': 'l', 'l5': 'l', 'g': 'g', 'r': 'r', 'gm1': 'gm',
              'gm2': 'gm', 'cm1': 'cm', 'cm2': 'cm', 'gp1': 'gp', 'gp2': 'gp', 'c1': 'c', 'v1': 'v', 'v2': 'v',
              'd1': 'd', 'ap1': 'ap', 'ap2': 'ap', 's1': 's', 't1': 't', 't2': 't'}
-        state.rigid = rigid_relations
+        rigid = rigid_relations
         state.found = {'g': False, 'gm1': False, 'cm1': False, 'gp1': False,
                        'v1': False, 'v2': False, 'gp2': False,
                        'gm2': False, 'c1': False, 'ap1': False, 'd1': False,
@@ -61,7 +61,17 @@ class StateSampler(object):
         valid_gm_locs = [x for x in ['l1', 'l2', 'l3', 'l4', 'l5'] if x <= state.loc['c1']]
         state.loc['gm1'] = sample(valid_gm_locs, 1)[0]
         state.loc['gm2'] = sample(valid_gm_locs, 1)[0]
-        return state
+
+        # rigid never needs to be copied so avoid this by partial evaluation of actions, methods, and deviation_handler that take rigid
+        methods.goal_method_dict.update(
+            { l: [ partial( m, rigid=rigid ) for m in ms ] for l, ms in methods.goal_method_dict.items() } )
+        methods.task_method_dict.update(
+            { l: [ partial( m, rigid=rigid ) for m in ms ] for l, ms in methods.task_method_dict.items() } )
+        methods.multigoal_method_dict.update(
+            { l: [ partial( m, rigid=rigid ) for m in ms ] for l, ms in methods.multigoal_method_dict.items() } )
+        actions.action_dict.update( { l: partial( a, rigid=rigid ) for l, a in actions.action_dict.items() } )
+
+        return state, [ ('pinger_task', ), ('main_task', ['l1', 'l2', 'l3', 'l4', 'l5']) ]
 
 
 # ******************************************    Demo / Test Routine         ****************************************** #

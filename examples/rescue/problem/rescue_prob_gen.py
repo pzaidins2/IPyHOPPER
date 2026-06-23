@@ -5,6 +5,7 @@ File Description: Rescue problem file. Initial state and task list for the plann
 from random import sample, seed
 from ipyhop import State
 import itertools
+from functools import partial
 
 # ******************************************        Problem Definition      ****************************************** #
 class StateSampler(object):
@@ -14,7 +15,7 @@ class StateSampler(object):
         self.options['locs'].remove((1, 1))
         seed(seed_val)
 
-    def sample(self, state_name="init_state"):
+    def sample(self, actions, methods, state_name="init_state"):
         state = State(state_name)
         rigid_relations = dict()
         rigid_relations['wheeled_robots'] = ('r1', 'w1')
@@ -35,7 +36,7 @@ class StateSampler(object):
         for lp in loc_pair_list:
             rigid_relations['obstacles'].append(((lp[0][0] + lp[1][0]) / 2, (lp[0][1] + lp[1][1]) / 2))
 
-        state.rigid = rigid_relations
+        rigid = rigid_relations
 
         state.loc = {'r1': rigid_relations['base_loc'], 'w1': rigid_relations['base_loc'],
                      'a1': rigid_relations['base_loc'], 'p1': rigid_relations['other_loc'][0],
@@ -65,7 +66,24 @@ class StateSampler(object):
                          rigid_relations['other_loc'][2]: 'clear', rigid_relations['other_loc'][3]: 'clear',
                          rigid_relations['other_loc'][4]: 'clear'}
 
-        return state
+        # rigid never needs to be copied so avoid this by partial evaluation of actions, methods, and deviation_handler that take rigid
+        methods.goal_method_dict.update(
+            { l: [ partial( m, rigid=rigid ) for m in ms ] for l, ms in methods.goal_method_dict.items() } )
+        methods.task_method_dict.update(
+            { l: [ partial( m, rigid=rigid ) for m in ms ] for l, ms in methods.task_method_dict.items() } )
+        methods.multigoal_method_dict.update(
+            { l: [ partial( m, rigid=rigid ) for m in ms ] for l, ms in methods.multigoal_method_dict.items() } )
+        actions.action_dict.update( { l: partial( a, rigid=rigid ) for l, a in actions.action_dict.items() } )
+
+        task_list = [ ( 'survey_task', 'a1', rigid[ 'other_loc' ][ 0 ] ),
+                      ( 'survey_task', 'a1', rigid[ 'other_loc' ][ 4 ] ),
+                      ( 'survey_task', 'a1', rigid[ 'other_loc' ][ 2 ] ),
+                      ( 'survey_task', 'a1', rigid[ 'other_loc' ][ 3 ] ),
+                      ( 'survey_task', 'a1', rigid[ 'other_loc' ][ 1 ] ) ]
+
+        # survey task is top level task
+        # goal is to survey all marked locations, only a1 is uav
+        return state, task_list
 
 
 # ******************************************    Demo / Test Routine         ****************************************** #

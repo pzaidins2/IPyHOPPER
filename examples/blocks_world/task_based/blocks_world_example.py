@@ -25,28 +25,28 @@ def main():
     print('\ninit_state_1: \n', init_state_1, '\n')
 
     print('- these should fail:')
-    plan = planner.plan(init_state_1, [('a_pickup', 'a')], verbose=1)
+    plan = planner.plan(init_state_1, [('a_pickup', 'a')], verbose=3)
     assert plan == [], "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
-    plan = planner.plan(init_state_1, [('a_pickup', 'b')], verbose=1)
+    plan = planner.plan(init_state_1, [('a_pickup', 'b')], verbose=3)
     assert plan == [], "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
-    plan = planner.plan(init_state_1, [('get', 'b')], verbose=1)
+    plan = planner.plan(init_state_1, [('get', 'b')], verbose=3)
     assert plan == [], "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
 
     print('- these should succeed:')
-    plan = planner.plan(init_state_1, [('a_pickup', 'c')], verbose=1)
+    plan = planner.plan(init_state_1, [('a_pickup', 'c')], verbose=3)
     assert plan == [('a_pickup', 'c')], "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
-    plan = planner.plan(init_state_1, [('get', 'a')], verbose=1)
+    plan = planner.plan(init_state_1, [('get', 'a')], verbose=3)
     assert plan == [('a_unstack', 'a', 'b')], "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
-    plan = planner.plan(init_state_1, [('get', 'c')], verbose=1)
+    plan = planner.plan(init_state_1, [('get', 'c')], verbose=3)
     assert plan == [('a_pickup', 'c')], "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
 
-    plan = planner.plan(init_state_1, [('move_one', 'a', 'table')], verbose=1)
+    plan = planner.plan(init_state_1, [('move_one', 'a', 'table')], verbose=3)
     assert plan == [('a_unstack', 'a', 'b'), ('a_putdown', 'a')], "Result plan and expected plan are not same"
 
     print("""\r************************************************************************************************
@@ -60,10 +60,10 @@ def main():
 
     exp_1 = [('a_unstack', 'a', 'b'), ('a_putdown', 'a'), ('a_pickup', 'b'), ('a_stack', 'b', 'a'),
                 ('a_pickup', 'c'), ('a_stack', 'c', 'b')]
-    plan = planner.plan(init_state_1, [('move_blocks', goal1a)], verbose=1)
+    plan = planner.plan(init_state_1, [('move_blocks', goal1a)], verbose=3)
     assert plan == exp_1, "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
-    plan = planner.plan(init_state_1, [('move_blocks', goal1b)], verbose=1)
+    plan = planner.plan(init_state_1, [('move_blocks', goal1b)], verbose=3)
     assert plan == exp_1, "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
 
@@ -78,10 +78,10 @@ def main():
 
     exp_2 = [('a_unstack', 'a', 'c'), ('a_putdown', 'a'), ('a_unstack', 'b', 'd'), ('a_stack', 'b', 'c'),
              ('a_pickup', 'a'), ('a_stack', 'a', 'd')]
-    plan = planner.plan(init_state_2, [('move_blocks', goal2a)], verbose=1)
+    plan = planner.plan(init_state_2, [('move_blocks', goal2a)], verbose=3)
     assert plan == exp_2, "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
-    plan = planner.plan(init_state_2, [('move_blocks', goal2b)], verbose=1)
+    plan = planner.plan(init_state_2, [('move_blocks', goal2b)], verbose=3)
     assert plan == exp_2, "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
 
@@ -101,7 +101,7 @@ def main():
              ('a_pickup', 2), ('a_stack', 2, 3), ('a_unstack', 12, 13), ('a_stack', 12, 2), ('a_pickup', 13),
              ('a_stack', 13, 8), ('a_pickup', 15), ('a_stack', 15, 13)]
 
-    plan = planner.plan(init_state_3, [('move_blocks', goal3)], verbose=1)
+    plan = planner.plan(init_state_3, [('move_blocks', goal3)], verbose=3)
     assert plan == exp_3, "Result plan and expected plan are not same"
     print('Plan: ', plan, '\n')
 

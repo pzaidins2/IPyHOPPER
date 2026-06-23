@@ -49,6 +49,7 @@ def planar_plot(graph: DiGraph, root_node: int = 0):
             n_col.append('gray')
             n_sz.append(30)
         else:
+            print( graph.nodes[ node ])
             raise ValueError("Invalid Node Encountered.")
     plt.figure()
     draw_planar(sub_graph, node_color=n_col, with_labels=True, node_size=n_sz, font_size=7, labels=n_lbls)

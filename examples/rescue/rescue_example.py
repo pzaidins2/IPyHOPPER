@@ -17,7 +17,7 @@ def main():
     print(actions)
     print(init_state)
     planner = IPyHOP(methods, actions)
-    plan = planner.plan(init_state, task_list_2, verbose=0)
+    plan = planner.plan(init_state, task_list_2, verbose=3)
     graph = planner.sol_tree
 
     planar_plot(graph, root_node=0)

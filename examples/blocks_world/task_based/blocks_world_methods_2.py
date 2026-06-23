@@ -29,7 +29,7 @@ def tm_get_by_pickup(state, b1):
     Generate a pickup subtask.
     """
     if state.clear[b1]:
-        return [('pickup_task', b1)]
+        yield [('pickup_task', b1)]
 
 
 def tm_get_by_unstack(state, b1):
@@ -37,7 +37,7 @@ def tm_get_by_unstack(state, b1):
     Generate a pickup subtask.
     """
     if state.clear[b1]:
-        return [('unstack_task', b1)]
+        yield [('unstack_task', b1)]
 
 
 methods.declare_task_methods('get', [tm_get_by_pickup, tm_get_by_unstack])
@@ -48,7 +48,7 @@ def tm_pickup(state, b1):
     Generate a pickup subtask.
     """
     if state.clear[b1]:
-        return [('a_pickup', b1)]
+        yield [('a_pickup', b1)]
 
 
 methods.declare_task_methods('pickup_task', [tm_pickup])
@@ -59,7 +59,7 @@ def tm_unstack(state, b1):
     Generate a pickup subtask.
     """
     if state.clear[b1]:
-        return [('a_unstack', b1, state.pos[b1])]
+        yield [('a_unstack', b1, state.pos[b1])]
 
 
 methods.declare_task_methods('unstack_task', [tm_unstack])

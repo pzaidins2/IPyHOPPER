@@ -10,18 +10,18 @@ from ipyhop import Actions
 actions = Actions()
 
 
-def a_free_robot(state, r):     # Added a command.
+def a_free_robot(state, r, rigid):     # Added a command.
     state.status[r] = 'free'
     return state
 
 
-def a_die_update(state, p):
+def a_die_update(state, p, rigid):
     state.status[p] = 'dead'
     state.real_status[p] = 'dead'
     return None
 
 
-def a_move_euclidean(state, r, l, l_, dist):        # TODO: Ask Sunandita why dist is used.
+def a_move_euclidean(state, r, l, l_, dist, rigid):        # TODO: Ask Sunandita why dist is used.
     (x1, y1) = l
     (x2, y2) = l_
 
@@ -30,7 +30,7 @@ def a_move_euclidean(state, r, l, l_, dist):        # TODO: Ask Sunandita why di
     y_low = min(y1, y2)
     y_high = max(y1, y2)
 
-    for obs in state.rigid['obstacles']:
+    for obs in rigid['obstacles']:
         (ox, oy) = obs
         if x_low <= ox <= x_high and y_low <= oy <= y_high:
             if ox == x1 or x2 == x1:    # TODO: Ask Sunandita about this condition.
@@ -48,7 +48,7 @@ def a_move_euclidean(state, r, l, l_, dist):        # TODO: Ask Sunandita why di
     return None
 
 
-def a_move_manhattan(state, r, l, l_, dist):        # TODO: Ask Sunandita why dist is used.
+def a_move_manhattan(state, r, l, l_, dist, rigid):        # TODO: Ask Sunandita why dist is used.
     (x1, y1) = l
     (x2, y2) = l_
 
@@ -57,7 +57,7 @@ def a_move_manhattan(state, r, l, l_, dist):        # TODO: Ask Sunandita why di
     y_low = min(y1, y2)
     y_high = max(y1, y2)
 
-    for obs in state.rigid['obstacles']:
+    for obs in rigid['obstacles']:
         (ox, oy) = obs
         # TODO: Why the inconsistent checking method for position difference.
         if abs(oy - y1) <= 0.0001 and x_low <= ox <= x_high:    # TODO: Ask Sunandita about this condition.
@@ -75,13 +75,13 @@ def a_move_manhattan(state, r, l, l_, dist):        # TODO: Ask Sunandita why di
     return None
 
 
-def a_move_curved(state, r, l, l_, dist):       # TODO: Ask Sunandita why dist is used.
+def a_move_curved(state, r, l, l_, dist, rigid):       # TODO: Ask Sunandita why dist is used.
     (x1, y1) = l
     (x2, y2) = l_
     centre_x = (x1 + x2) / 2
     centre_y = (y1 + y2) / 2
 
-    for obs in state.rigid['obstacles']:
+    for obs in rigid['obstacles']:
         (ox, oy) = obs
         r2 = (x2 - centre_x) ** 2 + (y2 - centre_y) ** 2
         ro = (ox - centre_x) ** 2 + (oy - centre_y) ** 2
@@ -98,7 +98,7 @@ def a_move_curved(state, r, l, l_, dist):       # TODO: Ask Sunandita why dist i
     return None
 
 
-def a_move_fly(state, r, l, l_):
+def a_move_fly(state, r, l, l_, rigid):
     if l == l_:
         return state
 
@@ -109,7 +109,7 @@ def a_move_fly(state, r, l, l_):
     return None
 
 
-def a_move_alt_fly(state, r, l, l_):
+def a_move_alt_fly(state, r, l, l_, rigid):
     if l == l_:
         return state
 
@@ -120,12 +120,12 @@ def a_move_alt_fly(state, r, l, l_):
     return None
 
 
-def a_inspect_person(state, r, p):      # TODO: Should check if robot is available to do that operation.
+def a_inspect_person(state, r, p, rigid):      # TODO: Should check if robot is available to do that operation.
     state.status[p] = state.real_status[p]
     return state
 
 
-def a_support_person(state, r, p):  # TODO: Should check if robot is available to do that operation.
+def a_support_person(state, r, p, rigid):  # TODO: Should check if robot is available to do that operation.
     if state.status[p] != 'dead':
         state.status[p] = 'OK'
         state.real_status[p] = 'OK'
@@ -133,7 +133,7 @@ def a_support_person(state, r, p):  # TODO: Should check if robot is available t
     return None
 
 
-def a_support_person_2(state, r, p):  # TODO: Should check if robot is available to do that operation.
+def a_support_person_2(state, r, p, rigid):  # TODO: Should check if robot is available to do that operation.
     if state.status[p] != 'dead':
         state.status[p] = 'OK'
         state.real_status[p] = 'OK'
@@ -141,31 +141,31 @@ def a_support_person_2(state, r, p):  # TODO: Should check if robot is available
     return None
 
 
-def a_inspect_location(state, r, l):    # TODO: Should check if robot is available to do that operation.
+def a_inspect_location(state, r, l, rigid):    # TODO: Should check if robot is available to do that operation.
     state.status[l] = state.real_status[l]
     return state
 
 
-def a_clear_location(state, r, l):      # TODO: Should check if robot is available to do that operation.
+def a_clear_location(state, r, l, rigid):      # TODO: Should check if robot is available to do that operation.
     state.status[l] = 'clear'
     state.real_status[l] = 'clear'
     return state
 
 
-def a_clear_location_2(state, r, l):      # TODO: Should check if robot is available to do that operation.
+def a_clear_location_2(state, r, l, rigid):      # TODO: Should check if robot is available to do that operation.
     state.status[l] = 'clear'
     state.real_status[l] = 'clear'
     return state
 
 
-def a_replenish_supplies(state, r):
+def a_replenish_supplies(state, r, rigid):
     if state.loc[r] == (1, 1):
         state.has_medicine[r] = 2       # TODO: Ask Sunandita the use of this state variable.
         return state
     return None
 
 
-def a_transfer(state, r, r_):
+def a_transfer(state, r, r_, rigid):
     if state.loc[r] == state.loc[r_]:
         if state.has_medicine[r] > 0:
             state.has_medicine[r_] += 1
@@ -197,39 +197,39 @@ def sense_image(state, r, camera, l):
     return img
 
 
-def a_capture_image(state, r, camera, l):       # TODO: Should check if robot is available to do that operation.
+def a_capture_image(state, r, camera, l, rigid):       # TODO: Should check if robot is available to do that operation.
     img = sense_image(state, r, camera, l)
     state.current_image[r] = img
     return state
 
 
-def a_change_altitude(state, r, new_alt):
+def a_change_altitude(state, r, new_alt, rigid):
     if state.altitude[r] != new_alt:
         state.altitude[r] = new_alt
     return state
 
 
-def a_check_real(state, l):
+def a_check_real(state, l, rigid):
     p = state.real_person[l]
 
     if p is not None:
         if state.real_status[p] == 'injured' or state.real_status[p] == 'dead' or state.real_status[l] == 'has_debri':
-            return a_die_update(state, p)
+            return a_die_update(state, p, rigid)
         else:
             return state
     else:
         return state
 
 
-def a_engage_robot(state, r):
+def a_engage_robot(state, r, rigid):
     state.status[r] = 'busy'
     state.new_robot[1] = r
     return state
 
 
-def a_force_engage_robot(state):
-    state.new_robot[1] = state.rigid['wheeled_robots'][0]
-    state.status[state.rigid['wheeled_robots'][0]] = 'busy'
+def a_force_engage_robot(state, rigid):
+    state.new_robot[1] = rigid['wheeled_robots'][0]
+    state.status[rigid['wheeled_robots'][0]] = 'busy'
     return state
 
 

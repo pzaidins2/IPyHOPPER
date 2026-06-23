@@ -54,7 +54,7 @@ class Methods(object):
     _method_list_type = List[Callable[[Any], Union[List[tuple], bool]]]
 
     # ******************************        Class Method Declaration        ****************************************** #
-    def declare_task_methods(self, task_name: str, method_list: _method_list_type):
+    def declare_task_methods(self, task_name: str, method_list: _method_list_type) -> object:
         """
         declare_task_methods('foo', [m1, m2, ..., mk]) tells IPyHOP that [m1, m2, ..., mk] is a complete list of
         all the methods for a tasks having task-name 'foo'. This supersedes any previous call to

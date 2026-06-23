@@ -4,7 +4,7 @@ File Description: File used for definition of State Class.
 """
 
 # ******************************************    Libraries to be imported    ****************************************** #
-from copy import deepcopy
+from copy import deepcopy, copy
 
 
 # ******************************************    Class Declaration Start     ****************************************** #
@@ -45,6 +45,17 @@ class State(object):
     # ******************************        Class Method Declaration        ****************************************** #
     def copy(self):
         return deepcopy(self)
+
+    # ******************************        Class Method Declaration        ****************************************** #
+    def shallow_copy( self ):
+        return copy( self )
+
+    # ******************************        Class Method Declaration        ****************************************** #
+    def __eq__( self, other ):
+        # states are equal if all subparts are equal
+        vars_self = vars(self)
+        vars_other = vars(other)
+        return vars_self == vars_other
 
 
 # ******************************************    Class Declaration End       ****************************************** #

@@ -11,131 +11,131 @@ actions = Actions()
 
 
 # search for a location in the field
-def a_search_for(state, loc_):
-    if loc_ in state.rigid['adj'][state.loc['r']]:
+def a_search_for(state, loc_, rigid):
+    if loc_ in rigid['adj'][state.loc['r']]:
         state.found[loc_] = True
         return state
 
 
 # search for an object at current location
-def a_localize(state, obj_):
+def a_localize(state, obj_, rigid):
     if state.loc['r'] == state.loc[obj_]:
         state.found[obj_] = True
         return state
 
 
 # acoustic pinger triangulation
-def a_localize_ap(state, ap_):
-    if state.rigid['type'][ap_] == 'ap':
+def a_localize_ap(state, ap_, rigid):
+    if rigid['type'][ap_] == 'ap':
         state.found[ap_] = True
         state.found[state.loc[ap_]] = True
         return state
 
 
 # move to a recognized location
-def a_move(state, loc_):
-    if state.found[loc_] is True and state.rigid['type'][loc_] == 'l':
+def a_move(state, loc_, rigid):
+    if state.found[loc_] is True and rigid['type'][loc_] == 'l':
         state.loc['r'] = loc_
         return state
 
 
 # cross the gate at current location from 40% side
-def a_cross_gate_40(state, gate_):
-    if state.loc['r'] == state.loc[gate_] and state.found[gate_] is True and state.rigid['type'][gate_] == 'g':
+def a_cross_gate_40(state, gate_, rigid):
+    if state.loc['r'] == state.loc[gate_] and state.found[gate_] is True and rigid['type'][gate_] == 'g':
         state.crossed_gate[gate_] = 'T40'
         return state
 
 
 # cross the gate at current location from 60% side
-def a_cross_gate_60(state, gate_):
-    if state.loc['r'] == state.loc[gate_] and state.found[gate_] is True and state.rigid['type'][gate_] == 'g':
+def a_cross_gate_60(state, gate_, rigid):
+    if state.loc['r'] == state.loc[gate_] and state.found[gate_] is True and rigid['type'][gate_] == 'g':
         state.crossed_gate[gate_] = 'T60'
         return state
 
 
 # pick an obj at current location (allowed objects: crucifix marker, garlic marker)
-def a_pick(state, obj_):
+def a_pick(state, obj_, rigid):
     if state.loc['r'] == state.loc[obj_] and state.found[obj_] is True:
-        if state.rigid['type'][obj_] == 'gm' or state.rigid['type'][obj_] == 'cm':
+        if rigid['type'][obj_] == 'gm' or rigid['type'][obj_] == 'cm':
             state.loc[obj_] = 'r'
             return state
 
 
 # trace a guide path at current location
-def a_trace_guide_path(state, gp_):
-    if state.loc['r'] == state.loc[gp_] and state.found[gp_] is True and state.rigid['type'][gp_] == 'gp':
+def a_trace_guide_path(state, gp_, rigid):
+    if state.loc['r'] == state.loc[gp_] and state.found[gp_] is True and rigid['type'][gp_] == 'gp':
         state.traversed_path[gp_] = True
         return state
 
 
 # touch the back of a vampire at current location
-def a_touch_back_v(state, v_):
-    if state.loc['r'] == state.loc[v_] and state.found[v_] is True and state.rigid['type'][v_] == 'v':
+def a_touch_back_v(state, v_, rigid):
+    if state.loc['r'] == state.loc[v_] and state.found[v_] is True and rigid['type'][v_] == 'v':
         state.vampire_touched[v_] = 'Tb'
         return state
 
 
 # touch the front of a vampire at current location.
-def a_touch_front_v(state, v_):
-    if state.loc['r'] == state.loc[v_] and state.found[v_] is True and state.rigid['type'][v_] == 'v':
+def a_touch_front_v(state, v_, rigid):
+    if state.loc['r'] == state.loc[v_] and state.found[v_] is True and rigid['type'][v_] == 'v':
         state.vampire_touched[v_] = 'Tf'
         return state
 
 
 # open the coffin at current location
-def a_open_c(state, c_):
-    if state.loc['r'] == state.loc[c_] and state.found[c_] is True and state.rigid['type'][c_] == 'c':
+def a_open_c(state, c_, rigid):
+    if state.loc['r'] == state.loc[c_] and state.found[c_] is True and rigid['type'][c_] == 'c':
         state.opened[c_] = True
         return state
 
 
 # drop a garlic in an opened coffin at current location
-def a_drop_garlic_open_coffin(state, gm_, c_):
+def a_drop_garlic_open_coffin(state, gm_, c_, rigid):
     if state.loc[gm_] == 'r' and state.loc['r'] == state.loc[c_] and state.opened[c_] is True:
-        if state.rigid['type'][c_] == 'c' and state.rigid['type'][gm_] == 'gm':
+        if rigid['type'][c_] == 'c' and rigid['type'][gm_] == 'gm':
             state.loc[gm_] = c_
             state.coffin_filled[c_].append('1o')
             return state
 
 
 # drop garlic on a closed coffin at current location
-def a_drop_garlic_closed_coffin(state, gm_, c_):
+def a_drop_garlic_closed_coffin(state, gm_, c_, rigid):
     if state.loc[gm_] == 'r' and state.loc['r'] == state.loc[c_] and state.found[c_] is True:
-        if state.rigid['type'][c_] == 'c' and state.rigid['type'][gm_] == 'gm':
+        if rigid['type'][c_] == 'c' and rigid['type'][gm_] == 'gm':
             state.loc[gm_] = c_
             state.coffin_filled[c_].append('1c')
             return state
 
 
 # decapitate a dracula at current location
-def a_decap_d(state, d_):
-    if state.loc['r'] == state.loc[d_] and state.found[d_] is True and state.rigid['type'][d_] == 'd':
+def a_decap_d(state, d_, rigid):
+    if state.loc['r'] == state.loc[d_] and state.found[d_] is True and rigid['type'][d_] == 'd':
         state.decapitated[d_] = True
         return state
 
 
 # stake a decapitated dracula at current location
-def a_stake_decap_d(state, t_, d_):
+def a_stake_decap_d(state, t_, d_, rigid):
     if state.loc[t_] == 'r' and state.loc['r'] == state.loc[d_] and state.decapitated[d_] is True:
-        if state.rigid['type'][t_] == 't' and state.rigid['type'][d_] == 'd':
+        if rigid['type'][t_] == 't' and rigid['type'][d_] == 'd':
             state.loc[t_] = d_
             state.staked_dracula[d_].append('1d')
             return state
 
 
 # stake a normal dracula at current location
-def a_stake_norm_d(state, t_, d_):
+def a_stake_norm_d(state, t_, d_, rigid):
     if state.loc[t_] == 'r' and state.loc['r'] == state.loc[d_] and state.found[d_] is True:
-        if state.rigid['type'][t_] == 't' and state.rigid['type'][d_] == 'd':
+        if rigid['type'][t_] == 't' and rigid['type'][d_] == 'd':
             state.loc[t_] = d_
             state.staked_dracula[d_].append('1n')
             return state
 
 
 # surface in a surface zone at current location carrying a crucifix marker
-def a_surface(state, cm, s):
+def a_surface(state, cm, s, rigid):
     if state.loc['r'] == state.loc[s] and state.loc[cm] == 'r' and state.found[s] is True:
-        if state.rigid['type'][cm] == 'cm' and state.rigid['type'][s] == 's':
+        if rigid['type'][cm] == 'cm' and rigid['type'][s] == 's':
             state.surfaced['r'] = True
             return state
 

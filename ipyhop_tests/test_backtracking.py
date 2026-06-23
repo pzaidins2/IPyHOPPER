@@ -22,15 +22,15 @@ actions.declare_actions([a_putv, a_getv])
 
 
 def m_err(state):
-    return [('a_putv', 0), ('a_getv', 1)]
+    yield [('a_putv', 0), ('a_getv', 1)]
 
 
 def m0(state):
-    return [('a_putv', 0), ('a_getv', 0)]
+    yield [('a_putv', 0), ('a_getv', 0)]
 
 
 def m1(state):
-    return [('a_putv', 1), ('a_getv', 1)]
+    yield [('a_putv', 1), ('a_getv', 1)]
 
 
 methods = Methods()
@@ -38,11 +38,11 @@ methods.declare_task_methods('put_it', [m_err, m0, m1])
 
 
 def m_need0(state):
-    return [('a_getv', 0)]
+    yield [('a_getv', 0)]
 
 
 def m_need1(state):
-    return [('a_getv', 1)]
+    yield [('a_getv', 1)]
 
 
 methods.declare_task_methods('need0', [m_need0])
