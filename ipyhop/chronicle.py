@@ -143,18 +143,26 @@ class ChronicleInterface():
         t_unordered: List[ int ] = reference_chronicle.t_unordered
         t_ordered_last: int = t_ordered[ -1 ]
         stn: TemporalNetwork = value_chronicle.temporal_network
-        # add temporal constraint, end early if failed
-        temporal_constraint: TemporalConstraint = (t_ordered_last, separation_condition, time_point, 0)
+        # add temporal constraints, end if any fail
+        # time point relation to end time point in t_ordered
+        anchor_temporal_constraint: TemporalConstraint = (t_ordered_last, separation_condition, time_point, 0)
+        # time point must be no later than any time point remaining in t_unordered
+        temporal_constraint_lst: List[ TemporalConstraint ] = [ anchor_temporal_constraint, ]
+        for unordered_time_point in t_unordered:
+            if unordered_time_point != time_point:
+                temporal_constraint_lst.append( (time_point, "<=", unordered_time_point, 0) )
         success_flag, node_add_lst, edge_add_lst, edge_remove_lst = stn.add_temporal_constraints_from(
-                [ temporal_constraint ],
+                temporal_constraint_lst,
         )
-        if not success_flag:
-            return (False, ([ ], [ ], [ ]))
-        # add time point to t_ordered
-        t_ordered.append( time_point )
-        # remove time point from t_unordered
-        t_unordered.remove( time_point )
-        return (True, (node_add_lst, edge_add_lst, edge_remove_lst))
+        # no new time points should ever happen from this
+        assert node_add_lst == [ ]
+        # at least one contradiction occurs from the new constraints, fail
+        if success_flag:
+            # add time point to t_ordered
+            t_ordered.append( time_point )
+            # remove time point from t_unordered
+            t_unordered.remove( time_point )
+        return (success_flag, (node_add_lst, edge_add_lst, edge_remove_lst))
 
     # function that initializes a reference-value chronicle pair given the starting values of a chronicle
     # must additionally be given the classes that implement the chronicle protocols
