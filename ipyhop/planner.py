@@ -971,7 +971,7 @@ class IPyHOP(object):
             # TSA nodes bundle action effects by timepoint
             elif self.is_temporal and child_node_info[ 0 ] == "TSA":
                 self.sol_tree.add_node(
-                        _id, info=child_node_info, type='TOC', status='O', state=None,
+                        _id, info=child_node_info, type='TSA', status='O', state=None,
                         depth=parent_depth + 1,
                         tag='new', next_node_id_iter=None, next_node_id=None,
                 )
