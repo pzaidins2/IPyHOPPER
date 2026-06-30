@@ -124,7 +124,7 @@ def move_block_to_table(
         restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
         singleton_action_lst: List[ TemporalSingletonAction ] = [ ]
         for k, v in groupby( change_assertion_lst, key=lambda x: x[ 0 ] ):
-            singleton_action_lst.append( (k, list( v )) )
+            singleton_action_lst.append( ("TSA", k, list( v )) )
         action_output: TemporalActionOutput = (restoration_tup, singleton_action_lst)
         return action_output
 
@@ -158,7 +158,7 @@ def move_block_to_block(
         restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
         singleton_action_lst: List[ TemporalSingletonAction ] = [ ]
         for k, v in groupby( change_assertion_lst, key=lambda x: x[ 0 ] ):
-            singleton_action_lst.append( (k, list( v )) )
+            singleton_action_lst.append( ("TSA", k, list( v )) )
         action_output: TemporalActionOutput = (restoration_tup, singleton_action_lst)
         return action_output
 

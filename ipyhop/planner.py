@@ -491,8 +491,8 @@ class IPyHOP(object):
                             )
                     if subtasks is not None:
                         curr_node[ 'status' ] = 'C'
-                        if curr_node_id not in node_id_visit_order:
-                            node_id_visit_order.append( curr_node_id )
+                        # if curr_node_id not in node_id_visit_order:
+                        node_id_visit_order.append( curr_node_id )
                         _id = self._add_nodes_and_edges( curr_node_id, subtasks )
 
                         if verbose > 2:
@@ -549,8 +549,8 @@ class IPyHOP(object):
                 # If Action was successful, update the state.
                 if new_state is not None:
                     curr_node['status'] = 'C'
-                    if curr_node_id not in node_id_visit_order:
-                        node_id_visit_order.append( curr_node_id)
+                    # if curr_node_id not in node_id_visit_order:
+                    node_id_visit_order.append( curr_node_id )
                     self.state.update(new_state)
                     if verbose > 2:
                         print('Iteration {}, Action {} successful.'.format(_iter, repr(curr_node_info)))
@@ -578,8 +578,8 @@ class IPyHOP(object):
                     goal_done = True
             if goal_done:
                 curr_node[ 'status' ] = 'C'
-                if curr_node_id not in node_id_visit_order:
-                    node_id_visit_order.append( curr_node_id )
+                # if curr_node_id not in node_id_visit_order:
+                node_id_visit_order.append( curr_node_id )
                 subgoals = [ ]
                 if self._verbose > 2:
                     print( 'Iteration {}, Goal {} already achieved'.format( _iter, repr( curr_node_info ) ) )
@@ -635,8 +635,8 @@ class IPyHOP(object):
                                 )
                         if subgoals is not None:
                             curr_node[ 'status' ] = 'C'
-                            if curr_node_id not in node_id_visit_order:
-                                node_id_visit_order.append( curr_node_id )
+                            # if curr_node_id not in node_id_visit_order:
+                            node_id_visit_order.append( curr_node_id )
                             _id = self._add_nodes_and_edges( curr_node_id, subgoals )
                             parent_node_id = curr_node_id
                             if verbose > 2:
@@ -691,8 +691,8 @@ class IPyHOP(object):
                                 # print( [  *curr_node[ 'selected_method_instances' ] ] )
                         if subgoals is not None:
                             curr_node[ 'status' ] = 'C'
-                            if curr_node_id not in node_id_visit_order:
-                                node_id_visit_order.append( curr_node_id )
+                            # if curr_node_id not in node_id_visit_order:
+                            node_id_visit_order.append( curr_node_id )
                             _id = self._add_nodes_and_edges( curr_node_id, subgoals )
                             if verbose > 2:
                                 print( 'Iteration {}, MultiGoal {} successfully refined'.format( _iter,
