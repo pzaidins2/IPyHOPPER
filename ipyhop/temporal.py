@@ -19,6 +19,9 @@ TemporalConstraint = Tuple[int,str,int,int]
 #  edge_add_lst: List[ NetEdgeInput ],
 #  edge_remove_lst: List[ NetEdgeInput ], )
 TemporalRestorationTuple = Tuple[ List[ int ], List[ NetEdgeInput ], List[ NetEdgeInput ] ]
+# keyword TOC followed by time point label
+TOCSpecTuple = Tuple[ str, int ]
+
 
 # class for representing and manipulating temporal networks
 class TemporalNetwork:

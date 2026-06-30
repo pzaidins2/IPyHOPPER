@@ -17,15 +17,18 @@ ObjectVarPersistence = Tuple[ int, int, str, *Tuple[ Any, ... ], bool ]
 # skeletons for reference and value chronicles
 class ReferenceChronicle( Protocol ):
     changes: Dict[ str, int ]
-    t_ordered: int
-    t_unordered: int
+    t_now: int
+    t_ordered: List[ int ]
+    t_unordered: List[ int ]
     persistences: Dict[ str, int ]
 
     def __init__(
-            self, changes: Dict[ str, int ], t_ordered: int, t_unordered: int,
+            self, changes: Dict[ str, int ],
+            t_now: int, t_ordered: List[ int ], t_unordered: List[ int ],
             persistences: Dict[ str, int ],
     ):
         self.changes = changes
+        self.t_now = t_now
         self.t_ordered = t_ordered
         self.t_unordered = t_unordered
         self.persistences = persistences
@@ -33,26 +36,26 @@ class ReferenceChronicle( Protocol ):
 
 class ValueChronicle( Protocol ):
     changes: Dict[ str, List[ ObjectVarChange ] ]
-    t_now: int
-    t_ordered: List[ int ]
-    t_unordered: List[ int ]
+    # t_now: int
+    # t_ordered: List[ int ]
+    # t_unordered: List[ int ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ]
     temporal_network: TemporalNetwork
     domain_objects: Dict[ str, List ]
 
     def __init__(
             self, changes: Dict[ str, List[ ObjectVarChange ] ],
-            t_now: int,
-            t_ordered: List[ int ],
-            t_unordered: List[ int ],
+            # t_now: int,
+            # t_ordered: List[ int ],
+            # t_unordered: List[ int ],
             persistences: Dict[ str, List[ ObjectVarPersistence ] ],
             temporal_network: TemporalNetwork,
             domain_objects: Dict[ str, List ],
     ):
         self.changes = changes
-        self.t_now = t_now
-        self.t_ordered = t_ordered
-        self.t_unordered = t_unordered
+        # self.t_now = t_now
+        # self.t_ordered = t_ordered
+        # self.t_unordered = t_unordered
         self.persistences = persistences
         self.temporal_network = temporal_network
         self.domain_objects = domain_objects
@@ -126,6 +129,33 @@ class ChronicleInterface():
     def __init__(self):
         return
 
+    # given a time point and separation condition, removes the time point from unordered time points
+    # adds the time point to ordered time points, and updates the temporal network based
+    # on separation condition (== or <)
+    # returns a tuple where index 0 is a bool indicating success and index 1 is the temporal restoration tuple
+    # needed to undo stn changes (empty if fails)
+    def order_time_point(
+            self, reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, time_point: int,
+            separation_condition: str,
+    ) -> Tuple[ bool, TemporalRestorationTuple ]:
+        # localize variables
+        t_ordered: List[ int ] = reference_chronicle.t_ordered
+        t_unordered: List[ int ] = reference_chronicle.t_unordered
+        t_ordered_last: int = t_ordered[ -1 ]
+        stn: TemporalNetwork = value_chronicle.temporal_network
+        # add temporal constraint, end early if failed
+        temporal_constraint: TemporalConstraint = (t_ordered_last, separation_condition, time_point, 0)
+        success_flag, node_add_lst, edge_add_lst, edge_remove_lst = stn.add_temporal_constraints_from(
+                [ temporal_constraint ],
+        )
+        if not success_flag:
+            return (False, ([ ], [ ], [ ]))
+        # add time point to t_ordered
+        t_ordered.append( time_point )
+        # remove time point from t_unordered
+        t_unordered.remove( time_point )
+        return (True, (node_add_lst, edge_add_lst, edge_remove_lst))
+
     # function that initializes a reference-value chronicle pair given the starting values of a chronicle
     # must additionally be given the classes that implement the chronicle protocols
     def make_chronicle_pair(
@@ -141,12 +171,16 @@ class ChronicleInterface():
             domain_objects: Dict[ str, List ],
     ):
         value_chronicle: ValueChronicle = ValueChronicleClass(
-                changes, t_now, t_ordered, t_unordered, persistences, temporal_network, domain_objects,
+                changes,
+                # t_now, t_ordered, t_unordered,
+                persistences, temporal_network, domain_objects,
         )
         changes_len_dict: Dict[ str, int ] = { k: len( v ) for k, v in changes.items() }
         persistences_len_dict: Dict[ str, int ] = { k: len( v ) for k, v in persistences.items() }
         reference_chronicle: ReferenceChronicle = ReferenceChronicleClass(
-                changes_len_dict, len( t_ordered ), len( t_unordered ), persistences_len_dict,
+                changes_len_dict,
+                t_now, t_ordered, t_unordered,
+                persistences_len_dict,
         )
         return reference_chronicle, value_chronicle
 
@@ -165,8 +199,8 @@ class ChronicleInterface():
         predicate_args: Tuple = change_assertion[ 2:-1 ]
         target_bool: bool = change_assertion[ -1 ]
         # get t_ordered
-        t_ordered_idx: int = reference_chronicle.t_ordered
-        t_ordered: List[ int ] = value_chronicle.t_ordered[ :(t_ordered_idx + 1) ]
+        # t_ordered_idx: int = reference_chronicle.t_ordered
+        t_ordered: List[ int ] = reference_chronicle.t_ordered
         # get the maximum index in t_ordered that would be relevant to the change assertion
         t_max_idx: int = t_ordered.index( change_assertion[ 0 ] )
         for t_i in t_equivalent_lst:

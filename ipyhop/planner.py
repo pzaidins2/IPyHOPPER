@@ -20,12 +20,13 @@ from ipyhop.chronicle import ChronicleInterface, ReferenceChronicle, Restoration
 from ipyhop.methods import Methods
 from ipyhop.mulitgoal import MultiGoal
 from ipyhop.state import State
-from ipyhop.temporal import TemporalNetwork, TemporalRestorationTuple
+from ipyhop.temporal import TOCSpecTuple, TemporalNetwork, TemporalRestorationTuple
 from ipyhop.temporal_actions import TemporalActionCall, TemporalActionOutput, TemporalActions, TemporalGoal, \
     TemporalSingletonAction
 from ipyhop.temporal_methods import TemporalMethodOutput, TemporalMethods
 
 CI = ChronicleInterface()
+default_separation_condition_tup = ("==", "<")
 # ******************************************    Class Declaration Start     ****************************************** #
 class IPyHOP(object):
     """
@@ -532,6 +533,11 @@ class IPyHOP(object):
                         # these will handle temporal network rollback
                         curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
                         curr_node[ "temporal_singleton_action_lst" ] = temporal_singleton_action_lst
+                        # adds a temporal order choice node for every new time point label
+                        node_add_lst: List[ int ] = temporal_restoration_tup[ 0 ]
+                        toc_lst: List[ TOCSpecTuple ] = [ ("TOC", x) for x in node_add_lst ]
+                        # adds TSA and TOC nodes as children
+                        self._add_nodes_and_edges( curr_node_id, temporal_singleton_action_lst + toc_lst )
                     else:
                         new_state = None
                 else:
@@ -608,6 +614,11 @@ class IPyHOP(object):
                                         subgoals: List[ Union[ TemporalGoal, TemporalActionCall ] ] = \
                                             temporal_method_output[
                                                 1 ]
+                                    # adds a temporal order choice node for every new time point label
+                                    node_add_lst: List[ int ] = temporal_restoration_tup[ 0 ]
+                                    toc_lst: List[ TOCSpecTuple ] = [ ("TOC", x) for x in node_add_lst ]
+                                    # include TOC nodes as children
+                                    subgoals += toc_lst
                             else:
                                 subgoals = selected_method_instance( self.state.copy(), *curr_node_info[ 1: ] )
                         # exhausted all instances of selected method select new method
@@ -719,7 +730,45 @@ class IPyHOP(object):
                     curr_node_info = self.sol_tree.nodes[curr_node_id]['info']
                     print('Iteration {}, MultiGoal {} Verification failed.'.format(_iter,
                                                                                    repr(curr_node_info)))
-
+        # adds time point to ordered_time_points and equivalent time constraint
+        elif is_temporal and curr_node[ 'type' ] == "TOC":
+            curr_node = sol_tree.nodes[ curr_node_id ]
+            curr_node_info = curr_node[ 'info' ]
+            curr_node_time_point = curr_node_info[ 1 ]
+            # try setting equal to last node in t_ordered and then try strictly greater than
+            while curr_node[ 'seperation_condition_lst' ] != [ ]:
+                separation_condition = curr_node[ 'seperation_condition_lst' ].pop()
+                if value_chronicle is not None:
+                    # attempt inserting temporal constraint
+                    new_state = self.state.copy()
+                    time_point_order_result = CI.order_time_point(
+                            new_state, value_chronicle, curr_node_time_point, separation_condition,
+                    )
+                    success_flag, temporal_restoration_tup = time_point_order_result
+                    # if successful update, close node
+                    if success_flag:
+                        curr_node[ 'status' ] = "C"
+                        self.state.update( new_state )
+                        curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
+                        break
+        # attempt to insert changes associated with temporal singleton action
+        elif is_temporal and curr_node[ 'type' ] == "TSA":
+            # collect time point and effects list
+            curr_node = sol_tree.nodes[ curr_node_id ]
+            curr_node_info = curr_node[ 'info' ]
+            # time_point = curr_node_info[0]
+            object_var_change_lst = curr_node_info[ 1 ]
+            change_update_dict = dict()
+            if value_chronicle is not None:
+                # attempt chronicle update
+                new_state = self.state.copy()
+                success_flag = CI.add_changes(
+                        self.state.copy(), value_chronicle, object_var_change_lst, change_update_dict,
+                )
+                # on success change reference chronicle (state) and close node
+                if success_flag:
+                    curr_node[ 'status' ] = "C"
+                    self.state.update( new_state )
 
     # # ******************************        Class Method Declaration
     # ****************************************** #
@@ -906,12 +955,28 @@ class IPyHOP(object):
     #     # return self.sol_plan
 
     # ******************************        Class Method Declaration        ******************************************
-    def _add_nodes_and_edges(self, parent_node_id: int, children_node_info_list: List[Tuple[str]]):
+    def _add_nodes_and_edges(self, parent_node_id: int, children_node_info_list: List[ Tuple ]):
         _id = None
         parent_depth=self.sol_tree.nodes[parent_node_id]["depth"]
         for child_node_info in children_node_info_list:
             _id = self.get_next_id()
-            if isinstance(child_node_info, MultiGoal):  # equivalent to type(child_node_info) == MultiGoal
+            # TOC nodes are when the planner decides to add a node to the ordered nodes
+            if self.is_temporal and child_node_info[ 0 ] == "TOC":
+                self.sol_tree.add_node(
+                        _id, info=child_node_info, type='TOC', status='O', state=None,
+                        depth=parent_depth + 1, seperation_condition_lst=[ *default_separation_condition_tup ],
+                        tag='new', next_node_id_iter=None, next_node_id=None,
+                )
+                self.sol_tree.add_edge( parent_node_id, _id )
+            # TSA nodes bundle action effects by timepoint
+            elif self.is_temporal and child_node_info[ 0 ] == "TSA":
+                self.sol_tree.add_node(
+                        _id, info=child_node_info, type='TOC', status='O', state=None,
+                        depth=parent_depth + 1,
+                        tag='new', next_node_id_iter=None, next_node_id=None,
+                )
+                self.sol_tree.add_edge( parent_node_id, _id )
+            elif isinstance( child_node_info, MultiGoal ):  # equivalent to type(child_node_info) == MultiGoal
                 relevant_methods = self.methods.multigoal_method_dict[child_node_info.goal_tag]
                 self.sol_tree.add_node(_id, info=child_node_info, type='M', status='O', state=None,
                         selected_method=None, available_methods=[ *relevant_methods ],
@@ -1034,9 +1099,12 @@ class IPyHOP(object):
         curr_type = curr_node[ 'type' ]
         # reset previous node (as it was at creation)
         # nodes with methods
-        if prev_type in [ 'G', 'M', 'T' ]:
-            # print( dfs_successors( self.sol_tree, prev_node_id )[ prev_node_id ] )
-            sol_tree.remove_nodes_from( dfs_successors( self.sol_tree, prev_node_id )[ prev_node_id ] )
+        dfs_successor_dict = dfs_successors( self.sol_tree, curr_node_id )
+        if curr_node_id in dfs_successor_dict.keys():
+            sol_tree.remove_nodes_from( dfs_successor_dict[ curr_node_id ] )
+        dfs_successor_dict = dfs_successors( self.sol_tree, prev_node_id )
+        if prev_node_id in dfs_successor_dict.keys():
+            sol_tree.remove_nodes_from( dfs_successor_dict[ prev_node_id ] )
 
         if curr_type in [ 'G', 'M', 'T' ]:
             relevant_methods = curr_node[ 'methods' ]
@@ -1044,15 +1112,25 @@ class IPyHOP(object):
             curr_node[ 'available_methods' ] = [ *relevant_methods ]
             curr_node[ 'selected_method_instances' ] = None
             curr_node[ 'exhausted_methods' ] = False
+        if curr_type in [ 'TOC', ]:
+            curr_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
 
         # temporal
         if is_temporal and value_chronicle is not None:
-            temporal_restoration_tup: TemporalRestorationTuple = prev_node[ 'temporal_restoration_tuple' ]
-            value_chronicle.temporal_network.restore_graph(
-                    *temporal_restoration_tup,
-            )
-            prev_node[ 'temporal_restoration_tuple' ] = None
-            curr_node[ 'temporal_restoration_tuple' ] = None
+            if curr_type in [ 'G', 'A', 'TOC' ]:
+                if curr_node[ 'temporal_restoration_tuple' ] is not None:
+                    temporal_restoration_tup: TemporalRestorationTuple = curr_node[ 'temporal_restoration_tuple' ]
+                    value_chronicle.temporal_network.restore_graph(
+                            *temporal_restoration_tup,
+                    )
+                    curr_node[ 'temporal_restoration_tuple' ] = None
+            if prev_type in [ 'G', 'A', 'TOC' ]:
+                temporal_restoration_tup: TemporalRestorationTuple = prev_node[ 'temporal_restoration_tuple' ]
+                value_chronicle.temporal_network.restore_graph(
+                        *temporal_restoration_tup,
+                )
+                prev_node[ 'temporal_restoration_tuple' ] = None
+
         # all nodes
         prev_node[ 'status' ] = 'O'
         prev_node[ 'next_node_id_iter' ] = None

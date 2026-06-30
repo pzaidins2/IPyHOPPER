@@ -18,8 +18,8 @@ TemporalGoal = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
 # lowest level of method-action hierarchy that declares that a list of predicate-arg-bools happens
 # at the timepoint, no logic/search when IPyHOPPER reads this it checks that no contradictions
 # are introduced
-# extra layer helps with concurrent nature of temporal planning
-TemporalSingletonAction = Tuple[ int, List[ ObjectVarChange ] ]
+# extra layer helps with concurrent nature of temporal planning, prefixed by TSA
+TemporalSingletonAction = Tuple[ str, int, List[ ObjectVarChange ] ]
 # middle level of hierarchy, corresponds to formalism actions
 # the first 3 parameters must be as follows
 # 0: the reference chronicle (which will recieve the state deepcopy treatment)
