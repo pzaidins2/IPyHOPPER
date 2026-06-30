@@ -16,12 +16,13 @@ CI = ChronicleInterface()
 class TrafficReferenceChronicle( ReferenceChronicle ):
     def __init__(
             self, changes: Dict[ str, int ],
-            t_now: int, t_ordered: List[ int ], t_unordered: List[ int ],
+            # t_now: int,
+            t_ordered: List[ int ], t_unordered: List[ int ],
             persistences: Dict[ str, int ],
     ):
         super().__init__(
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -527,7 +528,7 @@ def test_add_changes_0():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -550,7 +551,7 @@ def test_add_changes_0():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -589,7 +590,7 @@ def test_add_changes_1():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -612,7 +613,7 @@ def test_add_changes_1():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -664,7 +665,7 @@ def test_add_changes_2():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -687,7 +688,7 @@ def test_add_changes_2():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -729,7 +730,7 @@ def test_add_changes_3():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -752,7 +753,7 @@ def test_add_changes_3():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -794,7 +795,7 @@ def test_add_changes_4():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -817,7 +818,7 @@ def test_add_changes_4():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -861,7 +862,7 @@ def test_add_persistences_0():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -887,7 +888,7 @@ def test_add_persistences_0():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -925,7 +926,7 @@ def test_add_persistences_1():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -951,7 +952,7 @@ def test_add_persistences_1():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -993,7 +994,7 @@ def test_add_persistences_2():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -1019,7 +1020,7 @@ def test_add_persistences_2():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,
@@ -1057,7 +1058,7 @@ def test_add_persistences_3():
             (0, "can_go", False),
         ],
     }
-    t_now: int = 2
+    # t_now: int = 2
     t_ordered: List[ int ] = [ 0, 1 ]
     t_unordered: List[ int ] = [ 2 ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
@@ -1083,7 +1084,7 @@ def test_add_persistences_3():
                 TrafficReferenceChronicle,
                 TrafficValueChronicle,
                 changes,
-                t_now,
+                # t_now,
                 t_ordered,
                 t_unordered,
                 persistences,

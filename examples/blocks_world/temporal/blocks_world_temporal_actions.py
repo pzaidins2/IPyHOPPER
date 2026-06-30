@@ -42,7 +42,7 @@ ClearGoal = Tuple[ int, str, Surface, bool ]
 #     surfaces: List[ Surface ]
 class BlocksWorldReferenceChronicle( ReferenceChronicle ):
     def __init__(
-            self, changes: Dict[ str, int ], t_ordered: int, t_unordered: int,
+            self, changes: Dict[ str, int ], t_ordered: List[ int ], t_unordered: List[ int ],
             persistences: Dict[ str, int ],
     ):
         super().__init__(
@@ -56,18 +56,18 @@ class BlocksWorldReferenceChronicle( ReferenceChronicle ):
 class BlocksWorldValueChronicle( ValueChronicle ):
     def __init__(
             self, changes: Dict[ str, List[ ObjectVarChange ] ],
-            t_now: int,
-            t_ordered: List[ int ],
-            t_unordered: List[ int ],
+            # t_now: int,
+            # t_ordered: List[ int ],
+            # t_unordered: List[ int ],
             persistences: Dict[ str, List[ ObjectVarPersistence ] ],
             temporal_network: TemporalNetwork,
             domain_objects: Dict[ str, List[ str ] ],
     ):
         super().__init__(
                 changes,
-                t_now,
-                t_ordered,
-                t_unordered,
+                # t_now,
+                # t_ordered,
+                # t_unordered,
                 persistences,
                 temporal_network,
                 domain_objects,

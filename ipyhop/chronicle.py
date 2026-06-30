@@ -17,18 +17,19 @@ ObjectVarPersistence = Tuple[ int, int, str, *Tuple[ Any, ... ], bool ]
 # skeletons for reference and value chronicles
 class ReferenceChronicle( Protocol ):
     changes: Dict[ str, int ]
-    t_now: int
+    # t_now: int
     t_ordered: List[ int ]
     t_unordered: List[ int ]
     persistences: Dict[ str, int ]
 
     def __init__(
             self, changes: Dict[ str, int ],
-            t_now: int, t_ordered: List[ int ], t_unordered: List[ int ],
+            # t_now: int,
+            t_ordered: List[ int ], t_unordered: List[ int ],
             persistences: Dict[ str, int ],
     ):
         self.changes = changes
-        self.t_now = t_now
+        # self.t_now = t_now
         self.t_ordered = t_ordered
         self.t_unordered = t_unordered
         self.persistences = persistences
@@ -171,7 +172,7 @@ class ChronicleInterface():
             ReferenceChronicleClass: Type[ ReferenceChronicle ],
             ValueChronicleClass: Type[ ValueChronicle ],
             changes: Dict[ str, List[ ObjectVarChange ] ],
-            t_now: int,
+            # t_now: int,
             t_ordered: List[ int ],
             t_unordered: List[ int ],
             persistences: Dict[ str, List[ ObjectVarPersistence ] ],
@@ -187,7 +188,8 @@ class ChronicleInterface():
         persistences_len_dict: Dict[ str, int ] = { k: len( v ) for k, v in persistences.items() }
         reference_chronicle: ReferenceChronicle = ReferenceChronicleClass(
                 changes_len_dict,
-                t_now, t_ordered, t_unordered,
+                # t_now,
+                t_ordered, t_unordered,
                 persistences_len_dict,
         )
         return reference_chronicle, value_chronicle

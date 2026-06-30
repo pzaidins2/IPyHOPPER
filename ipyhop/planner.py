@@ -272,27 +272,28 @@ class IPyHOP(object):
                     node_type_enum = 2
                 # temporal singleton action
                 elif node_type == "TSA":
-                    anchor_idx = 0
+                    anchor_idx = 1
                     node_type_enum = 0
+                elif node_type == "TOC":
+                    anchor_idx = 1
+                    node_type_enum = 3
                 else:
                     raise (ValueError( "Invalid node type for temporal planning: " + node_type ))
                 node_id_anchor_time_point_tup_lst.append( (node_id, node_info[ anchor_idx ], node_type_enum) )
 
             # filter nodes that do not meet (3) or (4)
             stn: TemporalNetwork = value_chronicle.temporal_network
-            # potentially from ordered time points
-            t_ordered: List[ int ] = value_chronicle.t_ordered[ :(reference_chronicle.t_ordered + 1) ]
-            t_unordered: List[ int ] = value_chronicle.t_unordered[ :(reference_chronicle.t_ordered + 1) ]
-            t_now: int = value_chronicle.t_now
-            t_now_idx: int = t_ordered.index( t_now )
-            potential_time_points: List[ int ] = t_ordered[ t_now_idx: ]
+            # only allow for last ordered time point (t_now)
+            t_now: int = reference_chronicle.t_ordered[ -1 ]
+            potential_time_points: List[ int ] = [ t_now ]
             # potentially from unordered time points
+            t_unordered: List[ int ] = reference_chronicle.t_unordered
             potential_time_points += stn.get_potential_next_time_points( t_unordered )
             # remove nodes that do not have these time points as anchors
             node_id_anchor_time_point_tup_lst = [
                 *filter( lambda x: x[ 1 ] in potential_time_points, node_id_anchor_time_point_tup_lst ),
             ]
-            # sort TSA < A < G
+            # sort TSA < A < G < TOC
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
             for node_id_anchor_time_point_tup in node_id_anchor_time_point_tup_lst:
                 if self._verbose > 1:
