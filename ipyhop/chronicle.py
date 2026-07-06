@@ -168,16 +168,10 @@ class ChronicleInterface():
     # function that initializes a reference-value chronicle pair given the starting values of a chronicle
     # must additionally be given the classes that implement the chronicle protocols
     def make_chronicle_pair(
-            self,
-            ReferenceChronicleClass: Type[ ReferenceChronicle ],
-            ValueChronicleClass: Type[ ValueChronicle ],
-            changes: Dict[ str, List[ ObjectVarChange ] ],
-            # t_now: int,
-            t_ordered: List[ int ],
-            t_unordered: List[ int ],
-            persistences: Dict[ str, List[ ObjectVarPersistence ] ],
-            temporal_network: TemporalNetwork,
-            domain_objects: Dict[ str, List ],
+            self, ReferenceChronicleClass: Type[ ReferenceChronicle ], ValueChronicleClass: Type[ ValueChronicle ],
+            t_ordered: List[ int ], t_unordered: List[ int ], changes: Dict[ str, List[ ObjectVarChange ] ],
+            persistences: Dict[ str, List[ ObjectVarPersistence ] ], temporal_network: TemporalNetwork,
+            domain_objects: Dict[ str, List ]
     ):
         value_chronicle: ValueChronicle = ValueChronicleClass(
                 changes,

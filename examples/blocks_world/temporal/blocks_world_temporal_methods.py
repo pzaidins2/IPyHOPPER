@@ -7,11 +7,11 @@ from typing import Iterator, List, Union, cast
 
 from blocks_world_temporal_actions import (Block, ClearGoal, IsOnGoal, MoveBlockToBlockCall, MoveBlockToTableCall,
     Surface, Table, )
-from ipyhop import (ChronicleInterface, Methods, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle,
-    RestorationTuple, TemporalActionCall, TemporalConstraint, TemporalGoal, TemporalMethodOutput, TemporalNetwork,
-    TemporalRestorationTuple, ValueChronicle)
+from ipyhop import (ChronicleInterface, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, RestorationTuple,
+    TemporalActionCall, TemporalConstraint, TemporalGoal, TemporalMethod, TemporalMethodOutput, TemporalMethods,
+    TemporalNetwork, TemporalRestorationTuple, ValueChronicle)
 
-methods = Methods()
+methods = TemporalMethods()
 
 CI = ChronicleInterface()
 
@@ -190,8 +190,10 @@ def tgm_clear_block(
 
 
 # NEED: Temporal extension of Goal type: has goal predicate name and time point
-methods.declare_goal_methods('on', [tgm_progress_stack])
-methods.declare_goal_methods('clear', [tgm_progress_stack])
+is_on_methods_lst: List[ TemporalMethod ] = [ tgm_progress_stack, ]
+clear_methods_lst: List[ TemporalMethod ] = [ tgm_clear_block, ]
+methods.declare_temporal_goal_methods( 'is_on', is_on_methods_lst )
+methods.declare_temporal_goal_methods( 'clear', clear_methods_lst )
 
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':

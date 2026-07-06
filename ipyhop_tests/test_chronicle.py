@@ -548,15 +548,8 @@ def test_add_changes_0():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     change_assertion_lst = [ ]
@@ -610,15 +603,8 @@ def test_add_changes_1():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     change_assertion_lst = [
@@ -685,15 +671,8 @@ def test_add_changes_2():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     change_assertion_lst = [
@@ -750,15 +729,8 @@ def test_add_changes_3():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     change_assertion_lst = [
@@ -815,15 +787,8 @@ def test_add_changes_4():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     change_assertion_lst = [
@@ -885,15 +850,8 @@ def test_add_persistences_0():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     persistence_assertion_lst: List[ ObjectVarPersistence ] = [ ]
@@ -949,15 +907,8 @@ def test_add_persistences_1():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     persistence_assertion_lst: List[ ObjectVarPersistence ] = [
@@ -1017,15 +968,8 @@ def test_add_persistences_2():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     persistence_assertion_lst: List[ ObjectVarPersistence ] = [
@@ -1081,15 +1025,8 @@ def test_add_persistences_3():
 
     reference_chronicle, value_chronicle = \
         CI.make_chronicle_pair(
-                TrafficReferenceChronicle,
-                TrafficValueChronicle,
-                changes,
-                # t_now,
-                t_ordered,
-                t_unordered,
-                persistences,
-                temporal_network,
-                domain_objects,
+                TrafficReferenceChronicle, TrafficValueChronicle, t_ordered, t_unordered, changes, persistences,
+                temporal_network, domain_objects
         )
 
     persistence_assertion_lst: List[ ObjectVarPersistence ] = [

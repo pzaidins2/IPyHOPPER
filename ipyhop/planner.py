@@ -89,7 +89,7 @@ class IPyHOP(object):
         
         """
 
-    _t_type = List[Tuple[str]]
+    _t_type = List[ Tuple ]
     _m_type = Optional[Methods]
     _op_type = Optional[Actions]
     _p_type = Union[List[Tuple[str]], bool]
@@ -236,64 +236,68 @@ class IPyHOP(object):
         node_id_visit_order = self.node_id_visit_order
         # select next node to attempt
         if self.is_temporal and value_chronicle is not None:
-            # anchoring time point: the time point associated with a temporal goal, the starting time point in the
-            # temporal action parameters, the time point which a temporal singleton action occurs
-            # for a node to be considered:
-            # 1) must be open
-            # 2) must have no children (on the frontier)
-            # 3) the anchoring time point must be no less than t_now
-            # 4) the anchoring time point must not be required to occur after a time point not in t_ordered
-
-            # filter out nodes not meeting (1) and (2)
+            # node must be open
             open_frontier_node_tup_filter: Iterator[ Tuple[ Hashable, int ] ] = filter(
-                    lambda x: x[ 1 ] == 0 and sol_tree.nodes[ x[ 0 ] ][ "status" ] == "O", sol_tree.out_degree,
+                    lambda x: sol_tree.nodes[ x ][ "status" ] == "O", sol_tree.nodes,
             )
             open_frontier_node_map: Iterator[ int ] = map( lambda x: x[ 0 ], open_frontier_node_tup_filter )
 
-            # extract anchoring time point
-            # temporal singleton actions have this has the 0 index element of tuple
-            # temporal actions have this as the 2 index element of tuple
-            # temporal goals have this as the 0 index element of tuple
+            # filter/sort nodes by the following:
+            # node type order [TSA < A < G] (t_now) < G < TOC (only for time points that have no
+            # mandatory preceding time point in t_unordered, any other would fail)
+            # MAY BENEFIT FROM ADDITIONAL ORDERING
+
+            # filter TOC nodes to only those that could be next time point
+            # stable sort
+            stn: TemporalNetwork = value_chronicle.temporal_network
+            # only allow for last ordered time point (t_now)
+            t_now: int = reference_chronicle.t_ordered[ -1 ]
+            # potentially from unordered time points
+            t_unordered: List[ int ] = reference_chronicle.t_unordered
+            potential_time_points = stn.get_potential_next_time_points( t_unordered )
 
             # track node id, anchoring time point, type
-            node_id_anchor_time_point_tup_lst: List[ Tuple[ Hashable, int, int ] ] = [ ]
+            node_id_anchor_time_point_tup_lst: List[ Tuple[ int, int, int ] ] = [ ]
             for node_id in open_frontier_node_map:
                 node = sol_tree.nodes[ node_id ]
                 node_type: str = node[ "type" ]
                 node_info = node[ "info" ]
-                node_type_enum: int = -1
-                # temporal action
-                if node_type == "A":
-                    anchor_idx = 2
-                    node_type_enum = 1
-                # temporal goal
+                node_group: int = -1
+                keep_flag = False
+                # only examine actions that have t_now as anchor, high priority
+                if node_type in { "A", "TSA" }:
+                    if node_type == "A":
+                        anchor_idx = 2
+                        node_group = 1
+                    else:
+                        anchor_idx = 0
+                        node_group = 0
+                    anchor_tp = node_info[ anchor_idx ]
+                    if anchor_tp == t_now:
+                        keep_flag = True
+                # high priority to goals for t_now, else medium priority
                 elif node_type == "G":
+                    keep_flag = True
                     anchor_idx = 0
-                    node_type_enum = 2
-                # temporal singleton action
-                elif node_type == "TSA":
-                    anchor_idx = 1
-                    node_type_enum = 0
+                    anchor_tp = node_info[ anchor_idx ]
+                    if anchor_tp == t_now:
+                        node_group = 2
+                    else:
+                        node_group = 3
+                # temporal ordering choices should only be considered if they have no timepoint in t_unordered
+                # that must precede them, if criteria met low priority
                 elif node_type == "TOC":
                     anchor_idx = 1
-                    node_type_enum = 3
+                    anchor_tp = node_info[ anchor_idx ]
+                    if anchor_tp in potential_time_points:
+                        keep_flag = True
+                        node_group = 4
                 else:
                     raise (ValueError( "Invalid node type for temporal planning: " + node_type ))
-                node_id_anchor_time_point_tup_lst.append( (node_id, node_info[ anchor_idx ], node_type_enum) )
+                if keep_flag:
+                    node_id_anchor_time_point_tup_lst.append( (node_id, node_info[ anchor_idx ], node_group) )
 
-            # filter nodes that do not meet (3) or (4)
-            stn: TemporalNetwork = value_chronicle.temporal_network
-            # only allow for last ordered time point (t_now)
-            t_now: int = reference_chronicle.t_ordered[ -1 ]
-            potential_time_points: List[ int ] = [ t_now ]
-            # potentially from unordered time points
-            t_unordered: List[ int ] = reference_chronicle.t_unordered
-            potential_time_points += stn.get_potential_next_time_points( t_unordered )
-            # remove nodes that do not have these time points as anchors
-            node_id_anchor_time_point_tup_lst = [
-                *filter( lambda x: x[ 1 ] in potential_time_points, node_id_anchor_time_point_tup_lst ),
-            ]
-            # sort TSA < A < G < TOC
+            # sort TSA < A < G (t_now) < G (other) TOC
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
             for node_id_anchor_time_point_tup in node_id_anchor_time_point_tup_lst:
                 if self._verbose > 1:

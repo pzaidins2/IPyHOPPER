@@ -8,6 +8,7 @@ from __future__ import division, print_function
 
 from typing import Any, Callable, Dict, List, Tuple, Union
 
+from ipyhop import ValueChronicle
 from ipyhop.actions import Actions
 from ipyhop.chronicle import ObjectVarChange, ReferenceChronicle, RestorationTuple
 
@@ -29,7 +30,7 @@ TemporalSingletonAction = Tuple[ str, int, List[ ObjectVarChange ] ]
 # and returns a tuple with restoration tuple and list of singleton actions if valid ones exist otherwise returns None
 TemporalActionOutput = Union[ Tuple[ RestorationTuple, List[ TemporalSingletonAction ] ], None ]
 TemporalActionCall = Tuple[ Any, ... ]
-TemporalAction = Callable[ [ ReferenceChronicle, RestorationTuple, int, ... ],
+TemporalAction = Callable[ [ ReferenceChronicle, ValueChronicle, int, *Tuple[ Any, ... ] ],
 TemporalActionOutput ]
 
 

@@ -6,7 +6,7 @@ File Description: File used for definition of TemporalMethods Class.
 # ******************************************    Libraries to be imported    ****************************************** #
 from __future__ import division, print_function
 
-from typing import Callable, Iterator, List, Tuple, Union
+from typing import Any, Callable, Iterator, List, Tuple, Union
 
 from ipyhop.chronicle import ReferenceChronicle, RestorationTuple, ValueChronicle
 from ipyhop.methods import Methods
@@ -20,7 +20,7 @@ TemporalMethodCall = TemporalActionCall
 TemporalMethodOutput = Union[ Tuple[ RestorationTuple, List[ Union[ TemporalGoal, TemporalActionCall ] ] ], None ]
 
 TemporalMethod = Callable[
-    [ ReferenceChronicle, ValueChronicle, TemporalGoal, ... ],
+    [ ReferenceChronicle, ValueChronicle, TemporalGoal, *Tuple[ Any, ... ] ],
     Iterator[ TemporalMethodOutput ] ]
 
 

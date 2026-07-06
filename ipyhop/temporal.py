@@ -328,6 +328,7 @@ class TemporalNetwork:
                     last_time_point_label,
             ),
         ]
+        self.last_time_point_label = last_time_point_label
         return new_time_point_label_lst
 """
 Author(s): Paul Zaidins

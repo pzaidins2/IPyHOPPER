@@ -8,8 +8,8 @@ from itertools import groupby
 from typing import Dict, List, NewType, Tuple
 
 from ipyhop import (ChronicleInterface, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, RestorationTuple,
-    TemporalActionOutput, TemporalConstraint, TemporalGoal, TemporalNetwork, TemporalRestorationTuple,
-    TemporalSingletonAction, ValueChronicle)
+    TemporalAction, TemporalActionOutput, TemporalActions, TemporalConstraint, TemporalGoal, TemporalNetwork,
+    TemporalRestorationTuple, TemporalSingletonAction, ValueChronicle)
 
 # domain typing
 Surface = NewType( "Surface", str )
@@ -163,8 +163,9 @@ def move_block_to_block(
         return action_output
 
 # NEED temporal extension of actions
-# actions = Actions()
-# actions.declare_actions( [ tga_move_block_to_table_start, ] )
+temporal_actions: List[ TemporalAction ] = [ move_block_to_table, move_block_to_block ]
+actions = TemporalActions()
+actions.declare_temporal_actions( temporal_actions )
 
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':
