@@ -4,8 +4,9 @@ File Description: File used for definition of Methods Class.
 """
 
 # ******************************************    Libraries to be imported    ****************************************** #
-from __future__ import print_function, division
-from typing import List, Callable, Union, Any
+from __future__ import division, print_function
+
+from typing import Any, Callable, List, Union
 
 
 # ******************************************    Class Declaration Start     ****************************************** #
@@ -33,6 +34,7 @@ class Methods(object):
         self.task_method_dict = dict()
         self.goal_method_dict = dict()
         self.multigoal_method_dict = {None: []}
+        self.is_temporal = False
 
     # ******************************        Class Method Declaration        ****************************************** #
     def __str__(self):

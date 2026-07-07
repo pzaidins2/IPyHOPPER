@@ -8,9 +8,8 @@ from __future__ import division, print_function
 
 from typing import Any, Callable, Dict, List, Tuple, Union
 
-from ipyhop import ValueChronicle
 from ipyhop.actions import Actions
-from ipyhop.chronicle import ObjectVarChange, ReferenceChronicle, RestorationTuple
+from ipyhop.chronicle import ObjectVarChange, ReferenceChronicle, RestorationTuple, ValueChronicle
 
 # NEEDS TO BE EXPANDED, PLACEHOLDER FOR TYPE CHECKING
 # placeholder for temporal goal which is specified as timepoint and a predicate with its args
@@ -49,7 +48,9 @@ class TemporalActions( Actions ):
     """
 
     def __init__(self):
+        print( "initializing temporal actions" )
         super().__init__()
+        self.is_temporal = True
 
     # ******************************        Class Method Declaration        ****************************************** #
     def __str__(self):

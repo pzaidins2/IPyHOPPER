@@ -5,15 +5,15 @@ File Description: methods for temporal variant of blocksworld domain. Actions ha
 from itertools import product
 from typing import Iterator, List, Union, cast
 
-from blocks_world_temporal_actions import (Block, ClearGoal, IsOnGoal, MoveBlockToBlockCall, MoveBlockToTableCall,
+from examples.blocks_world.temporal.blocks_world_temporal_actions import (Block, ClearGoal, IsOnGoal,
+    MoveBlockToBlockCall, MoveBlockToTableCall,
     Surface, Table, )
 from ipyhop import (ChronicleInterface, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, RestorationTuple,
     TemporalActionCall, TemporalConstraint, TemporalGoal, TemporalMethod, TemporalMethodOutput, TemporalMethods,
     TemporalNetwork, TemporalRestorationTuple, ValueChronicle)
 
-methods = TemporalMethods()
-
 CI = ChronicleInterface()
+temporal_methods_instance = TemporalMethods()
 
 # progress stack
 # given temporal goal (t, "is_on", block_0, surface_0, True ), ensures block_0 is moved from surface_1
@@ -192,8 +192,9 @@ def tgm_clear_block(
 # NEED: Temporal extension of Goal type: has goal predicate name and time point
 is_on_methods_lst: List[ TemporalMethod ] = [ tgm_progress_stack, ]
 clear_methods_lst: List[ TemporalMethod ] = [ tgm_clear_block, ]
-methods.declare_temporal_goal_methods( 'is_on', is_on_methods_lst )
-methods.declare_temporal_goal_methods( 'clear', clear_methods_lst )
+
+temporal_methods_instance.declare_temporal_goal_methods( 'is_on', is_on_methods_lst )
+temporal_methods_instance.declare_temporal_goal_methods( 'clear', clear_methods_lst )
 
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':

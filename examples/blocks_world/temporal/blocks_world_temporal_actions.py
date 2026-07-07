@@ -18,6 +18,7 @@ Table = NewType( "Table", Surface )
 IsOnGoal = Tuple[ int, str, Block, Surface, bool ]
 ClearGoal = Tuple[ int, str, Surface, bool ]
 
+temporal_actions_instance = TemporalActions()
 # # take change assertion list and turn into singleton action list
 # def change_assertion_lst_to_singleton_action_lst(
 #         change_assertion_lst: List[ ObjectVarChange ],
@@ -163,9 +164,9 @@ def move_block_to_block(
         return action_output
 
 # NEED temporal extension of actions
-temporal_actions: List[ TemporalAction ] = [ move_block_to_table, move_block_to_block ]
-actions = TemporalActions()
-actions.declare_temporal_actions( temporal_actions )
+temporal_action_lst: List[ TemporalAction ] = [ move_block_to_table, move_block_to_block ]
+
+temporal_actions_instance.declare_temporal_actions( temporal_action_lst )
 
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':

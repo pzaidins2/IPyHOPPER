@@ -4,8 +4,10 @@ File Description: File used for definition of Actions Class.
 """
 
 # ******************************************    Libraries to be imported    ****************************************** #
-from __future__ import print_function, division
-from typing import List, Callable, Union, Any, Dict
+from __future__ import division, print_function
+
+from typing import Any, Callable, Dict, List, Union
+
 from ipyhop.state import State
 
 
@@ -30,6 +32,7 @@ class Actions(object):
         self.action_dict = dict()
         self.action_prob = dict()
         self.action_cost = dict()
+        self.is_temporal = False
 
     # ******************************        Class Method Declaration        ****************************************** #
     def __str__(self):

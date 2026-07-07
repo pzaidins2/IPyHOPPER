@@ -4,8 +4,9 @@ File Description: unit testing for temporal blocks world domain
 """
 from typing import Dict, List, Tuple
 
-from examples.blocks_world.temporal.blocks_world_temporal_actions import Block, Surface, Table, actions
-from examples.blocks_world.temporal.blocks_world_temporal_methods import methods
+from examples.blocks_world.temporal.blocks_world_temporal_actions import Block, Surface, Table, \
+    temporal_actions_instance
+from examples.blocks_world.temporal.blocks_world_temporal_methods import temporal_methods_instance
 from ipyhop import (ChronicleInterface, IPyHOP, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, State,
     TemporalGoal, TemporalNetwork, ValueChronicle)
 
@@ -25,6 +26,7 @@ class BlocksWorldReferenceChronicle( ReferenceChronicle, State ):
                 t_unordered,
                 persistences,
         )
+        self.__name__ = "reference"
 
 
 class BlocksWorldValueChronicle( ValueChronicle ):
@@ -77,6 +79,9 @@ def test_empty_blocks_world():
 
 # blocks A starts on block B, move block A to table
 def test_unstack_blocks_world():
+    # print( temporal_action_lst )
+    # print( temporal_actions_instance )
+    # print( type( temporal_actions_instance ) )
     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
     table = [ Table( surfaces[ -1 ] ), ]
     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
@@ -122,8 +127,13 @@ def test_unstack_blocks_world():
             stn,
             domain_objects,
     )
-    planner = IPyHOP( actions, methods, verbose=3 )
-    planner.plan( reference_chronicle, goal_lst, value_chronicle=value_chronicle )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+    )
+    print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
     assert False
 
 

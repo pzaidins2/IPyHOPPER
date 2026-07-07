@@ -12,8 +12,8 @@ import re
 from copy import deepcopy
 from typing import Dict, Hashable, Iterator, List, Optional, Tuple, Union, cast
 
-import networkx as nx
-from networkx import DiGraph, ancestors, bfs_successors, dfs_preorder_nodes, dfs_successors, is_tree, predecessor
+from networkx import DiGraph, ancestors, bfs_successors, dfs_preorder_nodes, dfs_successors, is_tree, neighbors, \
+    predecessor
 
 from ipyhop.actions import Actions
 from ipyhop.chronicle import ChronicleInterface, ReferenceChronicle, RestorationTuple, ValueChronicle
@@ -21,9 +21,9 @@ from ipyhop.methods import Methods
 from ipyhop.mulitgoal import MultiGoal
 from ipyhop.state import State
 from ipyhop.temporal import TOCSpecTuple, TemporalNetwork, TemporalRestorationTuple
-from ipyhop.temporal_actions import TemporalActionCall, TemporalActionOutput, TemporalActions, TemporalGoal, \
+from ipyhop.temporal_actions import TemporalActionCall, TemporalActionOutput, TemporalGoal, \
     TemporalSingletonAction
-from ipyhop.temporal_methods import TemporalMethodOutput, TemporalMethods
+from ipyhop.temporal_methods import TemporalMethodOutput
 
 CI = ChronicleInterface()
 default_separation_condition_tup = ("==", "<")
@@ -139,7 +139,13 @@ class IPyHOP(object):
         self.is_temporal = False
         how_many_temporal = sum(
                 [
-                    isinstance( actions, TemporalActions ), isinstance( methods, TemporalMethods ),
+                    actions.is_temporal, methods.is_temporal,
+                    value_chronicle is not None,
+                ],
+        )
+        print(
+                [
+                    actions.is_temporal, methods.is_temporal,
                     value_chronicle is not None,
                 ],
         )
@@ -1297,7 +1303,7 @@ class IPyHOP(object):
             if node_id == 0:
                 output_str += node_info[ 0 ] + " "
                 # top level children
-                for child_id in nx.neighbors(sol_tree,node_id):
+                for child_id in neighbors( sol_tree, node_id ):
                     output_str += str(child_id) + " "
 
             else:
@@ -1321,7 +1327,7 @@ class IPyHOP(object):
                     decomp_str = name_mapping[ decomp_str ]
                 output_str += decomp_str + " "
                 # child node ids
-                for child_id in nx.neighbors(sol_tree,node_id):
+                for child_id in neighbors( sol_tree, node_id ):
                     output_str += str(child_id) + " "
             output_str += "\n"
         output_str += "<==\n"

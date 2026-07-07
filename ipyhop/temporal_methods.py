@@ -43,7 +43,9 @@ class TemporalMethods( Methods ):
     """
 
     def __init__(self):
+        print( "initializing temporal methods" )
         super().__init__()
+        self.is_temporal = True
 
     # ******************************        Class Method Declaration        ****************************************** #
     def __str__(self):
