@@ -136,6 +136,7 @@ def move_block_to_block(
         reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, t_s: int,
         temporal_goal: TemporalGoal, block: Block, start_pos: Surface, end_pos: Block,
 ) -> TemporalActionOutput:
+    assert end_pos != value_chronicle.domain_objects[ "table" ][ 0 ]
     # localize variables
     t_e, *goal = temporal_goal
     # change assertions

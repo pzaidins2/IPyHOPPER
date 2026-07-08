@@ -85,9 +85,13 @@ def test_unstack_blocks_world():
     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
     table = [ Table( surfaces[ -1 ] ), ]
     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
+    print( "\n" )
+    print( table )
+    print( blocks )
+    print( surfaces )
     A, B = blocks
     TABLE = table[ 0 ]
-    stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
+    stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=10 )
     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
     stn.add_temporal_constraints_from(
             [
@@ -134,7 +138,6 @@ def test_unstack_blocks_world():
             value_chronicle=value_chronicle,
     )
     print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
-    assert False
 
 
 # blocks A and B start on table, move block A on to block B

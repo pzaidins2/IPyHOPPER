@@ -59,6 +59,11 @@ class TemporalNetwork:
         else:
             return False
 
+    # returns True if tp_0 must be equal to tp_1
+    def is_strictly_equal(self, tp_0: int, tp_1: int) -> bool:
+        # if <= but not <, must be =
+        return self.is_strictly_less_than_or_equal( tp_0, tp_1 ) and not (self.is_strictly_less_than( tp_0, tp_1 ))
+
     # returns list of time points that may be the next time point
     def get_potential_next_time_points( self, unordered_time_point_lst: List[int] ) -> List[int]:
         # refs

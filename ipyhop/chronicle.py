@@ -4,7 +4,7 @@ File Description: gives protocol for references and values in chronicles and fun
 for interfacing with them
 """
 from itertools import groupby
-from typing import Any, Dict, List, Protocol, Tuple, Type, Union
+from typing import Any, Dict, Iterator, List, Protocol, Tuple, Type, Union
 
 from ipyhop.temporal import NetEdgeInput, TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 
@@ -190,23 +190,27 @@ class ChronicleInterface():
 
     # Given a pair of reference and value chronicles determine whether the given change assertion holds
     # returns bool based on this premise
-    # t_equivalent is a list of time points that are equal in value to t_change of the change_assertion
-    # t_pending for t_now is such a use case
     # ONLY WORKS IF THE CHANGE ASSERTION OCCURS NO LATER THAN t_now
     def verify_object_assertion(
-            self,
-            reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-            change_assertion: ObjectVarChange, t_equivalent_lst: List[ int ]
+            self, reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+            change_assertion: ObjectVarChange
     ) -> bool:
         t_query: int = change_assertion[ 0 ]
         predicate_label: str = change_assertion[ 1 ]
         predicate_args: Tuple = change_assertion[ 2:-1 ]
         target_bool: bool = change_assertion[ -1 ]
+        min_stn: TemporalNetwork = value_chronicle.temporal_network
         # get t_ordered
         # t_ordered_idx: int = reference_chronicle.t_ordered
         t_ordered: List[ int ] = reference_chronicle.t_ordered
         # get the maximum index in t_ordered that would be relevant to the change assertion
-        t_max_idx: int = t_ordered.index( change_assertion[ 0 ] )
+        # cannot verify outside t_ordered
+        if t_query not in t_ordered:
+            return False
+        t_max_idx: int = t_ordered.index( t_query )
+        # get the index in t_ordered of the last time_point in the list with value equal to that
+        # of the change assertion
+        t_equivalent_lst: Iterator[ int ] = filter( lambda x: min_stn.is_strictly_equal( x, t_query ), t_ordered )
         for t_i in t_equivalent_lst:
             t_max_idx = max( t_ordered.index( t_i ), t_max_idx )
 

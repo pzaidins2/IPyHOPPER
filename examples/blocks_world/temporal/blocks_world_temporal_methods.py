@@ -34,7 +34,7 @@ def tgm_progress_stack(
     assert predicate == "is_on" and bool_val == True
     # object constraints
     # force (t_s is_on block_0, surface_1)
-    surface_lst: List[ Surface ] = value_chronicle.domain_objects[ "surface" ]
+    surface_lst: List[ Surface ] = value_chronicle.domain_objects[ "surfaces" ]
     for surface_1 in surface_lst:
         # all different check
         obj_lst: List[ Surface ] = [ block_0, surface_1, surface_0 ]
@@ -59,7 +59,7 @@ def tgm_progress_stack(
             ):
                 # define list of subgoals
                 # action call changes based on ending on block or table
-                if surface_1 == table:
+                if surface_0 == table:
                     action_call = (
                         "move_block_to_table",
                         (t_e, "is_on", block_0, surface_0, True),
@@ -100,10 +100,10 @@ def tgm_clear_block(
     bool_val: bool = temporal_goal[ -1 ]
     min_stn: TemporalNetwork = value_chronicle.temporal_network
     t_s, t_0, t_1, t_e_one_less = min_stn.get_n_new_time_point_labels( 4 )
-    assert predicate == "is_on" and bool_val == True
+    assert predicate == "clear" and bool_val == True
     # iterate over all combinations of block_1 and surface_0
-    block_lst: List[ Block ] = value_chronicle.domain_objects[ "block" ]
-    surface_lst: List[ Surface ] = value_chronicle.domain_objects[ "surface" ]
+    block_lst: List[ Block ] = value_chronicle.domain_objects[ "blocks" ]
+    surface_lst: List[ Surface ] = value_chronicle.domain_objects[ "surfaces" ]
     table: Table = value_chronicle.domain_objects[ "table" ][ 0 ]
     for block_1, surface_0 in product( block_lst, surface_lst ):
         # object constraints
