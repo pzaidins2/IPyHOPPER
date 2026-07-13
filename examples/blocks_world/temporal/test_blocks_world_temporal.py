@@ -91,11 +91,11 @@ def test_unstack_blocks_world():
     print( surfaces )
     A, B = blocks
     TABLE = table[ 0 ]
-    stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=10 )
+    stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
     stn.add_temporal_constraints_from(
             [
-                (t_s, "<=", t_e, 0),
+                (t_s, "<", t_e, 0),
             ],
     )
 

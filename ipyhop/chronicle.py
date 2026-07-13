@@ -144,8 +144,11 @@ class ChronicleInterface():
         t_ordered: List[ int ] = reference_chronicle.t_ordered
         t_unordered: List[ int ] = reference_chronicle.t_unordered
         t_ordered_last: int = t_ordered[ -1 ]
-        assert time_point in t_unordered
-        assert time_point not in t_ordered
+        if len( set( t_unordered ) & set( t_ordered ) ) != 0:
+            print( "TIME POINT ODDITY" )
+            print( set( t_unordered ) & set( t_ordered ) )
+            return (False, ([ ], [ ], [ ]))
+
         stn: TemporalNetwork = value_chronicle.temporal_network
         # add temporal constraints, end if any fail
         # time point relation to end time point in t_ordered
@@ -203,13 +206,16 @@ class ChronicleInterface():
             change_assertion: ObjectVarChange
     ) -> bool:
         t_query: int = change_assertion[ 0 ]
+        t_ordered: List[ int ] = reference_chronicle.t_ordered
+        if t_query not in t_ordered:
+            return False
         predicate_label: str = change_assertion[ 1 ]
         predicate_args: Tuple = change_assertion[ 2:-1 ]
         target_bool: bool = change_assertion[ -1 ]
         min_stn: TemporalNetwork = value_chronicle.temporal_network
         # get t_ordered
         # t_ordered_idx: int = reference_chronicle.t_ordered
-        t_ordered: List[ int ] = reference_chronicle.t_ordered
+
         # get the maximum index in t_ordered that would be relevant to the change assertion
         # cannot verify outside t_ordered
         if t_query not in t_ordered:
