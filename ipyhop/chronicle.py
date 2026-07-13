@@ -139,10 +139,13 @@ class ChronicleInterface():
             self, reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, time_point: int,
             separation_condition: str,
     ) -> Tuple[ bool, TemporalRestorationTuple ]:
+
         # localize variables
         t_ordered: List[ int ] = reference_chronicle.t_ordered
         t_unordered: List[ int ] = reference_chronicle.t_unordered
         t_ordered_last: int = t_ordered[ -1 ]
+        assert time_point in t_unordered
+        assert time_point not in t_ordered
         stn: TemporalNetwork = value_chronicle.temporal_network
         # add temporal constraints, end if any fail
         # time point relation to end time point in t_ordered
@@ -159,10 +162,14 @@ class ChronicleInterface():
         assert node_add_lst == [ ]
         # at least one contradiction occurs from the new constraints, fail
         if success_flag:
+            # print( t_ordered )
+            # print( t_unordered )
+            # print( time_point )
             # add time point to t_ordered
             t_ordered.append( time_point )
             # remove time point from t_unordered
             t_unordered.remove( time_point )
+
         return (success_flag, (node_add_lst, edge_add_lst, edge_remove_lst))
 
     # function that initializes a reference-value chronicle pair given the starting values of a chronicle
@@ -221,14 +228,14 @@ class ChronicleInterface():
             :(change_assertion_reference_idx + 1) ]
         relevant_change_lst: List[ ObjectVarChange ] = [
             *filter(
-                    lambda x: x[ 2:-1 ] == change_assertion[ 2:-1 ] and x[ 0 ] in t_ordered and t_ordered.index(
+                    lambda x: x[ 2:-1 ] == predicate_args and x[ 0 ] in t_ordered and t_ordered.index(
                             x[ 0 ],
                     ) <= t_max_idx, change_assertion_lst,
             ),
         ]
         # if no relevant assertions then default is False
         if len( relevant_change_lst ) == 0:
-            return not (change_assertion[ -1 ])
+            return not (target_bool)
         # find the assertion with the highest index in t_ordered
         last_change_assertion: ObjectVarChange = max( relevant_change_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
         # true if last change assertion matches with the querying change assertions

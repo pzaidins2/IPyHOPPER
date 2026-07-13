@@ -386,9 +386,16 @@ class IPyHOP(object):
         verbose = self._verbose
         while True:
             prev_node_id = -1
-            curr_node_id = -1
-            print( node_id_visit_order )
-            print( [ sol_tree.nodes[ x ][ "info" ] for x in sol_tree.nodes ] )
+            # curr_node_id = -1
+            # print( node_id_visit_order )
+            print( "NODES" )
+            print(
+                    [ sol_tree.nodes[ x ][ "info" ] for x in sol_tree.nodes ],
+            )
+            if is_temporal:
+                print( "TIME POINTS" )
+                print( self.state.t_ordered )
+                print( self.state.t_unordered )
             # print( [ *sol_tree.nodes ] )
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
@@ -822,6 +829,7 @@ class IPyHOP(object):
             curr_node = sol_tree.nodes[ curr_node_id ]
             curr_node_info = curr_node[ 'info' ]
             curr_node_time_point = curr_node_info[ 1 ]
+            success_flag = False
             # try setting equal to last node in t_ordered and then try strictly greater than
             while curr_node[ 'seperation_condition_lst' ] != [ ]:
                 separation_condition = curr_node[ 'seperation_condition_lst' ].pop()
@@ -829,7 +837,6 @@ class IPyHOP(object):
                 if value_chronicle is not None:
                     # attempt inserting temporal constraint
                     new_state = self.state.copy()
-                    print( new_state )
                     time_point_order_result = CI.order_time_point(
                             new_state, value_chronicle, curr_node_time_point, separation_condition,
                     )
@@ -846,14 +853,15 @@ class IPyHOP(object):
                                             repr( curr_node_info[ 1 ] ),
                                     ),
                             )
-                if not success_flag:
-                    if verbose > 2:
-                        print(
-                                'Iteration {}, Time point {} was not able to be placed in the ordering'.format(
-                                        _iter,
-                                        repr( curr_node_info[ 1 ] ),
-                                ),
-                        )
+                        break
+            if not success_flag:
+                if verbose > 2:
+                    print(
+                            'Iteration {}, Time point {} was not able to be placed in the ordering'.format(
+                                    _iter,
+                                    repr( curr_node_info[ 1 ] ),
+                            ),
+                    )
         # attempt to insert changes associated with temporal singleton action
         elif is_temporal and curr_node[ 'type' ] == "TSA":
             # collect time point and effects list
