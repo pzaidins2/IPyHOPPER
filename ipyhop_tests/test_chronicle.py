@@ -133,10 +133,14 @@ def test_verify_object_assertion_0():
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,
             t_unordered, changes, persistences, temporal_network, domain_objects,
     )
+    t_ordered_copy = deepcopy( reference_chronicle.t_ordered )
+    t_unordered_copy = deepcopy( reference_chronicle.t_unordered )
     assert CI.verify_object_assertion(
             reference_chronicle, value_chronicle,
             test_change_assertion,
     )
+    assert reference_chronicle.t_ordered == t_ordered_copy
+    assert reference_chronicle.t_unordered == t_unordered_copy
 
 
 def test_verify_object_assertion_1():
@@ -159,10 +163,14 @@ def test_verify_object_assertion_1():
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,
             t_unordered, changes, persistences, temporal_network, domain_objects,
     )
+    t_ordered_copy = deepcopy( reference_chronicle.t_ordered )
+    t_unordered_copy = deepcopy( reference_chronicle.t_unordered )
     assert not (CI.verify_object_assertion(
             reference_chronicle, value_chronicle,
             test_change_assertion,
     ))
+    assert reference_chronicle.t_ordered == t_ordered_copy
+    assert reference_chronicle.t_unordered == t_unordered_copy
 
 
 # missing assertion True
@@ -186,10 +194,14 @@ def test_verify_object_assertion_2():
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,
             t_unordered, changes, persistences, temporal_network, domain_objects,
     )
+    t_ordered_copy = deepcopy( reference_chronicle.t_ordered )
+    t_unordered_copy = deepcopy( reference_chronicle.t_unordered )
     assert not (CI.verify_object_assertion(
             reference_chronicle, value_chronicle,
             test_change_assertion,
     ))
+    assert reference_chronicle.t_ordered == t_ordered_copy
+    assert reference_chronicle.t_unordered == t_unordered_copy
 
 
 # missing assertion False
@@ -213,10 +225,14 @@ def test_verify_object_assertion_3():
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,
             t_unordered, changes, persistences, temporal_network, domain_objects,
     )
+    t_ordered_copy = deepcopy( reference_chronicle.t_ordered )
+    t_unordered_copy = deepcopy( reference_chronicle.t_unordered )
     assert CI.verify_object_assertion(
             reference_chronicle, value_chronicle,
             test_change_assertion,
     )
+    assert reference_chronicle.t_ordered == t_ordered_copy
+    assert reference_chronicle.t_unordered == t_unordered_copy
 
 
 # later match
@@ -239,10 +255,14 @@ def test_verify_object_assertion_4():
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,
             t_unordered, changes, persistences, temporal_network, domain_objects,
     )
+    t_ordered_copy = deepcopy( reference_chronicle.t_ordered )
+    t_unordered_copy = deepcopy( reference_chronicle.t_unordered )
     assert CI.verify_object_assertion(
             reference_chronicle, value_chronicle,
             test_change_assertion,
     )
+    assert reference_chronicle.t_ordered == t_ordered_copy
+    assert reference_chronicle.t_unordered == t_unordered_copy
 
 
 # later negation
@@ -265,10 +285,14 @@ def test_verify_object_assertion_5():
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,
             t_unordered, changes, persistences, temporal_network, domain_objects,
     )
+    t_ordered_copy = deepcopy( reference_chronicle.t_ordered )
+    t_unordered_copy = deepcopy( reference_chronicle.t_unordered )
     assert not (CI.verify_object_assertion(
             reference_chronicle, value_chronicle,
             test_change_assertion,
     ))
+    assert reference_chronicle.t_ordered == t_ordered_copy
+    assert reference_chronicle.t_unordered == t_unordered_copy
 
 
 # time point later in ordering but equal in value
@@ -291,10 +315,14 @@ def test_verify_object_assertion_6():
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,
             t_unordered, changes, persistences, temporal_network, domain_objects,
     )
+    t_ordered_copy = deepcopy( reference_chronicle.t_ordered )
+    t_unordered_copy = deepcopy( reference_chronicle.t_unordered )
     assert CI.verify_object_assertion(
             reference_chronicle, value_chronicle,
             test_change_assertion,
     )
+    assert reference_chronicle.t_ordered == t_ordered_copy
+    assert reference_chronicle.t_unordered == t_unordered_copy
 
 
 # check_change_existing_changes_safe

@@ -49,13 +49,18 @@ def tgm_progress_stack(
             ]
             # temporal assertions
             temporal_constraint_lst: List[ TemporalConstraint ] = [
-                (t_e_one_less, "==", t_e, -1),
+                (t_e, "==", t_e_one_less, 1),
+                (t_s, "<=", t_0, 0),
+                (t_s, "<=", t_1, 0)
             ]
             temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
             # attempt to add all
+            change_update_dict = { }
+            persistence_update_dict = { }
             if CI.update_chronicle(
                     reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
                     temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                    change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
             ):
                 # define list of subgoals
                 # action call changes based on ending on block or table
@@ -85,6 +90,11 @@ def tgm_progress_stack(
                 restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
                 method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
                 yield method_output
+                # if initial success but later failure
+                CI.restore_chronicle(
+                        reference_chronicle, value_chronicle, change_update_dict, persistence_update_dict,
+                        temporal_restoration_tup,
+                )
 
 
 # clear block
@@ -116,44 +126,58 @@ def tgm_clear_block(
             persistence_assertion_lst: List[ ObjectVarPersistence ] = [
                 (t_s, t_e_one_less, "is_on", block_1, block_0, True),
                 (t_0, t_e, "clear", block_1, True),
-                (t_1, t_e_one_less, "clear", surface_0, True),
             ]
             # temporal assertions
             temporal_constraint_lst: List[ TemporalConstraint ] = [
-                (t_e_one_less, "==", t_e, -1),
+                (t_e_one_less, "==", t_e, 0),
+                (t_s, "<=", t_0, -1),
+
             ]
+            if surface_0 != table:
+                persistence_assertion_lst.append( (t_1, t_e_one_less, "clear", surface_0, True) )
+                temporal_constraint_lst.append( (t_e_one_less, "==", t_1, -1) )
             temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
             # attempt to add all
+            change_update_dict = { }
+            persistence_update_dict = { }
             if CI.update_chronicle(
                     reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
                     temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                    change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
             ):
                 # action call changes based on ending on block or table
                 if surface_0 == table:
                     action_call = (
                         "move_block_to_table",
                         (t_e, "is_on", block_1, surface_0, True),
+                        block_1,
                         block_0,
-                        surface_0,
                     )
                     action_call = cast( MoveBlockToTableCall, action_call )
                 else:
                     action_call = (
                         "move_block_to_block",
                         (t_e, "is_on", block_1, surface_0, True),
+                        block_1,
                         block_0,
                         surface_0,
-                        block_1,
                     )
                     action_call = cast( MoveBlockToBlockCall, action_call )
                 # define list of subgoals
                 subgoal_lst: List[ Union[ TemporalGoal, TemporalActionCall ] ] = [
                     (t_0, "clear", block_1, True),
-                    action_call,
                 ]
+                if surface_0 != table:
+                    subgoal_lst.append( (t_1, "clear", surface_0, True) )
+                subgoal_lst.append( action_call )
                 restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
                 method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)
                 yield method_output
+                # if initial success but later failure
+                CI.restore_chronicle(
+                        reference_chronicle, value_chronicle, change_update_dict, persistence_update_dict,
+                        temporal_restoration_tup,
+                )
 
 
 # move block to table

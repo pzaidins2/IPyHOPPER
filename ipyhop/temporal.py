@@ -74,12 +74,15 @@ class TemporalNetwork:
         # iterate over every edge between unordered time points
         for node_i in unordered_time_point_lst:
             for node_j in unordered_time_point_lst:
-                edge_ij = find_edge( node_i, node_j )
-                # only care about existing edges
-                if edge_ij is None:
-                    continue
-                # if any m
-                max_min_delta_t_dict[node_i] = max(max_min_delta_t_dict[node_i],edge_ij[2]["min_delta_t"])
+                if node_i != node_j:
+                    edge_ij = find_edge( node_i, node_j )
+                    # only care about existing edges
+                    if edge_ij is None:
+                        continue
+                    # if any m
+                    max_min_delta_t_dict[ node_i ] = max(
+                            max_min_delta_t_dict[ node_i ], edge_ij[ 2 ][ "min_delta_t" ],
+                    )
         candidate_time_point_lst = [*filter(lambda x: max_min_delta_t_dict[x] <= 0, unordered_time_point_lst)]
         return candidate_time_point_lst
 

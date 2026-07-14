@@ -162,6 +162,8 @@ class ChronicleInterface():
                 temporal_constraint_lst,
         )
         # no new time points should ever happen from this
+        # print( time_point )
+        # print( node_add_lst )
         assert node_add_lst == [ ]
         # at least one contradiction occurs from the new constraints, fail
         if success_flag:
@@ -278,7 +280,7 @@ class ChronicleInterface():
         # unique_interval_tup_lst: List[ Tuple[ int, int ] ] = [ (x[ 0 ], x[ 1 ]) for x in persistence_assertion_lst ]
         # unique_interval_tup_lst = list( dict.fromkeys( unique_interval_tup_lst ) )
         persistence_temporal_constraint_lst: List[ TemporalConstraint ] = [
-            (x[ 0 ], "<=", x[ 1 ], 0) for x in persistence_assertion_lst
+            (x[ 0 ], "<=", x[ 1 ], 0) for x in filter( lambda y: y[ 0 ] != y[ 1 ], persistence_assertion_lst )
         ]
         # add temporal cosntraints included those from implied intervals
         temporal_success, *current_temporal_restoration_tup = self.add_temporal_constraints_from(
