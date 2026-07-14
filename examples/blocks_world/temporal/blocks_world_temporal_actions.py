@@ -119,8 +119,9 @@ def move_block_to_table(
     ]
     temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
     # attempt to add all
+    new_reference_chronicle = reference_chronicle.copy()
     if CI.update_chronicle(
-            reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+            new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
             temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
     ):
         # define list of singleton actions
@@ -156,8 +157,9 @@ def move_block_to_block(
     ]
     temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
     # attempt to add all
+    new_reference_chronicle = reference_chronicle.copy()
     if CI.update_chronicle(
-            reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+            new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
             temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
     ):
         # define list of singleton actions

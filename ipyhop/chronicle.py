@@ -3,6 +3,7 @@
 File Description: gives protocol for references and values in chronicles and functions
 for interfacing with them
 """
+from copy import deepcopy
 from itertools import groupby
 from typing import Any, Dict, Iterator, List, Protocol, Tuple, Type, Union
 
@@ -33,6 +34,9 @@ class ReferenceChronicle( Protocol ):
         self.t_ordered = t_ordered
         self.t_unordered = t_unordered
         self.persistences = persistences
+
+    def copy(self):
+        return deepcopy( self )
 
 
 class ValueChronicle( Protocol ):

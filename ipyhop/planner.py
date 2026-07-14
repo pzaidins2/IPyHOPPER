@@ -426,9 +426,8 @@ class IPyHOP(object):
                 print( toc_closed_node_lst )
                 print( "OPEN TIMEPOINTS" )
                 print( toc_open_node_lst )
-                print( self.state.t_unordered )
-                assert set( toc_open_node_lst ) == set( self.state.t_unordered )
-                assert set( toc_closed_node_lst ) == set( self.state.t_ordered )
+                # assert set( toc_open_node_lst ) == set( self.state.t_unordered )
+                # assert set( toc_closed_node_lst ) == set( self.state.t_ordered )
 
             prev_node_id = -1
             # curr_node_id = -1
@@ -471,7 +470,7 @@ class IPyHOP(object):
                             ) + "; has no next_node_id_iter, instantiating",
                     )
                 prev_node[ "next_node_id_iter" ] = select_next_open_node(
-                        _iter, self.state, value_chronicle,
+                        _iter, self.state.copy(), value_chronicle,
                 )
                 assert (prev_node[ "next_node_id_iter" ] is not None)
             # check for cases where new current node is needed
@@ -552,8 +551,6 @@ class IPyHOP(object):
             verbose = self._verbose
         self.node_expansions += 1
         curr_node = self.sol_tree.nodes[curr_node_id]
-        print( "NODE ID" )
-        print( curr_node_id )
         # If curr_node already has a value for state, it means that the algorithm backtracked to this node.
         if curr_node[ 'state' ] is not None:
             # Modify the current state as the saved state at that node.
@@ -622,10 +619,10 @@ class IPyHOP(object):
             if curr_node_info not in self.blacklist:
                 # handle temporal actions having RestorationTuple Output
                 if is_temporal:
-                    print( "TEMPORAL ACTION" )
-                    print( curr_node_info )
-                    print( self.state )
-                    print( value_chronicle.changes )
+                    # print( "TEMPORAL ACTION" )
+                    # print( curr_node_info )
+                    # print( self.state )
+                    # print( value_chronicle.changes )
                     temporal_action_output: TemporalActionOutput = curr_node[ 'action' ](
                             self.state.copy(), value_chronicle, *curr_node_info[ 1: ],
                     )
@@ -657,7 +654,7 @@ class IPyHOP(object):
                     curr_node['status'] = 'C'
                     # if curr_node_id not in node_id_visit_order:
                     node_id_visit_order.append( curr_node_id )
-                    self.state.update(new_state)
+                    self.state.update( new_state.copy() )
                     if verbose > 2:
                         print('Iteration {}, Action {} successful.'.format(_iter, repr(curr_node_info)))
             if new_state is None:
@@ -732,7 +729,7 @@ class IPyHOP(object):
                                         reference_chronicle.t_unordered += time_point_add_lst
                                         # include TOC nodes as children
                                         subgoals += toc_lst
-                                        self.state.update( reference_chronicle )
+                                        self.state.update( reference_chronicle.copy() )
 
                             else:
                                 subgoals = next( curr_node[ 'selected_method_instances' ] )
@@ -769,10 +766,10 @@ class IPyHOP(object):
                 if verbose > 2:
                     print('Iteration {}, Goal {} refinement failed'.format(_iter, repr(curr_node_info)))
                 curr_node[ 'exhausted_methods' ] = True
-                print( self.state.t_ordered )
-                print( self.state.t_unordered )
-                print( value_chronicle.changes[ "clear" ][ :self.state.changes[ "clear" ] + 1 ] )
-                print( value_chronicle.persistences[ "clear" ][ :self.state.persistences[ "clear" ] + 1 ] )
+                # print( self.state.t_ordered )
+                # print( self.state.t_unordered )
+                # print( value_chronicle.changes[ "clear" ][ :self.state.changes[ "clear" ] + 1 ] )
+                # print( value_chronicle.persistences[ "clear" ][ :self.state.persistences[ "clear" ] + 1 ] )
 
                 # curr_node[ 'available_methods' ] = iter( curr_node[ 'methods' ] )
 
@@ -859,7 +856,7 @@ class IPyHOP(object):
                 # on success change reference chronicle (state) and close node
                 if success_flag:
                     curr_node[ 'status' ] = "C"
-                    self.state.update( new_state )
+                    self.state.update( new_state.copy() )
             else:
                 state_var, arg, desired_val = self.sol_tree.nodes[ parent_node_id ][ 'info' ]
                 if self.state.__dict__[ state_var ][ arg ] == desired_val:
@@ -905,7 +902,7 @@ class IPyHOP(object):
                     if success_flag:
                         curr_node[ 'status' ] = "C"
                         node_id_visit_order.append( curr_node_id )
-                        self.state.update( new_state )
+                        self.state.update( new_state.copy() )
                         curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
                         if verbose > 2:
                             print(

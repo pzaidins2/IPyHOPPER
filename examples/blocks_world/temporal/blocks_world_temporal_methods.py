@@ -57,8 +57,9 @@ def tgm_progress_stack(
             # attempt to add all
             change_update_dict = { }
             persistence_update_dict = { }
+            new_reference_chronicle = reference_chronicle.copy()
             if CI.update_chronicle(
-                    reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                    new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
                     temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
                     change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
             ):
@@ -90,11 +91,11 @@ def tgm_progress_stack(
                 restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
                 method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
                 yield method_output
-                # if initial success but later failure
-                CI.restore_chronicle(
-                        reference_chronicle, value_chronicle, change_update_dict, persistence_update_dict,
-                        temporal_restoration_tup,
-                )
+                # # if initial success but later failure
+                # CI.restore_chronicle(
+                #         reference_chronicle, value_chronicle, change_update_dict, persistence_update_dict,
+                #         temporal_restoration_tup,
+                # )
 
 
 # clear block
@@ -140,8 +141,9 @@ def tgm_clear_block(
             # attempt to add all
             change_update_dict = { }
             persistence_update_dict = { }
+            new_reference_chronicle = reference_chronicle.copy()
             if CI.update_chronicle(
-                    reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                    new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
                     temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
                     change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
             ):
@@ -173,11 +175,11 @@ def tgm_clear_block(
                 restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
                 method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)
                 yield method_output
-                # if initial success but later failure
-                CI.restore_chronicle(
-                        reference_chronicle, value_chronicle, change_update_dict, persistence_update_dict,
-                        temporal_restoration_tup,
-                )
+                # # if initial success but later failure
+                # CI.restore_chronicle(
+                #         reference_chronicle, value_chronicle, change_update_dict, persistence_update_dict,
+                #         temporal_restoration_tup,
+                # )
 
 
 # move block to table
