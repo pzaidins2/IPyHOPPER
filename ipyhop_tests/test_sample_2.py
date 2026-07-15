@@ -50,6 +50,9 @@ def main():
     assert plan == exp_0, "Result plan and expected plan are not same."
 
 
+def test_sample_2():
+    main()
+
 # ******************************************        Main Program End        ****************************************** #
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':

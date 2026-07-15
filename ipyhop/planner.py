@@ -10,6 +10,7 @@ from __future__ import division, division, print_function, print_function
 import keyword
 import re
 from copy import deepcopy
+from itertools import chain
 from typing import Dict, Hashable, Iterator, List, Optional, Tuple, Union, cast
 
 from networkx import DiGraph, ancestors, bfs_successors, dfs_preorder_nodes, dfs_successors, is_tree, neighbors, \
@@ -182,7 +183,10 @@ class IPyHOP(object):
         parent_node_id = _id
         self.sol_tree.add_node(
                 _id, info=('root',), type='NA',
-                status='C', next_node_id_iter=None, next_node_id=None, depth=0, state=state.copy()
+                status='C', next_node_id_iter=self.select_next_open_node(
+                        0, state.copy(), value_chronicle=value_chronicle,
+                ),
+                next_node_id=None, depth=0, state=state.copy()
         )
         # assign TOC node to every time point as root child
         toc_lst = [ ]
@@ -429,21 +433,6 @@ class IPyHOP(object):
                 # assert set( toc_open_node_lst ) == set( self.state.t_unordered )
                 # assert set( toc_closed_node_lst ) == set( self.state.t_ordered )
 
-            prev_node_id = -1
-            # curr_node_id = -1
-            # print( node_id_visit_order )
-            # print( "CLOSED NODES" )
-            # print(
-            #         [ sol_tree.nodes[ x ][ "info" ] for x in
-            #             filter( lambda y: sol_tree.nodes[ y ][ "status" ] == "C", sol_tree.nodes ) ],
-            # )
-            # print( "OPEN NODES" )
-            # print(
-            #         [ sol_tree.nodes[ x ][ "info" ] for x in
-            #             filter( lambda y: sol_tree.nodes[ y ][ "status" ] == "O", sol_tree.nodes ) ],
-            # )
-
-            # print( [ *sol_tree.nodes ] )
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
@@ -455,90 +444,50 @@ class IPyHOP(object):
             _iter += 1
             # get previous node from node_id_visit_order
             # curr_node will be gotten from prev_node
-            prev_node_id = node_id_visit_order[ -1 ]
+            curr_node_id = node_id_visit_order[ -1 ]
             # print( prev_node_id )
-            prev_node = sol_tree.nodes[ prev_node_id ]
-            # if prev_node does not have an iterator to find current node, instantiate one
-            # having the iterator on the node allows for us to avoid nodes we checked already
-
-            if prev_node[ "next_node_id_iter" ] is None:
-                if verbose > 2:
-                    print(
-                            "Iteration " + str( _iter ) + " " +
-                            "Node " + str( prev_node_id ) + "; " + str(
-                                    prev_node[ "info" ],
-                            ) + "; has no next_node_id_iter, instantiating",
-                    )
-                prev_node[ "next_node_id_iter" ] = select_next_open_node(
-                        _iter, self.state.copy(), value_chronicle,
-                )
-                assert (prev_node[ "next_node_id_iter" ] is not None)
-            # check for cases where new current node is needed
-            need_new_curr_node = False
-            # prev_node is freshly closed, iterator used first time
-            if prev_node[ "next_node_id" ] is None:
-                if verbose > 2:
-                    print(
-                            "Node " + str( prev_node_id ) + ": " + str(
-                                    prev_node[ "info" ],
-                            ) + ", has no next_node_id, preparing to select",
-                    )
-                    # print( "next_node_id was None" )
-                    need_new_curr_node = True
-            # some current nodes (as of now goals and tasks) will need multiple iterations to
-            # exhaust all potential methods, here we check if a new current node should be set
-            # or to use the old (same as previous iteration) current node again
+            curr_node = sol_tree.nodes[ curr_node_id ]
+            get_new_next_node_flag = False
+            # get next node id, iterator is generated after closing node, root is done by plan()
+            # tasks and methods should exhaust all method instances before changing target node
+            # is a task or goal
+            if curr_node[ 'type' ] in { 'G', 'T' }:
+                print( curr_node )
+                # no reserve methods
+                if len( curr_node[ 'available_methods' ] ) == 0:
+                    if curr_node[ 'selected_method_instances' ] is None:
+                        get_new_next_node_flag = True
+                    else:
+                        # peak and see if any instances remain, then restore
+                        try:
+                            top = next( curr_node[ 'selected_method_instances' ] )
+                            curr_node[ 'selected_method_instances' ] = chain(
+                                    [ top, curr_node[ 'selected_method_instances' ] ], )
+                        except StopIteration:
+                            get_new_next_node_flag = True
             else:
-                curr_node_id = cast( int, prev_node[ "next_node_id" ] )
-                # print( node_id_visit_order )
-                # print( sol_tree.nodes[ prev_node_id ][ 'info' ] )
-                # print( curr_node_id )
-                curr_node = sol_tree.nodes[ curr_node_id ]
-                # check if goal or task
-                if curr_node[ "type" ] in { "G", "T", "M" }:
-                    # check if methods have been exhausted
-                    if curr_node[ "exhausted_methods" ]:
-                        need_new_curr_node = True
-                        if verbose > 2:
-                            print( "Node " + str( curr_node_id ) + " has exhausted methods for present current node" )
-                            # print( "curr_node was " + str( curr_node_id ) )
-                else:
-                    need_new_curr_node = True
-                    # print( "type was not in {G,T,M}" )
-                    # print( "curr_node was " + str( curr_node_id ) )
-                    # print( "curr_node_type was " + str( curr_node[ "type" ] ) )
-
-            # set current node for this iteration, need_new_curr_node pull from iterator
-            # if the iterator has been exhausted, we will need to reopen the previous node and set as current node,
-            # pop the previous node off of node_id_vist_order, set the
-            # previous node to the last id in the node_id_visit_order, and return to top of loop
-            if need_new_curr_node:
+                get_new_next_node_flag = True
+            # get new next node if needed
+            if curr_node[ 'next_node_id' ] is None or get_new_next_node_flag:
                 try:
-                    curr_node_id = next( prev_node[ "next_node_id_iter" ] )
-                    prev_node[ "next_node_id" ] = curr_node_id
+                    curr_node[ 'next_node_id' ] = next( curr_node[ 'next_node_id_iter' ] )
                 except StopIteration:
-
-                    # current prev_node_id is the root_node_id, planning has failed
-
-                    # if prev_node_id == root_node_id:
-                    #     print( "Cannot backtrack from root node, terminating planning" )
-                    #     return _iter
-                    # otherwise backtrack
-                    # print( node_id_visit_order )
+                    # backtrack is needed as no more next nodes are possible
                     backtrack()
-                    if verbose > 2:
-                        print(
-                                "Node " + str(
-                                        prev_node_id,
-                                ) + ", has exhausted its next_node_id_iter, backtracking",
-                        )
-                    # return to loop start
+
                     continue
-            else:
-                curr_node_id = cast( int, prev_node[ "next_node_id" ] )
 
-            node_refine( curr_node_id, _iter, value_chronicle=value_chronicle, verbose=verbose )
-
+            next_node_id = cast( int, curr_node[ 'next_node_id' ] )
+            next_node = sol_tree.nodes[ next_node_id ]
+            next_node_info = next_node[ 'info' ]
+            if verbose > 2:
+                print(
+                        "Iteration {}, Node {}: {}, selected as next node".format(
+                                _iter,
+                                curr_node[ 'next_node_id' ], next_node_info,
+                        ),
+                )
+            node_refine( next_node_id, _iter, value_chronicle=value_chronicle, verbose=verbose )
 
     # ******************************        Class Method Declaration        ****************************************** #
     def _node_refine(
@@ -547,6 +496,8 @@ class IPyHOP(object):
         node_id_visit_order = self.node_id_visit_order
         sol_tree = self.sol_tree
         is_temporal = self.is_temporal
+        select_next_open_node = self.select_next_open_node
+        backtrack = self._backtrack
         if verbose is None:
             verbose = self._verbose
         self.node_expansions += 1
@@ -568,48 +519,54 @@ class IPyHOP(object):
             # consider failure if next decomposition would exceed max depth
             # print(curr_node["depth"], self.max_depth)
             if self.max_depth is None or curr_node["depth"] < self.max_depth:
-                # If methods are available for refining the task, use them.
-                while curr_node[ 'available_methods' ] != [ ]:
+                # # If methods are available for refining the task, use them.
+                # while curr_node[ 'available_methods' ] != [ ]:
+                subtasks = None
+                while True:
                     # get method instance
                     if curr_node[ 'selected_method_instances' ] is None:
-                        method = curr_node[ 'available_methods' ][ 0 ]
+                        if len( curr_node[ 'available_methods' ] ) == 0:
+                            break
+                        method = curr_node[ 'available_methods' ].pop()
                         curr_node[ 'selected_method' ] = method
                         # create method instance generator
                         curr_node[ 'selected_method_instances' ] = method( self.state.copy(), *curr_node_info[ 1: ] )
                     try:
                         subtasks = next( curr_node[ 'selected_method_instances' ] )
+                        break
                     # exhausted all instances of selected method select new method
                     except StopIteration:
-                        # get next method
-                        curr_node[ 'available_methods' ].pop( 0 )
-                        if len( curr_node[ 'available_methods' ] ) > 0:
-                            method = curr_node[ 'available_methods' ][ 0 ]
-                            curr_node[ 'selected_method' ] = method
-                            # create method instance generator
-                            curr_node[ 'selected_method_instances' ] = method(
-                                    self.state.copy(), *curr_node_info[ 1: ],
-                            )
-                    if subtasks is not None:
-                        curr_node[ 'status' ] = 'C'
-                        # if curr_node_id not in node_id_visit_order:
-                        node_id_visit_order.append( curr_node_id )
-                        _id = self._add_nodes_and_edges( curr_node_id, subtasks )
+                        # set to get next method
+                        curr_node[ 'selected_method_instances' ] = None
+                        # if no more available methods, failed
+                        if len( curr_node[ 'available_methods' ] ) == 0:
+                            break
 
-                        if verbose > 2:
-                            print(
-                                    'Iteration {}, Task {} successfully refined\n Subtasks: {}'.format(
-                                            _iter,
-                                            repr( curr_node_info ),
-                                            str( subtasks ),
-                                    ),
-                            )
-                        break
+                if subtasks is not None:
+                    curr_node[ 'status' ] = 'C'
+                    # if curr_node_id not in node_id_visit_order:
+                    node_id_visit_order.append( curr_node_id )
+                    _id = self._add_nodes_and_edges( curr_node_id, subtasks )
+
+                    if verbose > 2:
+                        print(
+                                'Iteration {}, Task {} successfully refined\n Subtasks: {}'.format(
+                                        _iter,
+                                        repr( curr_node_info ),
+                                        str( subtasks ),
+                                ),
+                        )
+                    # given task decomposition determine next node
+                    curr_node[ 'next_node_id_iter' ] = select_next_open_node(
+                            _iter, self.state.copy(), value_chronicle=value_chronicle,
+                    )
+
             if subtasks is None:
                 if verbose > 2:
                     print('Iteration {}, Task {} refinement failed'.format(_iter, repr(curr_node_info)))
-                    print('Iteration {}, Backtracking to {}.'.format(
-                        _iter, repr(self.sol_tree.nodes[curr_node_id]['info'])))
-                curr_node[ 'exhausted_methods' ] = True
+                    # print('Iteration {}, Backtracking to {}.'.format(
+                    #     _iter, repr(self.sol_tree.nodes[curr_node_id]['info'])))
+                    # backtrack()
                 # curr_node[ 'available_methods' ] = iter( curr_node[ 'methods' ] )
 
         # If current node is an Action
@@ -655,6 +612,10 @@ class IPyHOP(object):
                     # if curr_node_id not in node_id_visit_order:
                     node_id_visit_order.append( curr_node_id )
                     self.state.update( new_state.copy() )
+                    # given task decomposition determine next node
+                    curr_node[ 'next_node_id_iter' ] = select_next_open_node(
+                            _iter, self.state.copy(), value_chronicle=value_chronicle,
+                    )
                     if verbose > 2:
                         print('Iteration {}, Action {} successful.'.format(_iter, repr(curr_node_info)))
             if new_state is None:
@@ -1265,33 +1226,27 @@ class IPyHOP(object):
         sol_tree = self.sol_tree
         # object variables get rolled back with indices in reference chronicle
         # temporal network needs the temporal restoration tuple for reset
-        prev_node_id = node_id_visit_order[ -1 ]
-        prev_node = sol_tree.nodes[ prev_node_id ]
-        curr_node_id = prev_node[ 'next_node_id' ]
+        curr_node_id = node_id_visit_order[ -1 ]
         curr_node = sol_tree.nodes[ curr_node_id ]
+
+        # reset current node (last node closed)
         if is_temporal:
             print( "CURRENT ORDERED TIME POINTS" )
             print( curr_node[ "state" ].t_ordered )
-            print( "PREVIOUS ORDERED TIME POINTS" )
-            print( prev_node[ "state" ].t_ordered )
         # print( prev_node )
-        prev_type = prev_node[ 'type' ]
         curr_type = curr_node[ 'type' ]
         # reset previous node (as it was at creation)
         # nodes with methods
         dfs_successor_dict = dfs_successors( self.sol_tree, curr_node_id )
         if curr_node_id in dfs_successor_dict.keys():
             sol_tree.remove_nodes_from( dfs_successor_dict[ curr_node_id ] )
-        dfs_successor_dict = dfs_successors( self.sol_tree, prev_node_id )
-        if prev_node_id in dfs_successor_dict.keys():
-            sol_tree.remove_nodes_from( dfs_successor_dict[ prev_node_id ] )
 
-        if curr_type in [ 'G', 'M', 'T' ]:
-            relevant_methods = curr_node[ 'methods' ]
-            curr_node[ 'selected_method' ] = None
-            curr_node[ 'available_methods' ] = [ *relevant_methods ]
-            curr_node[ 'selected_method_instances' ] = None
-            curr_node[ 'exhausted_methods' ] = False
+        # if curr_type in [ 'G', 'M', 'T' ]:
+        # relevant_methods = curr_node[ 'methods' ]
+        # curr_node[ 'selected_method' ] = None
+        # curr_node[ 'available_methods' ] = [ *relevant_methods ]
+        # curr_node[ 'selected_method_instances' ] = None
+        # curr_node[ 'exhausted_methods' ] = False
         if curr_type in [ 'TOC', ]:
             curr_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
         if is_temporal and value_chronicle is not None:
@@ -1303,27 +1258,22 @@ class IPyHOP(object):
                             *curr_node[ 'temporal_restoration_tuple' ],
                     )
                     curr_node[ 'temporal_restoration_tuple' ] = None
-            if prev_type in [ 'G', 'A', 'TOC' ]:
-                if prev_node[ 'temporal_restoration_tuple' ] is not None:
-                    value_chronicle.temporal_network.restore_graph(
-                            *prev_node[ 'temporal_restoration_tuple' ],
-                    )
-                prev_node[ 'temporal_restoration_tuple' ] = None
+            # if prev_type in [ 'G', 'A', 'TOC' ]:
+            #     if prev_node[ 'temporal_restoration_tuple' ] is not None:
+            #         value_chronicle.temporal_network.restore_graph(
+            #                 *prev_node[ 'temporal_restoration_tuple' ],
+            #         )
+            #     prev_node[ 'temporal_restoration_tuple' ] = None
             #
-        prev_node[ 'status' ] = 'O'
-        prev_node[ 'next_node_id_iter' ] = None
-        prev_node[ 'next_node_id' ] = None
+        # prev_node[ 'status' ] = 'O'
         curr_node[ 'status' ] = 'O'
         curr_node[ 'next_node_id_iter' ] = None
         curr_node[ 'next_node_id' ] = None
-        curr_node[ 'state' ] = None
-        # remove from visitation order list
+        # remove from list
         node_id_visit_order.pop()
-        # print( "PREV NODE BACKTRACK" )
-        # print( prev_node[ "info" ] )
-        # print( prev_node[ 'state' ] )
-        # print( prev_prev_node )
-        self.state.update( prev_node[ 'state' ].copy() )
+        # if curr_node[ 'info' ] != ('root',):
+        #     prev_node_id = node_id_visit_order[ -1 ]
+        #     prev_node = sol_tree.nodes[ prev_node_id ]
 
         return
 
