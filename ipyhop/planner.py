@@ -295,12 +295,10 @@ class IPyHOP(object):
                 elif node_type == "A":
                     node_info = node_info[ 1 ]
                     anchor_idx = 0
-                    keep_flag = True
                     anchor_tp = node_info[ anchor_idx ]
                     if anchor_tp == t_now:
                         node_group = 2
-                    else:
-                        node_group = 3
+                        keep_flag = True
                 # high priority to goals for t_now, else medium priority
                 elif node_type == "G":
                     keep_flag = True
@@ -670,6 +668,10 @@ class IPyHOP(object):
                         self.state, value_chronicle, temporal_goal
                 ):
                     goal_done = True
+                    # block clobbering
+                    new_state = self.state.copy()
+                    CI.add_changes( new_state, value_chronicle, [ temporal_goal, ], dict() )
+                    self.state.update( new_state )
             else:
                 state_var, arg, desired_val = curr_node_info
                 if self.state.__dict__[ state_var ][ arg ] == desired_val:
@@ -679,6 +681,7 @@ class IPyHOP(object):
                 # if curr_node_id not in node_id_visit_order:
                 node_id_visit_order.append( curr_node_id )
                 subgoals = [ ]
+
                 if self._verbose > 2:
                     print( 'Iteration {}, Goal {} already achieved'.format( _iter, repr( curr_node_info ) ) )
             else:

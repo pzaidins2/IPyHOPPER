@@ -114,7 +114,7 @@ def move_block_to_table(
     ]
     # temporal assertions
     temporal_constraint_lst: List[ TemporalConstraint ] = [
-        (t_e, "==", t_s, 1),
+        # (t_e, "==", t_s, 1),
     ]
     temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
     # attempt to add all
@@ -150,7 +150,7 @@ def move_block_to_block(
     persistence_assertion_lst: List[ ObjectVarPersistence ] = [ ]
     # temporal assertions
     temporal_constraint_lst: List[ TemporalConstraint ] = [
-        (t_e, "==", t_s, 1),
+        # (t_e, "==", t_s, 1),
     ]
     temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
     # attempt to add all

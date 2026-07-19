@@ -433,7 +433,7 @@ def test_unstack_blocks_world():
     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
     A, B = blocks
     TABLE = table[ 0 ]
-    stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=5 )
+    stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
     stn.add_temporal_constraints_from(
             [
@@ -493,6 +493,11 @@ def test_unstack_blocks_world():
               ('TSA', 1, [ (1, 'is_on', 'A', 'B', False), (1, 'is_on', 'A', 'Table', True) ]) for x in
                 planner.sol_tree.nodes ],
     )
+    assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
+        ('root',), (1, 'is_on', 'A', 'Table', True), ('TOC', 1), ('TOC', 0), (4, 'clear', 'A', True),
+        (5, 'clear', 'Table', True), ('move_block_to_table', (6, 1), 'A', 'B'), ('TOC', 6), ('TOC', 3), ('TOC', 4),
+        ('TOC', 5), 'VerifyGoal', ('TSA', 1, [ (1, 'is_on', 'A', 'B', False), (1, 'is_on', 'A', 'Table', True) ]),
+    ]
 
 
 # blocks A and B start on table, move block A on to block B
