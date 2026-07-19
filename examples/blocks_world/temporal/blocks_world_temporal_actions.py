@@ -8,7 +8,7 @@ from itertools import groupby
 from typing import Dict, List, NewType, Tuple
 
 from ipyhop import (ChronicleInterface, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, RestorationTuple,
-    TemporalAction, TemporalActionOutput, TemporalActions, TemporalConstraint, TemporalGoal, TemporalNetwork,
+    TemporalAction, TemporalActionOutput, TemporalActions, TemporalConstraint, TemporalNetwork,
     TemporalRestorationTuple, TemporalSingletonAction, ValueChronicle)
 
 # domain typing
@@ -94,15 +94,14 @@ CI = ChronicleInterface()
 # tga_move_block_to_table_end adds new change assertion
 
 # action for moving block from being on block start_pos to the table
-MoveBlockToTableCall = Tuple[ str, IsOnGoal, Block, Block ]
+MoveBlockToTableCall = Tuple[ str, Tuple[ int, int ], Block, Block ]
 def move_block_to_table(
         reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-        temporal_goal: TemporalGoal, block: Block, start_pos: Block,
+        time_point_tup: Tuple[ int, int ], block: Block, start_pos: Block,
 ) -> TemporalActionOutput:
     # get time point labels
-    t_s = value_chronicle.temporal_network.get_n_new_time_point_labels( 1 )[ 0 ]
+    t_s, t_e = time_point_tup
     # localize variables
-    t_e, *goal = temporal_goal
     table: Table = value_chronicle.domain_objects[ "table" ][ 0 ]
     # change assertions
     change_assertion_lst: List[ ObjectVarChange ] = [
@@ -134,16 +133,14 @@ def move_block_to_table(
 
 
 # action for moving block from being on block start_pos to block end_pos
-MoveBlockToBlockCall = Tuple[ str, IsOnGoal, Block, Surface, Block ]
+MoveBlockToBlockCall = Tuple[ str, Tuple[ int, int ], Block, Surface, Block ]
 def move_block_to_block(
         reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-        temporal_goal: TemporalGoal, block: Block, start_pos: Surface, end_pos: Block,
+        time_point_tup: Tuple[ int, int ], block: Block, start_pos: Surface, end_pos: Block,
 ) -> TemporalActionOutput:
     assert end_pos != value_chronicle.domain_objects[ "table" ][ 0 ]
     # get time point labels
-    t_s = value_chronicle.temporal_network.get_n_new_time_point_labels( 1 )[ 0 ]
-    # localize variables
-    t_e, *goal = temporal_goal
+    t_s, t_e = time_point_tup
     # change assertions
     change_assertion_lst: List[ ObjectVarChange ] = [
         (t_e, "is_on", block, start_pos, False),

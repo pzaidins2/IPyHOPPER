@@ -30,7 +30,8 @@ class TemporalMethods( Methods ):
     Temporal extension/adaptation of Methods class
 
     Each temporal method is of type TemporalMethod. It must accept a ReferenceChronicle and a ValueChronicle as the
-    first and second arguments respectively. Additional arguments are optional. The return type is
+    first and second arguments respectively. The third arguement is the goal to be decomposed.
+    Additional arguments are optional. The return type is
     Iterator[TemporalMethodOutput].
     If no more valid decompositions can be found None is retured. Otherwise, yields the
     RestorationTuple

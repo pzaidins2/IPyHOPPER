@@ -241,7 +241,7 @@ def test_action_blocks_world():
     )
 
     goal_lst: List[ TemporalGoal | TemporalActionCall ] = [
-        ("move_block_to_table", (t_e, "is_on", A, TABLE, True), A, B),
+        ("move_block_to_table", (t_s, t_e), A, B),
     ]
     changes: Dict[ str, List[ ObjectVarChange ] ] = {
         "is_on": [
@@ -281,8 +281,8 @@ def test_action_blocks_world():
     )
     assert sol_plan == goal_lst
     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-        ('root',), ('move_block_to_table', (1, 'is_on', 'A', 'Table', True), 'A', 'B'), ('TOC', 1), ('TOC', 0),
-        ('TSA', 1, [ (1, 'is_on', 'A', 'B', False), (1, 'is_on', 'A', 'Table', True) ]), ('TOC', 3),
+        ('root',), ('move_block_to_table', (0, 1), 'A', 'B'), ('TOC', 1), ('TOC', 0),
+        ('TSA', 1, [ (1, 'is_on', 'A', 'B', False), (1, 'is_on', 'A', 'Table', True) ]),
     ]
 
 
@@ -479,7 +479,20 @@ def test_unstack_blocks_world():
             actions=temporal_actions_instance,
             value_chronicle=value_chronicle,
     )
-    print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
+    assert value_chronicle.changes[ "is_on" ][ :planner.state.changes[ "is_on" ] + 1 ] == [
+        (0, 'is_on', 'A', 'B', True), (0, 'is_on', 'B', 'Table', True), (1, 'is_on', 'A', 'B', False),
+        (1, 'is_on', 'A', 'Table', True), (1, 'is_on', 'A', 'Table', True),
+    ]
+    assert value_chronicle.persistences[ "clear" ][ :planner.state.persistences[ "clear" ] + 1 ] == [
+        (6, 1, 'clear', 'A', True),
+    ]
+    assert planner.state.t_ordered == [ 0, 6, 3, 4, 5, 1 ]
+    assert planner.state.t_unordered == [ ]
+    assert any(
+            [ planner.sol_tree.nodes[ x ][ "info" ] ==
+              ('TSA', 1, [ (1, 'is_on', 'A', 'B', False), (1, 'is_on', 'A', 'Table', True) ]) for x in
+                planner.sol_tree.nodes ],
+    )
 
 
 # blocks A and B start on table, move block A on to block B

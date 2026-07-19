@@ -68,7 +68,7 @@ def tgm_progress_stack(
                 if surface_0 == table:
                     action_call = (
                         "move_block_to_table",
-                        (t_e, "is_on", block_0, surface_0, True),
+                        (t_e_one_less, t_e),
                         block_0,
                         surface_1,
                     )
@@ -76,7 +76,7 @@ def tgm_progress_stack(
                 else:
                     action_call = (
                         "move_block_to_block",
-                        (t_e, "is_on", block_0, surface_0, True),
+                        (t_e_one_less, t_e),
                         block_0,
                         surface_1,
                         surface_0,
@@ -151,7 +151,7 @@ def tgm_clear_block(
                 if surface_0 == table:
                     action_call = (
                         "move_block_to_table",
-                        (t_e, "is_on", block_1, surface_0, True),
+                        (t_e_one_less, t_e),
                         block_1,
                         block_0,
                     )
@@ -159,7 +159,7 @@ def tgm_clear_block(
                 else:
                     action_call = (
                         "move_block_to_block",
-                        (t_e, "is_on", block_1, surface_0, True),
+                        (t_e_one_less, t_e),
                         block_1,
                         block_0,
                         surface_0,

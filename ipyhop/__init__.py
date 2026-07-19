@@ -23,7 +23,7 @@ from ipyhop.plotter import planar_plot
 from ipyhop.state import State, State
 from ipyhop.temporal import NetEdgeInput, TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 from ipyhop.temporal_actions import TemporalAction, TemporalActionCall, TemporalActionOutput, TemporalActions, \
-    TemporalGoal, TemporalSingletonAction
+    TemporalGoal, TemporalSingletonAction, TimePointTuple
 from ipyhop.temporal_methods import TemporalMethod, TemporalMethodOutput, TemporalMethods
 
 # from ipyhop.failure_handler import post_failure_tasks

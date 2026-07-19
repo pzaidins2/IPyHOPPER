@@ -294,7 +294,7 @@ class IPyHOP(object):
                 # high priority to actions
                 elif node_type == "A":
                     node_info = node_info[ 1 ]
-                    anchor_idx = 1
+                    anchor_idx = 0
                     keep_flag = True
                     anchor_tp = node_info[ anchor_idx ]
                     if anchor_tp == t_now:

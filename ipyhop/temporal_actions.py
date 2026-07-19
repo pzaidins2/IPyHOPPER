@@ -29,7 +29,8 @@ TemporalSingletonAction = Tuple[ str, int, List[ ObjectVarChange ] ]
 # and returns a tuple with restoration tuple and list of singleton actions if valid ones exist otherwise returns None
 TemporalActionOutput = Union[ Tuple[ RestorationTuple, List[ TemporalSingletonAction ] ], None ]
 TemporalActionCall = Tuple[ Any, ... ]
-TemporalAction = Callable[ [ ReferenceChronicle, ValueChronicle, int, *Tuple[ Any, ... ] ],
+TimePointTuple = Tuple[ int, ... ]
+TemporalAction = Callable[ [ ReferenceChronicle, ValueChronicle, TimePointTuple, *Tuple[ Any, ... ] ],
 TemporalActionOutput ]
 
 
@@ -39,7 +40,10 @@ class TemporalActions( Actions ):
     Temporal extension/adaptation of Actions
 
     Each temporal action is of type TemporalAction. It must accept a ReferenceChronicle and a ValueChronicle as the
-    first and second arguments respectively. Additional arguments are optional. The return type is TemporalActionOutput.
+    first and second arguments respectively. The third argument is an n-tuple of time points where the first
+    time point is the timepoint at the action start and the last time point is the timepoint at the action end
+    Additional arguments are optional. Time points should be passed from parent to child only through this tuple.
+    The return type is TemporalActionOutput.
     None should be returned if an action would induce a contradiction in the chronicle. Otherwise, return the
     RestorationTuple
     (which contains the new reference chronicle and the temporal restoration tuple needed to rollback changes to the
