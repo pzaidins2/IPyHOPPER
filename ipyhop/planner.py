@@ -424,10 +424,14 @@ class IPyHOP(object):
                 ]
                 print( "CLOSED TIMEPOINTS" )
                 print( toc_closed_node_lst )
+                print( "ORDERED TIME POINTS" )
+                print( self.state.t_ordered )
                 print( "OPEN TIMEPOINTS" )
                 print( toc_open_node_lst )
-                # assert set( toc_open_node_lst ) == set( self.state.t_unordered )
-                # assert set( toc_closed_node_lst ) == set( self.state.t_ordered )
+                print( "UNORDERED TIME POINTS" )
+                print( self.state.t_unordered )
+                assert set( toc_open_node_lst ) == set( self.state.t_unordered )
+                assert set( toc_closed_node_lst ) == set( self.state.t_ordered )
 
             prev_node_id = -1
             # curr_node_id = -1
@@ -1188,15 +1192,15 @@ class IPyHOP(object):
                 self.sol_tree.add_node(_id, info=child_node_info, type='G', status='O', state=None,
                 selected_method = None, available_methods = [ *relevant_methods ],
                 methods = relevant_methods, selected_method_instances = None, depth = parent_depth + 1, tag='new',
-                        exhausted_methods=False, next_node_id_iter=None, next_node_id=None)
+                        exhausted_methods=False, next_node_id_iter=None, next_node_id=None, )
 
-                self.sol_tree.add_edge(parent_node_id, _id)
+
                 # if temporal, make spot for temporal restoration tuple
                 # this will be used to restore temporal network during back tracking
                 if is_temporal:
                     self.sol_tree.nodes[ _id ][ "temporal_restoration_tuple" ]: Optional[
                         TemporalRestorationTuple ] = None
-
+                self.sol_tree.add_edge( parent_node_id, _id )
         if self.sol_tree.nodes[parent_node_id]['type'] == 'G':
             _id = self.get_next_id()
             self.sol_tree.add_node(_id, info='VerifyGoal', type='VG', status='O', depth=parent_depth+1, next_node_id_iter=None,
@@ -1246,8 +1250,8 @@ class IPyHOP(object):
 
     # ******************************        Class Method Declaration        ****************************************** #
 
-    # unexpands last node closed
-    # set status to open, removes children if any
+    # resets node currently being probed
+    # if there are no other options for the next node of the last visited node, reopen previous node
     ### CURRENT PROBLEM ###
     # types of backtrack: right sibling, parent, rightmost descendant of left sibling
     # conversely going forward: left sibling, child, the first right sibling of an ancestor going up the tree
@@ -1263,67 +1267,70 @@ class IPyHOP(object):
         value_chronicle = self.value_chronicle
         node_id_visit_order = self.node_id_visit_order
         sol_tree = self.sol_tree
-        # object variables get rolled back with indices in reference chronicle
-        # temporal network needs the temporal restoration tuple for reset
         prev_node_id = node_id_visit_order[ -1 ]
         prev_node = sol_tree.nodes[ prev_node_id ]
         curr_node_id = prev_node[ 'next_node_id' ]
-        curr_node = sol_tree.nodes[ curr_node_id ]
-        if is_temporal:
-            print( "CURRENT ORDERED TIME POINTS" )
-            print( curr_node[ "state" ].t_ordered )
-            print( "PREVIOUS ORDERED TIME POINTS" )
-            print( prev_node[ "state" ].t_ordered )
-        # print( prev_node )
-        prev_type = prev_node[ 'type' ]
-        curr_type = curr_node[ 'type' ]
-        # reset previous node (as it was at creation)
-        # nodes with methods
-        dfs_successor_dict = dfs_successors( self.sol_tree, curr_node_id )
-        if curr_node_id in dfs_successor_dict.keys():
-            sol_tree.remove_nodes_from( dfs_successor_dict[ curr_node_id ] )
-        dfs_successor_dict = dfs_successors( self.sol_tree, prev_node_id )
-        if prev_node_id in dfs_successor_dict.keys():
-            sol_tree.remove_nodes_from( dfs_successor_dict[ prev_node_id ] )
+        # curr_node_id should only be None if prev_node_id has exhausted potential next nodes
+        if curr_node_id is None:
+            node_id_visit_order.pop()
+            self.state.update( prev_node[ 'state' ].copy() )
+            prev_node[ 'status' ] = 'O'
+            prev_node[ 'next_node_id_iter' ] = None
 
-        if curr_type in [ 'G', 'M', 'T' ]:
-            relevant_methods = curr_node[ 'methods' ]
-            curr_node[ 'selected_method' ] = None
-            curr_node[ 'available_methods' ] = [ *relevant_methods ]
-            curr_node[ 'selected_method_instances' ] = None
-            curr_node[ 'exhausted_methods' ] = False
-        if curr_type in [ 'TOC', ]:
-            curr_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
-        if is_temporal and value_chronicle is not None:
+            dfs_successor_dict = dfs_successors( self.sol_tree, prev_node_id )
+            if prev_node_id in dfs_successor_dict.keys():
+                sol_tree.remove_nodes_from( dfs_successor_dict[ prev_node_id ] )
 
-            if curr_type in [ 'G', 'A', 'TOC' ]:
-                # print( curr_type )
-                if curr_node[ 'temporal_restoration_tuple' ] is not None:
-                    value_chronicle.temporal_network.restore_graph(
-                            *curr_node[ 'temporal_restoration_tuple' ],
-                    )
-                    curr_node[ 'temporal_restoration_tuple' ] = None
-            if prev_type in [ 'G', 'A', 'TOC' ]:
-                if prev_node[ 'temporal_restoration_tuple' ] is not None:
-                    value_chronicle.temporal_network.restore_graph(
-                            *prev_node[ 'temporal_restoration_tuple' ],
-                    )
+            if is_temporal and value_chronicle is not None:
+                value_chronicle.temporal_network.restore_graph(
+                        *prev_node[ 'temporal_restoration_tuple' ],
+                )
                 prev_node[ 'temporal_restoration_tuple' ] = None
-            #
-        prev_node[ 'status' ] = 'O'
-        prev_node[ 'next_node_id_iter' ] = None
+        else:
+
+            curr_node = sol_tree.nodes[ curr_node_id ]
+            if is_temporal:
+                print( "CURRENT ORDERED TIME POINTS" )
+                print( curr_node[ "state" ].t_ordered )
+                print( "PREVIOUS ORDERED TIME POINTS" )
+                print( prev_node[ "state" ].t_ordered )
+            # print( prev_node )
+            prev_type = prev_node[ 'type' ]
+            curr_type = curr_node[ 'type' ]
+            # reset previous node (as it was at creation)
+            # nodes with methods
+            dfs_successor_dict = dfs_successors( self.sol_tree, curr_node_id )
+            if curr_node_id in dfs_successor_dict.keys():
+                sol_tree.remove_nodes_from( dfs_successor_dict[ curr_node_id ] )
+
+            if curr_type in [ 'G', 'M', 'T' ]:
+                relevant_methods = curr_node[ 'methods' ]
+                curr_node[ 'selected_method' ] = None
+                curr_node[ 'available_methods' ] = [ *relevant_methods ]
+                curr_node[ 'selected_method_instances' ] = None
+                curr_node[ 'exhausted_methods' ] = False
+            if curr_type in [ 'TOC', ]:
+                curr_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
+            if is_temporal and value_chronicle is not None:
+
+                if curr_type in [ 'G', 'A', 'TOC' ]:
+                    # print( curr_type )
+                    if curr_node[ 'temporal_restoration_tuple' ] is not None:
+                        value_chronicle.temporal_network.restore_graph(
+                                *curr_node[ 'temporal_restoration_tuple' ],
+                        )
+                        curr_node[ 'temporal_restoration_tuple' ] = None
+
+            curr_node[ 'status' ] = 'O'
+            curr_node[ 'next_node_id_iter' ] = None
+            curr_node[ 'next_node_id' ] = None
+            curr_node[ 'state' ] = None
         prev_node[ 'next_node_id' ] = None
-        curr_node[ 'status' ] = 'O'
-        curr_node[ 'next_node_id_iter' ] = None
-        curr_node[ 'next_node_id' ] = None
-        curr_node[ 'state' ] = None
-        # remove from visitation order list
-        node_id_visit_order.pop()
+
         # print( "PREV NODE BACKTRACK" )
         # print( prev_node[ "info" ] )
         # print( prev_node[ 'state' ] )
         # print( prev_prev_node )
-        self.state.update( prev_node[ 'state' ].copy() )
 
         return
 
