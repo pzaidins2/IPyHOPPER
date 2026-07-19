@@ -148,10 +148,10 @@ class ChronicleInterface():
         t_ordered: List[ int ] = reference_chronicle.t_ordered
         t_unordered: List[ int ] = reference_chronicle.t_unordered
         t_ordered_last: int = t_ordered[ -1 ]
-        if len( set( t_unordered ) & set( t_ordered ) ) != 0:
-            print( "TIME POINT ODDITY" )
-            print( set( t_unordered ) & set( t_ordered ) )
-            return (False, ([ ], [ ], [ ]))
+        # if len( set( t_unordered ) & set( t_ordered ) ) != 0:
+        #     print( "TIME POINT ODDITY" )
+        #     print( set( t_unordered ) & set( t_ordered ) )
+        #     return (False, ([ ], [ ], [ ]))
 
         stn: TemporalNetwork = value_chronicle.temporal_network
         # add temporal constraints, end if any fail
@@ -166,14 +166,9 @@ class ChronicleInterface():
                 temporal_constraint_lst,
         )
         # no new time points should ever happen from this
-        # print( time_point )
-        # print( node_add_lst )
         assert node_add_lst == [ ]
         # at least one contradiction occurs from the new constraints, fail
         if success_flag:
-            # print( t_ordered )
-            # print( t_unordered )
-            # print( time_point )
             # add time point to t_ordered
             t_ordered.append( time_point )
             # remove time point from t_unordered
