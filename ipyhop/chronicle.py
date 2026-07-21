@@ -165,8 +165,8 @@ class ChronicleInterface():
         success_flag, node_add_lst, edge_add_lst, edge_remove_lst = stn.add_temporal_constraints_from(
                 temporal_constraint_lst,
         )
-        # no new time points should ever happen from this
-        assert node_add_lst == [ ]
+        # new time points can appear if time points are created unconstrained
+        # assert node_add_lst == [ ]
         # at least one contradiction occurs from the new constraints, fail
         if success_flag:
             # add time point to t_ordered

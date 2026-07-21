@@ -136,7 +136,7 @@ def tgm_clear_block(
             ]
             if surface_0 != table:
                 persistence_assertion_lst.append( (t_1, t_e_one_less, "clear", surface_0, True) )
-                temporal_constraint_lst.append( (t_e_one_less, "==", t_1, -1) )
+                temporal_constraint_lst.append( (t_1, "<=", t_e_one_less, 0) )
             temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
             # attempt to add all
             change_update_dict = { }
@@ -168,8 +168,10 @@ def tgm_clear_block(
                 # define list of subgoals
                 subgoal_lst: List[ Union[ TemporalGoal, TemporalActionCall ] ] = [
                     (t_0, "clear", block_1, True),
-                    (t_1, "clear", surface_0, True)
+
                 ]
+                if surface_0 != table:
+                    subgoal_lst.append( (t_1, "clear", surface_0, True) )
                 subgoal_lst.append( action_call )
                 restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
                 method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)

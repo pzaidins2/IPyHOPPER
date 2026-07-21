@@ -380,16 +380,16 @@ class IPyHOP(object):
         # for initial planning the root node id is used and considered closed
         verbose = self._verbose
         while True:
-            # assert _iter < 1000
-            # print( "VISIT ORDER" )
-            # print( [ sol_tree.nodes[ x ][ "info" ] for x in node_id_visit_order ] )
-            # print( "OPEN NODES" )
-            # print(
-            #         [ sol_tree.nodes[ x ][ "info" ] for x in
-            #             filter( lambda y: sol_tree.nodes[ y ][ "status" ] == "O", node_id_visit_order ) ],
-            # )
-            # print( "CURRENT GOAL NETWORK" )
-            # print( [ sol_tree.nodes[ x ][ "info" ] for x in sol_tree.nodes ] )
+            # assert _iter < 20
+            print( "VISIT ORDER" )
+            print( [ sol_tree.nodes[ x ][ "info" ] for x in node_id_visit_order ] )
+            print( "OPEN NODES" )
+            print(
+                    [ sol_tree.nodes[ x ][ "info" ] for x in
+                        filter( lambda y: sol_tree.nodes[ y ][ "status" ] == "O", node_id_visit_order ) ],
+            )
+            print( "CURRENT GOAL NETWORK" )
+            print( [ sol_tree.nodes[ x ][ "info" ] for x in sol_tree.nodes ] )
             if is_temporal:
                 toc_closed_node_id_lst = [
                     *filter(
@@ -413,14 +413,14 @@ class IPyHOP(object):
                             lambda x: sol_tree.nodes[ x ][ "info" ][ 1 ], toc_open_node_id_lst,
                     ),
                 ]
-                # print( "CLOSED TIMEPOINTS" )
-                # print( toc_closed_node_lst )
-                # print( "ORDERED TIME POINTS" )
-                # print( self.state.t_ordered )
-                # print( "OPEN TIMEPOINTS" )
-                # print( toc_open_node_lst )
-                # print( "UNORDERED TIME POINTS" )
-                # print( self.state.t_unordered )
+                print( "CLOSED TIMEPOINTS" )
+                print( toc_closed_node_lst )
+                print( "ORDERED TIME POINTS" )
+                print( self.state.t_ordered )
+                print( "OPEN TIMEPOINTS" )
+                print( toc_open_node_lst )
+                print( "UNORDERED TIME POINTS" )
+                print( self.state.t_unordered )
                 assert set( toc_open_node_lst ) == set( self.state.t_unordered )
                 assert set( toc_closed_node_lst ) == set( self.state.t_ordered )
 
@@ -633,6 +633,16 @@ class IPyHOP(object):
                         curr_node[ "temporal_singleton_action_lst" ] = temporal_singleton_action_lst
                         # adds a temporal order choice node for every new time point label
                         time_point_add_lst: List[ int ] = temporal_restoration_tup[ 0 ]
+                        # make sure all time points have
+                        for tsa in temporal_singleton_action_lst:
+                            if all(
+                                    [
+                                        tsa[ 1 ] not in time_point_add_lst,
+                                        tsa[ 1 ] not in self.state.t_ordered,
+                                        tsa[ 1 ] not in self.state.t_unordered,
+                                    ],
+                            ):
+                                time_point_add_lst.append( tsa[ 1 ] )
                         toc_lst: List[ TOCSpecTuple ] = [ ("TOC", x) for x in time_point_add_lst ]
                         # update unordered
                         new_state.t_unordered += time_point_add_lst
@@ -718,11 +728,31 @@ class IPyHOP(object):
                                     curr_node[ "temporal_restoration_tup" ] = temporal_restoration_tup
                                     # this will handle object change and persistence rollback
                                     if reference_chronicle is not None:
-
                                         subgoals: List[ Union[ TemporalGoal, TemporalActionCall ] ] = \
                                             temporal_method_output[ 1 ]
                                         # adds a temporal order choice node for every new time point label
                                         time_point_add_lst: List[ int ] = temporal_restoration_tup[ 0 ]
+                                        # include timepoints introduced without constraints
+                                        for subgoal in subgoals:
+                                            # goals
+                                            if subgoal[ 1 ] in self.methods.goal_method_dict:
+                                                tps = [ subgoal[ 0 ], ]
+                                            # actions
+                                            elif subgoal[ 0 ] in self.actions.action_dict:
+                                                tps = [ *subgoal[ 1 ], ]
+                                            else:
+                                                raise (ValueError( "Unsupported node in subgoals" ))
+                                            for tp in tps:
+                                                if all(
+                                                        [
+                                                            tp not in time_point_add_lst,
+                                                            tp not in self.state.t_ordered,
+                                                            tp not in self.state.t_unordered,
+                                                        ],
+                                                ):
+                                                    time_point_add_lst.append( tp )  # type: ignore
+                                        print( "TIME POINT ADD LIST" )
+                                        print( time_point_add_lst )
                                         toc_lst: List[ TOCSpecTuple ] = [ ("TOC", x) for x in time_point_add_lst ]
                                         # update unordered
                                         reference_chronicle.t_unordered += time_point_add_lst
