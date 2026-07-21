@@ -47,6 +47,8 @@ def tgm_progress_stack(
                 (t_0, t_e, "clear", block_0, True),
                 (t_1, t_e_one_less, "clear", surface_0, True),
                 (t_2, t_e_one_less, "is_on", block_0, surface_1, True),
+                *[ (t_2, t_e_one_less, "is_on", block_0, x, False) for x in
+                    filter( lambda y: y != surface_1, value_chronicle.domain_objects[ "surfaces" ] ) ],
             ]
             # temporal assertions
             for separation_con in ("==", "<"):
@@ -86,7 +88,8 @@ def tgm_progress_stack(
 
                         )
                         action_call = cast( MoveBlockToBlockCall, action_call )
-                    subgoal_lst: List[ Union[ MoveBlockToTableCall, MoveBlockToBlockCall, ClearGoal ] ] = [
+                    subgoal_lst: List[ Union[ MoveBlockToTableCall, MoveBlockToBlockCall, ClearGoal, IsOnGoal ] ] = [
+                        (t_0, "is_on", block_0, surface_1, True),
                         (t_0, "clear", block_0, True),
                         (t_1, "clear", surface_0, True),
                         action_call,
@@ -130,22 +133,24 @@ def tgm_clear_block(
             # persistence assertions
             persistence_assertion_lst: List[ ObjectVarPersistence ] = [
                 (t_2, t_e_one_less, "is_on", block_1, block_0, True),
+                *[ (t_2, t_e_one_less, "is_on", block_1, x, False) for x in
+                    filter( lambda y: y != block_0, value_chronicle.domain_objects[ "surfaces" ] ) ],
                 (t_0, t_e, "clear", block_1, True),
             ]
-            for seperation_con in ("==", "<"):
+            for separation_con in ("==", "<"):
                 # temporal assertions
                 temporal_constraint_lst: List[ TemporalConstraint ] = [
                     (t_e, "==", t_e_one_less, 1),
                     (t_2, "<=", t_0, 0),
-                    (t_s, seperation_con, t_0, 0),
-                    (t_s, seperation_con, t_2, 0),
+                    (t_s, separation_con, t_0, 0),
+                    (t_s, separation_con, t_2, 0),
                 ]
                 if surface_0 != table:
                     persistence_assertion_lst.append( (t_1, t_e_one_less, "clear", surface_0, True) )
                     temporal_constraint_lst.extend(
                             [
                                 (t_1, "<=", t_e_one_less, 0),
-                                (t_s, seperation_con, t_1, 0),
+                                (t_s, separation_con, t_1, 0),
                             ],
                     )
                 temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
@@ -179,7 +184,7 @@ def tgm_clear_block(
                     # define list of subgoals
                     subgoal_lst: List[ Union[ TemporalGoal, TemporalActionCall ] ] = [
                         (t_0, "clear", block_1, True),
-
+                        (t_2, "is_on", block_1, block_0, True),
                     ]
                     if surface_0 != table:
                         subgoal_lst.append( (t_1, "clear", surface_0, True) )

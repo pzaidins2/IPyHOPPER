@@ -386,7 +386,7 @@ class IPyHOP(object):
                         dfs_preorder_nodes( sol_tree, root_node_id ) ],
             )):
                 return _iter
-            assert _iter < 100
+            assert _iter < 1000
             print( "VISIT ORDER" )
             print( [ sol_tree.nodes[ x ][ "info" ] for x in node_id_visit_order ] )
             print( "OPEN NODES" )
