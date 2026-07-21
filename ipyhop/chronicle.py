@@ -282,6 +282,7 @@ class ChronicleInterface():
             (x[ 0 ], "<=", x[ 1 ], 0) for x in filter( lambda y: y[ 0 ] != y[ 1 ], persistence_assertion_lst )
         ]
         # add temporal cosntraints included those from implied intervals
+        print( "BEFORE TEMPORAL" )
         temporal_success, *current_temporal_restoration_tup = self.add_temporal_constraints_from(
                 value_chronicle, temporal_constraint_lst + persistence_temporal_constraint_lst,
         )
@@ -290,11 +291,13 @@ class ChronicleInterface():
             temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
         if temporal_success:
             # add persistence assertions
+            print( "BEFORE PERSISTENCES" )
             if self.add_persistences(
                     reference_chronicle, value_chronicle,
                     persistence_assertion_lst, persistence_update_dict,
             ):
                 # add change assertions
+                print( "BEFORE CHANGES" )
                 if self.add_changes(
                         reference_chronicle, value_chronicle,
                         change_assertion_lst, change_update_dict,
@@ -422,7 +425,12 @@ class ChronicleInterface():
             safe_flag: bool = check_persistence_changes_safe(
                     persistence_assertion, change_value_lst, change_index, min_stn,
             )
+
             if not safe_flag:
+                print( "PERSISTENCE CHANGES UNSAFE" )
+                print( persistence_assertion )
+                print( change_value_lst )
+
                 return False
             # persistence vs persistence
             persistence_value_lst: List[ ObjectVarPersistence ] = persistence_value_dict[ predicate_label ]

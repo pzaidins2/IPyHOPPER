@@ -494,11 +494,13 @@ def test_unstack_blocks_world():
               ('TSA', 1, [ (1, 'is_on', 'A', 'B', False), (1, 'is_on', 'A', 'Table', True) ]) for x in
                 planner.sol_tree.nodes ],
     )
-    assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-        ('root',), (1, 'is_on', 'A', 'Table', True), ('TOC', 1), ('TOC', 0), (4, 'clear', 'A', True),
-        (5, 'clear', 'Table', True), ('move_block_to_table', (6, 1), 'A', 'B'), ('TOC', 6), ('TOC', 3), ('TOC', 4),
-        ('TOC', 5), 'VerifyGoal', ('TSA', 1, [ (1, 'is_on', 'A', 'B', False), (1, 'is_on', 'A', 'Table', True) ]),
+    assert [
+        ('root',), (1, 'is_on', 'A', 'Table', True), ('TOC', 1), ('TOC', 0), (3, 'clear', 'A', True),
+        (4, 'clear', 'Table', True), ('move_block_to_table', (6, 1), 'A', 'B'), ('TOC', 6), ('TOC', 3),
+        ('TOC', 4), ('TOC', 5), 'VerifyGoal',
+        ('TSA', 1, [ (1, 'is_on', 'A', 'B', False), (1, 'is_on', 'A', 'Table', True) ]),
     ]
+    # print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
 
 # blocks A and B start on table, move block A on to block B
 def test_stack_blocks_world():
@@ -559,13 +561,72 @@ def test_stack_blocks_world():
     )
     assert planner.state.t_ordered == [ 0, 6, 3, 4, 5, 1 ]
     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-        ('root',), (1, 'is_on', 'A', 'B', True), ('TOC', 1), ('TOC', 0), (4, 'clear', 'A', True),
-        (5, 'clear', 'B', True), ('move_block_to_block', (6, 1), 'A', 'Table', 'B'), ('TOC', 6),
-        ('TOC', 3), ('TOC', 4), ('TOC', 5), 'VerifyGoal',
+        ('root',),
+        (1, 'is_on', 'A', 'B', True), ('TOC', 1), ('TOC', 0), (3, 'clear', 'A', True), (4, 'clear', 'B', True),
+        ('move_block_to_block', (6, 1), 'A', 'Table', 'B'), ('TOC', 6), ('TOC', 3), ('TOC', 4), ('TOC', 5),
+        'VerifyGoal',
         ('TSA', 1, [ (1, 'is_on', 'A', 'Table', False), (1, 'is_on', 'A', 'B', True) ]),
     ]
+    # print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
 
 # block B starts on block A, flip positions
+def test_reverse_stack_blocks_world():
+    # print( temporal_action_lst )
+    # print( temporal_actions_instance )
+    # print( type( temporal_actions_instance ) )
+    surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
+    table = [ Table( surfaces[ -1 ] ), ]
+    blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
+    A, B = blocks
+    TABLE = table[ 0 ]
+    stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=2 )
+    t_s, t_e = stn.get_n_new_time_point_labels( 2 )
+    stn.add_temporal_constraints_from(
+            [
+                (t_s, "<", t_e, 0),
+            ],
+    )
+
+    goal_lst: List[ TemporalGoal ] = [ (t_e, "is_on", A, B, True) ]
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "is_on": [
+            (t_s, "is_on", A, TABLE, True),
+            (t_s, "is_on", B, A, True),
+        ],
+        "clear": [
+            (t_s, "clear", A, False),
+            (t_s, "clear", B, True),
+            (t_s, "clear", TABLE, True),  # always true, simplified some logic
+        ],
+    }
+    t_ordered: List[ int ] = [ t_s, ]
+    t_unordered: List[ int ] = [ t_e, ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "is_on": [ ],
+        "clear": [ ],
+    }
+
+    domain_objects: Dict[ str, List ] = {
+        "surfaces": surfaces,
+        "table":    table,
+        "blocks":   blocks,
+    }
+    reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
+            t_ordered,
+            t_unordered,
+            changes,
+            persistences,
+            stn,
+            domain_objects,
+    )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+            depth_step_size=5,
+    )
+    print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
 
 # blocks A, B, and C start on table
 # stack A on B on C

@@ -380,7 +380,13 @@ class IPyHOP(object):
         # for initial planning the root node id is used and considered closed
         verbose = self._verbose
         while True:
-            # assert _iter < 20
+            # if every node in tree is closed, then planning has completed successfully
+            if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
+                    [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
+                        dfs_preorder_nodes( sol_tree, root_node_id ) ],
+            )):
+                return _iter
+            assert _iter < 100
             print( "VISIT ORDER" )
             print( [ sol_tree.nodes[ x ][ "info" ] for x in node_id_visit_order ] )
             print( "OPEN NODES" )
@@ -438,12 +444,7 @@ class IPyHOP(object):
             #             filter( lambda y: sol_tree.nodes[ y ][ "status" ] == "O", sol_tree.nodes ) ],
             # )
 
-            # if every node in tree is closed, then planning has completed successfully
-            if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
-                    [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
-                        dfs_preorder_nodes( sol_tree, root_node_id ) ],
-            )):
-                return _iter
+
             # print( "OPEN NODES" )
             # for node_id in dfs_preorder_nodes( sol_tree, root_node_id ):
             #     if sol_tree.nodes[ node_id ][ 'status' ] == 'O':
@@ -1318,13 +1319,16 @@ class IPyHOP(object):
         if curr_node_id is None:
             # reopen last node closed
             prev_node[ 'status' ] = 'O'
+
             prev_node[ 'next_node_id_iter' ] = None
             node_id_visit_order.pop()
             # restore state and task list prior to closing the last node
             dfs_successor_dict = dfs_successors( self.sol_tree, prev_node_id )
-            if prev_node_id in dfs_successor_dict.keys():
-                sol_tree.remove_nodes_from( dfs_successor_dict[ prev_node_id ] )
-            if is_temporal and value_chronicle is not None and prev_node[ 'temporal_restoration_tuple' ] is not None:
+            if prev_node[ 'type' ] != 'root':
+                if prev_node_id in dfs_successor_dict.keys():
+                    sol_tree.remove_nodes_from( dfs_successor_dict[ prev_node_id ] )
+            if 'temporal_restoration_tuple' in prev_node.keys() and prev_node[
+                'temporal_restoration_tuple' ] is not None:
                 value_chronicle.temporal_network.restore_graph(
                         *prev_node[ 'temporal_restoration_tuple' ],
                 )
