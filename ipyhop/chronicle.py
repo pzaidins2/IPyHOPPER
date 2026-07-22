@@ -199,6 +199,20 @@ class ChronicleInterface():
         )
         return reference_chronicle, value_chronicle
 
+    # call verify_object_assertion on every member of input list
+    # end if any fail
+    def verify_object_assertion_list(
+            self, reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+            change_assertion_list: List[ ObjectVarChange ],
+    ):
+        verify_object_assertion = self.verify_object_assertion
+        return all(
+                map(
+                        lambda x: verify_object_assertion( reference_chronicle, value_chronicle, x ),
+                        change_assertion_list,
+                ),
+        )
+
     # Given a pair of reference and value chronicles determine whether the given change assertion holds
     # returns bool based on this premise
     # ONLY WORKS IF THE CHANGE ASSERTION OCCURS NO LATER THAN t_now

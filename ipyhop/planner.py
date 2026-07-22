@@ -333,8 +333,8 @@ class IPyHOP(object):
                     # print( node_info )
                     raise (ValueError( "Invalid node type for temporal planning: " + node_type ))
                 # cannot be resolved as it would require altering the past
-                if temporal_network.is_strictly_less_than( anchor_tp, t_now ):
-                    return
+                # if temporal_network.is_strictly_less_than( anchor_tp, t_now ):
+                #     return
                 if keep_flag:
                     node_id_anchor_time_point_tup_lst.append( (node_id, node_info[ anchor_idx ], node_group) )
             # print( node_id_anchor_time_point_tup_lst )
@@ -344,7 +344,7 @@ class IPyHOP(object):
                             potential_time_points,
                     ),
             )
-            node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
+            # node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
             for node_id_anchor_time_point_tup in node_id_anchor_time_point_tup_lst:
                 if self._verbose > 1:
                     print(
@@ -391,6 +391,7 @@ class IPyHOP(object):
         verbose = self._verbose
         while True:
             _iter += 1
+            assert _iter < 1000
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
@@ -403,7 +404,6 @@ class IPyHOP(object):
                                 dfs_preorder_nodes( sol_tree, root_node_id ) ],
                     ),
             )
-            assert _iter < 100
             print( "VISIT ORDER" )
             print( [ sol_tree.nodes[ x ][ "info" ] for x in node_id_visit_order ] )
             print( "OPEN NODES" )
@@ -791,9 +791,15 @@ class IPyHOP(object):
                                 method = curr_node[ 'available_methods' ][ 0 ]
                                 curr_node[ 'selected_method' ] = method
                                 # create method instance generator
-                                curr_node[ 'selected_method_instances' ] = method(
-                                        self.state.copy(), *curr_node_info[ 1: ],
-                                )
+                                print( curr_node_info )
+                                if is_temporal:
+                                    curr_node[ 'selected_method_instances' ] = method(
+                                            self.state.copy(), value_chronicle, curr_node_info,
+                                    )
+                                else:
+                                    curr_node[ 'selected_method_instances' ] = method(
+                                            self.state.copy(), *curr_node_info[ 1: ],
+                                    )
                         if subgoals is not None:
                             curr_node[ 'status' ] = 'C'
                             # if curr_node_id not in node_id_visit_order:

@@ -109,6 +109,8 @@ class TemporalNetwork:
         lst_edge_remove_lst: List[NetEdgeInput] = []
         # iterate over constraints
         for new_edge in map(get_formatted_edge, new_edge_lst):
+            if new_edge[ 0 ] == new_edge[ 1 ]:
+                raise ValueError( "Cannot have loops in STN" )
             # apply constraint
             success_flag, node_add_lst, edge_add_lst, edge_remove_lst = add_temporal_constraint( new_edge )
             # path consistent, accumulate lists
