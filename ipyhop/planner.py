@@ -251,7 +251,7 @@ class IPyHOP(object):
         node_id_visit_order = self.node_id_visit_order
         # select next node to attempt
         if self.is_temporal and value_chronicle is not None:
-
+            temporal_network = value_chronicle.temporal_network
             t_ordered: List[ int ] = [ *reference_chronicle.t_ordered ]
             t_now = t_ordered[ -1 ]
             # node must be open
@@ -289,14 +289,16 @@ class IPyHOP(object):
                     anchor_idx = 1
                     node_group = 1
                     anchor_tp = node_info[ anchor_idx ]
-                    if anchor_tp == t_now:
+                    # only care if TSA has anchor tp equal to t_now
+                    if temporal_network.is_strictly_equal( anchor_tp, t_now ):
                         keep_flag = True
+
                 # high priority to actions
                 elif node_type == "A":
                     node_info = node_info[ 1 ]
                     anchor_idx = 0
                     anchor_tp = node_info[ anchor_idx ]
-                    if anchor_tp == t_now:
+                    if temporal_network.is_strictly_equal( anchor_tp, t_now ):
                         node_group = 2
                         keep_flag = True
                 # high priority to goals for t_now, else medium priority
@@ -304,7 +306,7 @@ class IPyHOP(object):
                     keep_flag = True
                     anchor_idx = 0
                     anchor_tp = node_info[ anchor_idx ]
-                    if anchor_tp == t_now:
+                    if temporal_network.is_strictly_equal( anchor_tp, t_now ):
                         node_group = 4
                     else:
                         node_group = 5
@@ -324,16 +326,24 @@ class IPyHOP(object):
                     parent_node_info = sol_tree.nodes[ parent_node_id ][ "info" ]
                     anchor_idx = 0
                     anchor_tp = parent_node_info[ anchor_idx ]
-                    if anchor_tp == t_now:
+                    if temporal_network.is_strictly_equal( anchor_tp, t_now ):
                         keep_flag = True
                         node_group = 0
                 else:
                     # print( node_info )
                     raise (ValueError( "Invalid node type for temporal planning: " + node_type ))
+                # cannot be resolved as it would require altering the past
+                if temporal_network.is_strictly_less_than( anchor_tp, t_now ):
+                    return
                 if keep_flag:
                     node_id_anchor_time_point_tup_lst.append( (node_id, node_info[ anchor_idx ], node_group) )
             # print( node_id_anchor_time_point_tup_lst )
             # sort TSA < A < G (t_now) < G (other) TOC
+            node_id_anchor_time_point_tup_lst.sort(
+                    key=lambda x: potential_time_points.index( x[ 2 ] ) if x[ 2 ] in potential_time_points else len(
+                            potential_time_points,
+                    ),
+            )
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
             for node_id_anchor_time_point_tup in node_id_anchor_time_point_tup_lst:
                 if self._verbose > 1:
@@ -380,19 +390,26 @@ class IPyHOP(object):
         # for initial planning the root node id is used and considered closed
         verbose = self._verbose
         while True:
+            _iter += 1
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
                         dfs_preorder_nodes( sol_tree, root_node_id ) ],
             )):
                 return _iter
-            assert _iter < 1000
+            print(
+                    all(
+                            [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
+                                dfs_preorder_nodes( sol_tree, root_node_id ) ],
+                    ),
+            )
+            assert _iter < 100
             print( "VISIT ORDER" )
             print( [ sol_tree.nodes[ x ][ "info" ] for x in node_id_visit_order ] )
             print( "OPEN NODES" )
             print(
                     [ sol_tree.nodes[ x ][ "info" ] for x in
-                        filter( lambda y: sol_tree.nodes[ y ][ "status" ] == "O", node_id_visit_order ) ],
+                        filter( lambda y: sol_tree.nodes[ y ][ "status" ] == "O", sol_tree.nodes ) ],
             )
             print( "CURRENT GOAL NETWORK" )
             print( [ sol_tree.nodes[ x ][ "info" ] for x in sol_tree.nodes ] )
@@ -450,7 +467,7 @@ class IPyHOP(object):
             #     if sol_tree.nodes[ node_id ][ 'status' ] == 'O':
             #         print( sol_tree.nodes[ node_id ][ "info" ] )
             # increment iteration count
-            _iter += 1
+
             # get previous node from node_id_visit_order
             # curr_node will be gotten from prev_node
             prev_node_id = node_id_visit_order[ -1 ]
@@ -528,6 +545,7 @@ class IPyHOP(object):
                                 ) + ", has exhausted its next_node_id_iter, backtracking",
                         )
                     # return to loop start
+                    need_new_curr_node = True
                     continue
             else:
                 curr_node_id = cast( int, prev_node[ "next_node_id" ] )
@@ -606,6 +624,7 @@ class IPyHOP(object):
                         _iter, repr(self.sol_tree.nodes[curr_node_id]['info'])))
                 curr_node[ 'exhausted_methods' ] = True
                 backtrack()
+
                 # curr_node[ 'available_methods' ] = iter( curr_node[ 'methods' ] )
 
         # If current node is an Action

@@ -640,8 +640,8 @@ def test_reverse_stack_blocks_world():
             reference_chronicle, goal_lst, methods=temporal_methods_instance,
             actions=temporal_actions_instance,
             value_chronicle=value_chronicle,
-            initial_max_depth=3,
-            depth_step_size=1,
+            # initial_max_depth=8,
+            # depth_step_size=2,
     )
     # assert planner.state.t_ordered == [ 0, 8, 10, 6, 4, 5, 11, 1, 3 ]
     # assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [

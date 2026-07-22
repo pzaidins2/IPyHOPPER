@@ -41,6 +41,8 @@ class TemporalNetwork:
 
     # returns True if tp_0 cannot be greater than or equal to tp_1
     def is_strictly_less_than(self, tp_0: int, tp_1: int) -> bool:
+        if tp_0 == tp_1:
+            return False
         edge_01 = self.find_edge( tp_0, tp_1 )
         if edge_01 is None:
             return False
@@ -51,6 +53,8 @@ class TemporalNetwork:
 
     # returns True if tp_0 cannot be greater than tp_1
     def is_strictly_less_than_or_equal(self, tp_0: int, tp_1: int) -> bool:
+        if tp_0 == tp_1:
+            return True
         edge_01 = self.find_edge( tp_0, tp_1 )
         if edge_01 is None:
             return False
@@ -84,6 +88,7 @@ class TemporalNetwork:
                             max_min_delta_t_dict[ node_i ], edge_ij[ 2 ][ "min_delta_t" ],
                     )
         candidate_time_point_lst = [*filter(lambda x: max_min_delta_t_dict[x] <= 0, unordered_time_point_lst)]
+        candidate_time_point_lst.sort( key=lambda x: max_min_delta_t_dict[ x ] )
         return candidate_time_point_lst
 
 
