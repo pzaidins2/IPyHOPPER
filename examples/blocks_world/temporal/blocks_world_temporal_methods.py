@@ -15,6 +15,84 @@ from ipyhop import (ChronicleInterface, ObjectVarChange, ObjectVarPersistence, R
 CI = ChronicleInterface()
 temporal_methods_instance = TemporalMethods()
 
+
+# # is_on goal can be achieved by single move
+# # move block to surface_0
+# def tgm_move_single(
+#         reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+#         temporal_goal: IsOnGoal,
+# ) -> Iterator[ TemporalMethodOutput ]:
+#     # localize variables
+#     t_e: int = temporal_goal[ 0 ]
+#     predicate: str = temporal_goal[ 1 ]
+#     block_0 = temporal_goal[ 2 ]
+#     surface_0 = temporal_goal[ 3 ]
+#     bool_val: bool = temporal_goal[ -1 ]
+#     min_stn: TemporalNetwork = value_chronicle.temporal_network
+#     t_s = min_stn.get_n_new_time_point_labels( 1 )[ 0 ]
+#     table: Table = value_chronicle.domain_objects[ "table" ][ 0 ]
+#     assert predicate == "is_on" and bool_val == True
+#     # object constraints
+#     # force (t_s is_on block_0, surface_1)
+#     surface_lst: List[ Surface ] = value_chronicle.domain_objects[ "surfaces" ]
+#     t_s = reference_chronicle.t_ordered[ -1 ]
+#     # temporal constraints
+#     temporal_constraint_lst: List[ TemporalConstraint ] = [
+#         (t_e, "==", t_s, 1),
+#     ]
+#     # change assertions
+#     change_assertion_lst: List[ ObjectVarChange ] = [ ]
+#     # persistence assertions
+#     persistence_assertion_lst: List[ ObjectVarPersistence ] = [ ]
+#     for surface_1 in surface_lst:
+#         # all different check
+#         obj_lst: List[ Surface ] = [ block_0, surface_1, surface_0 ]
+#         if len( set( obj_lst ) ) == len( obj_lst ):
+#
+#
+#             # temporal assertions
+#             for separation_con in ("==", "<"):
+#                 temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+#                 # attempt to add all
+#                 change_update_dict = { }
+#                 persistence_update_dict = { }
+#                 new_reference_chronicle = reference_chronicle.copy()
+#                 if CI.update_chronicle(
+#                         new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+#                         temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+#                         change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
+#                 ):
+#                     # define list of subgoals
+#                     # action call changes based on ending on block or table
+#                     if surface_0 == table:
+#                         action_call = (
+#                             "move_block_to_table",
+#                             (t_e_one_less, t_e),
+#                             block_0,
+#                             surface_1,
+#                         )
+#                         action_call = cast( MoveBlockToTableCall, action_call )
+#                     else:
+#                         action_call = (
+#                             "move_block_to_block",
+#                             (t_e_one_less, t_e),
+#                             block_0,
+#                             surface_1,
+#                             surface_0,
+#
+#                         )
+#                         action_call = cast( MoveBlockToBlockCall, action_call )
+#                     subgoal_lst: List[ Union[ MoveBlockToTableCall, MoveBlockToBlockCall, ClearGoal, IsOnGoal ] ] = [
+#                         (t_0, "is_on", block_0, surface_1, True),
+#                         (t_0, "clear", block_0, True),
+#                         (t_1, "clear", surface_0, True),
+#                         action_call,
+#                     ]
+#                     restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
+#                     method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+#                     yield method_output
+
+
 # progress stack
 # given temporal goal (t, "is_on", block_0, surface_0, True ), ensures block_0 is moved from surface_1
 # to surface_0

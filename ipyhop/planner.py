@@ -333,8 +333,8 @@ class IPyHOP(object):
                     # print( node_info )
                     raise (ValueError( "Invalid node type for temporal planning: " + node_type ))
                 # cannot be resolved as it would require altering the past
-                # if temporal_network.is_strictly_less_than( anchor_tp, t_now ):
-                #     return
+                if temporal_network.is_strictly_less_than( anchor_tp, t_now ):
+                    return
                 if keep_flag:
                     node_id_anchor_time_point_tup_lst.append( (node_id, node_info[ anchor_idx ], node_group) )
             # print( node_id_anchor_time_point_tup_lst )

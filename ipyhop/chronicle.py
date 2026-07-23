@@ -7,7 +7,7 @@ from copy import deepcopy
 from itertools import groupby
 from typing import Any, Dict, Iterator, List, Protocol, Tuple, Type, Union
 
-from ipyhop.temporal import NetEdgeInput, TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
+from ipyhop.temporal import TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 
 # type aliases for object variable change and persistence assertions
 ObjectVarChange = Tuple[ int, str, *Tuple[ Any, ... ], bool ]
@@ -295,28 +295,46 @@ class ChronicleInterface():
         persistence_temporal_constraint_lst: List[ TemporalConstraint ] = [
             (x[ 0 ], "<=", x[ 1 ], 0) for x in filter( lambda y: y[ 0 ] != y[ 1 ], persistence_assertion_lst )
         ]
-        # add temporal cosntraints included those from implied intervals
-        print( "BEFORE TEMPORAL" )
-        temporal_success, *current_temporal_restoration_tup = self.add_temporal_constraints_from(
-                value_chronicle, temporal_constraint_lst + persistence_temporal_constraint_lst,
+        min_stn: TemporalNetwork = value_chronicle.temporal_network
+        # add temporal constraints included those from implied intervals
+        print( "BEFORE TEMPORAL 0" )
+        temporal_success_0, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
+                value_chronicle,
+                temporal_constraint_lst + persistence_temporal_constraint_lst,
         )
-        # add to restoration tuple
-        for i in range( 3 ):
-            temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
-        if temporal_success:
-            # add persistence assertions
-            print( "BEFORE PERSISTENCES" )
-            if self.add_persistences(
-                    reference_chronicle, value_chronicle,
-                    persistence_assertion_lst, persistence_update_dict,
-            ):
-                # add change assertions
-                print( "BEFORE CHANGES" )
-                if self.add_changes(
+        min_stn: TemporalNetwork = value_chronicle.temporal_network
+        if temporal_success_0:
+            # add to restoration tuple
+            for i in range( 3 ):
+                temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
+            # ensure all new time points are now earlier than t_now
+            t_now = reference_chronicle.t_ordered[ -1 ]
+            time_point_add_lst: List[ int ] = [ *temporal_restoration_tup[ 0 ] ]
+            t_ordered_temporal_constraint_lst: List[ TemporalConstraint ] = [
+                (t_now, "<=", x, 0) for x in time_point_add_lst
+            ]
+            temporal_success_1, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
+                    value_chronicle,
+                    t_ordered_temporal_constraint_lst,
+            )
+            print( "BEFORE TEMPORAL 1" )
+            if temporal_success_1:
+                # add to restoration tuple
+                for i in range( 3 ):
+                    temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
+                # add persistence assertions
+                print( "BEFORE PERSISTENCES" )
+                if self.add_persistences(
                         reference_chronicle, value_chronicle,
-                        change_assertion_lst, change_update_dict,
+                        persistence_assertion_lst, persistence_update_dict,
                 ):
-                    return True
+                    # add change assertions
+                    print( "BEFORE CHANGES" )
+                    if self.add_changes(
+                            reference_chronicle, value_chronicle,
+                            change_assertion_lst, change_update_dict,
+                    ):
+                        return True
         # if any alterations fail, rollback everything
         self.restore_chronicle(
                 reference_chronicle, value_chronicle, change_update_dict, persistence_update_dict,
@@ -639,11 +657,11 @@ class ChronicleInterface():
         reference_chronicle.persistences.update( persistence_update_dict )
         return
 
-    # pass through to temporal module to add temporal constraints
-    def add_temporal_constraints_from(
-            self, value_chronicle: ValueChronicle, new_edge_lst: List[ TemporalConstraint ],
-    ) -> Tuple[ bool, List[ int ], List[ NetEdgeInput ], List[ NetEdgeInput ] ]:
-        return value_chronicle.temporal_network.add_temporal_constraints_from( new_edge_lst )
+    # # pass through to temporal module to add temporal constraints
+    # def add_temporal_constraints_from(
+    #         self, value_chronicle: ValueChronicle, new_edge_lst: List[ TemporalConstraint ],
+    # ) -> Tuple[ bool, List[ int ], List[ NetEdgeInput ], List[ NetEdgeInput ] ]:
+    #     return value_chronicle.temporal_network.add_temporal_constraints_from( new_edge_lst )
 
     # pass through to temporal module to get time point labels
     def get_n_new_time_point_labels(self, value_chronicle: ValueChronicle, n: int) -> List[ int ]:
