@@ -165,6 +165,8 @@ class ChronicleInterface():
         success_flag, node_add_lst, edge_add_lst, edge_remove_lst = stn.add_temporal_constraints_from(
                 temporal_constraint_lst,
         )
+        print( "TEMPORAL CONSTRAINT LIST" )
+        print( temporal_constraint_lst )
         # new time points can appear if time points are created unconstrained
         # assert node_add_lst == [ ]
         # at least one contradiction occurs from the new constraints, fail
@@ -299,7 +301,6 @@ class ChronicleInterface():
         # add temporal constraints included those from implied intervals
         print( "BEFORE TEMPORAL 0" )
         temporal_success_0, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
-                value_chronicle,
                 temporal_constraint_lst + persistence_temporal_constraint_lst,
         )
         min_stn: TemporalNetwork = value_chronicle.temporal_network
@@ -314,7 +315,6 @@ class ChronicleInterface():
                 (t_now, "<=", x, 0) for x in time_point_add_lst
             ]
             temporal_success_1, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
-                    value_chronicle,
                     t_ordered_temporal_constraint_lst,
             )
             print( "BEFORE TEMPORAL 1" )

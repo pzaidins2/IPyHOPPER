@@ -147,6 +147,8 @@ def move_block_to_block(
     change_assertion_lst: List[ ObjectVarChange ] = [
         *[ (t_e, "is_on", block, x, False) for x in
             filter( lambda y: y != end_pos, value_chronicle.domain_objects[ "surfaces" ] ) ],
+        *[ (t_e, "is_on", x, end_pos, False) for x in
+            filter( lambda y: y != block, value_chronicle.domain_objects[ "blocks" ] ) ],
         (t_e, "is_on", block, end_pos, True),
         (t_e, "clear", start_pos, True),
         (t_e, "clear", end_pos, False),
