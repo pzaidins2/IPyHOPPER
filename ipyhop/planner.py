@@ -340,7 +340,7 @@ class IPyHOP(object):
             # print( node_id_anchor_time_point_tup_lst )
             # sort TSA < A < G (t_now) < G (other) TOC
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
-            node_id_anchor_time_point_tup_lst.sort( key=lambda x: sol_tree.nodes[ x[ 0 ] ][ "depth" ] )
+            # node_id_anchor_time_point_tup_lst.sort( key=lambda x: sol_tree.nodes[ x[ 0 ] ][ "depth" ] )
             node_id_anchor_time_point_tup_lst.sort(
                     key=lambda x: potential_time_points.index( x[ 2 ] ) if x[ 2 ] in potential_time_points else len(
                             potential_time_points,
@@ -597,13 +597,13 @@ class IPyHOP(object):
                 print( toc_closed_node_lst )
                 print( "ORDERED TIME POINTS" )
                 print( self.state.t_ordered )
-                print( sol_tree.nodes[ node_id_visit_order[ -1 ] ][ "state" ].t_ordered )
+                # print( sol_tree.nodes[ node_id_visit_order[ -1 ] ][ "state" ].t_ordered )
                 assert self.state.t_ordered == curr_node[ "state" ].t_ordered
                 print( "OPEN TIME POINTS" )
                 print( toc_open_node_lst )
                 print( "UNORDERED TIME POINTS" )
                 print( self.state.t_unordered )
-                print( sol_tree.nodes[ node_id_visit_order[ -1 ] ][ "state" ].t_unordered )
+                # print( sol_tree.nodes[ node_id_visit_order[ -1 ] ][ "state" ].t_unordered )
                 assert self.state.t_unordered == curr_node[ "state" ].t_unordered
                 # print( "CLOSED TIME POINTS NOT IN VISITED NODES" )
                 # toc_closed_id_node_tup_lst = zip( toc_closed_node_id_lst, toc_closed_node_lst )
@@ -1482,6 +1482,7 @@ class IPyHOP(object):
             if prev_node[ 'type' ] == 'TOC':
                 prev_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
             if 'temporal_restoration_tuple' in prev_node.keys():
+                print( prev_node[ 'temporal_restoration_tuple' ] )
                 print( "BEFORE ROLLBACK STN" )
                 print( [ *value_chronicle.temporal_network.min_stn.nodes ] )
                 print( "BEFORE ROLLBACK STATE" )

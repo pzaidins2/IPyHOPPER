@@ -155,12 +155,12 @@ class TemporalNetwork:
     def restore_graph( self, node_add_lst: List[int], edge_add_lst: List[NetEdgeInput],
                        edge_remove_lst: List[NetEdgeInput] ):
         graph: Graph = self.min_stn
-        # remove added nodes
-        graph.remove_nodes_from(node_add_lst)
-        # remove added edges
-        graph.remove_edges_from(edge_add_lst)
         # add removed edges
-        graph.add_edges_from(edge_remove_lst)
+        graph.add_edges_from( reversed( edge_remove_lst ) )
+        # remove added edges
+        graph.remove_edges_from( reversed( edge_add_lst ) )
+        # remove added nodes
+        graph.remove_nodes_from( node_add_lst )
         return
 
 

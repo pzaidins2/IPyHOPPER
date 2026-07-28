@@ -231,16 +231,17 @@ def tgm_clear_single_now(
     # change assertions
     change_assertion_lst: List[ ObjectVarChange ] = [ ]
     # get block_1 on block_0
-    for block_1 in surface_lst:
+    for block_1 in blocks_lst:
         if CI.verify_object_assertion_list(
                 reference_chronicle, value_chronicle,
                 [
                     (t_now, "is_on", block_1, block_0, True),
                     (t_now, "clear", block_1, True),
+                    (t_now, "clear", block_0, False),
                 ],
         ):
             # find available clear surface
-            for surface_0 in surface_lst:
+            for surface_0 in reversed( surface_lst ):
                 # all different check
                 obj_lst: List[ Surface ] = [ block_0, block_1, surface_0 ]
                 if len( set( obj_lst ) ) == len( obj_lst ):
