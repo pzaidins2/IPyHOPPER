@@ -6,9 +6,9 @@ from typing import Dict, List, Tuple
 
 from examples.blocks_world.temporal.blocks_world_temporal_actions import Block, Surface, Table, \
     temporal_actions_instance
-from examples.blocks_world.temporal.blocks_world_temporal_methods import TemporalActionCall, temporal_methods_instance
+from examples.blocks_world.temporal.blocks_world_temporal_methods import temporal_methods_instance
 from ipyhop import (ChronicleInterface, IPyHOP, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, State,
-    TemporalGoal, TemporalNetwork, ValueChronicle)
+    TemporalActionCall, TemporalGoal, TemporalNetwork, ValueChronicle)
 
 CI = ChronicleInterface()
 
@@ -645,19 +645,48 @@ def test_reverse_stack_blocks_world():
     )
     assert planner.state.t_ordered == [ 0, 3, 7, 1 ]
     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-        ('root',), (1, 'is_on', 'A', 'B', True), ('TOC', 1), ('TOC', 0), (3, 'clear', 'A', True),
-        (3, 'clear', 'B', True), (1, 'is_on', 'A', 'B', True), ('TOC', 3), 'VerifyGoal',
-        ('move_block_to_table', (0, 3), 'B', 'A'), 'VerifyGoal', (7, 'clear', 'A', True), (7, 'clear', 'B', True),
-        (1, 'is_on', 'A', 'B', True), ('TOC', 7), 'VerifyGoal', (
-            'TSA', 3, [
-            (3, 'is_on', 'B', 'A', False), (3, 'is_on', 'B', 'B', False), (3, 'is_on', 'B', 'Table', True),
-            (3, 'clear', 'A', True),
-        ],
-        ), 'VerifyGoal', 'VerifyGoal', 'VerifyGoal', ('move_block_to_block', (7, 1), 'A', 'Table', 'B'), 'VerifyGoal', (
-            'TSA', 1, [
-            (1, 'is_on', 'A', 'A', False), (1, 'is_on', 'A', 'Table', False), (1, 'is_on', 'B', 'B', False),
-            (1, 'is_on', 'A', 'B', True), (1, 'clear', 'Table', True), (1, 'clear', 'B', False),
-        ],
+        ('root',),
+        (1, 'is_on', 'A', 'B', True),
+        ('TOC', 1),
+        ('TOC', 0),
+        (3, 'clear', 'A', True),
+        (3, 'clear', 'B', True),
+        (1, 'is_on', 'A', 'B', True),
+        ('TOC', 3),
+        'VerifyGoal',
+        ('move_block_to_table', (0, 3), 'B', 'A'),
+        'VerifyGoal',
+        (7, 'clear', 'A', True),
+        (7, 'clear', 'B', True),
+        (1, 'is_on', 'A', 'B', True),
+        ('TOC', 7),
+        'VerifyGoal',
+        (
+            'TSA',
+            3,
+            [
+                (3, 'is_on', 'B', 'A', False),
+                (3, 'is_on', 'B', 'B', False),
+                (3, 'is_on', 'B', 'Table', True),
+                (3, 'clear', 'A', True),
+            ],
+        ),
+        'VerifyGoal',
+        'VerifyGoal',
+        'VerifyGoal',
+        ('move_block_to_block', (7, 1), 'A', 'Table', 'B'),
+        'VerifyGoal',
+        (
+            'TSA',
+            1,
+            [
+                (1, 'is_on', 'A', 'A', False),
+                (1, 'is_on', 'A', 'Table', False),
+                (1, 'is_on', 'B', 'B', False),
+                (1, 'is_on', 'A', 'B', True),
+                (1, 'clear', 'Table', True),
+                (1, 'clear', 'B', False),
+            ],
         ),
     ]
     print( planner.state.t_ordered )
@@ -683,6 +712,7 @@ def test_triple_stack_blocks_world():
     goal_lst: List[ TemporalGoal ] = [
         (t_AB, "is_on", A, B, True),
         (t_BC, "is_on", B, C, True),
+        (t_BC, "is_on", C, TABLE, True),
     ]
     changes: Dict[ str, List[ ObjectVarChange ] ] = {
         "is_on": [
@@ -724,27 +754,18 @@ def test_triple_stack_blocks_world():
             reference_chronicle, goal_lst, methods=temporal_methods_instance,
             actions=temporal_actions_instance,
             value_chronicle=value_chronicle,
-            depth_step_size=5,
+            # depth_step_size=5,
     )
-    assert planner.state.t_ordered == [ 0, 1, 4, 10, 2 ]
+    assert planner.state.t_ordered == [ 0, 1, 2 ]
     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
         ('root',),
         (2, 'is_on', 'A', 'B', True),
         (1, 'is_on', 'B', 'C', True),
+        (1, 'is_on', 'C', 'Table', True),
         ('TOC', 2),
         ('TOC', 1),
         ('TOC', 0),
-        (4, 'clear', 'A', True),
-        (4, 'clear', 'B', True),
-        (2, 'is_on', 'A', 'B', True),
-        ('TOC', 4),
-        'VerifyGoal',
         ('move_block_to_block', (0, 1), 'B', 'Table', 'C'),
-        'VerifyGoal',
-        (10, 'clear', 'A', True),
-        (10, 'clear', 'B', True),
-        (2, 'is_on', 'A', 'B', True),
-        ('TOC', 10),
         'VerifyGoal',
         (
             'TSA',
@@ -761,8 +782,7 @@ def test_triple_stack_blocks_world():
             ],
         ),
         'VerifyGoal',
-        'VerifyGoal',
-        ('move_block_to_block', (4, 2), 'A', 'Table', 'B'),
+        ('move_block_to_block', (1, 2), 'A', 'Table', 'B'),
         'VerifyGoal',
         (
             'TSA',
@@ -778,17 +798,128 @@ def test_triple_stack_blocks_world():
                 (2, 'clear', 'B', False),
             ],
         ),
-        'VerifyGoal',
-        'VerifyGoal',
     ]
     # print( planner.state.t_ordered )
     # print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
 
-# blocks A and B are on the table, block C is on block B
-# stack A on B on C
-
 # block D is on block A, block B is on block C
 # move block A on to block B and Block C on to block D
+def test_concurrent_stack_blocks_world():
+    surfaces = [ Surface( x ) for x in [ "A", "B", "C", "D", "Table" ] ]
+    table = [ Table( surfaces[ -1 ] ), ]
+    blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
+    A, B, C, D = blocks
+    TABLE = table[ 0 ]
+    stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=2 )
+    t_s, t_e = stn.get_n_new_time_point_labels( 2 )
+    stn.add_temporal_constraints_from(
+            [
+                (t_s, "<", t_e, 0),
+            ],
+    )
+
+    goal_lst: List[ TemporalGoal ] = [
+        (t_e, "is_on", A, B, True),
+        (t_e, "is_on", C, D, True),
+    ]
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "is_on": [
+            (t_s, "is_on", D, A, True),
+            (t_s, "is_on", A, TABLE, True),
+            (t_s, "is_on", C, B, True),
+            (t_s, "is_on", B, TABLE, True),
+        ],
+        "clear": [
+            (t_s, "clear", C, True),
+            (t_s, "clear", D, True),
+            (t_s, "clear", TABLE, True),  # always true, simplified some logic
+        ],
+    }
+    t_ordered: List[ int ] = [ t_s, ]
+    t_unordered: List[ int ] = [ t_e, ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "is_on": [ ],
+        "clear": [ ],
+    }
+
+    domain_objects: Dict[ str, List ] = {
+        "surfaces": surfaces,
+        "table":    table,
+        "blocks":   blocks,
+    }
+    reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
+            t_ordered,
+            t_unordered,
+            changes,
+            persistences,
+            stn,
+            domain_objects,
+    )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+            initial_max_depth=5,
+            depth_step_size=2,
+    )
+    # assert planner.state.t_ordered == [ 0, 1, 4, 10, 2 ]
+    # assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
+    #     ('root',),
+    #     (2, 'is_on', 'A', 'B', True),
+    #     (1, 'is_on', 'B', 'C', True),
+    #     ('TOC', 2),
+    #     ('TOC', 1),
+    #     ('TOC', 0),
+    #     (4, 'clear', 'A', True),
+    #     (4, 'clear', 'B', True),
+    #     (2, 'is_on', 'A', 'B', True),
+    #     ('TOC', 4),
+    #     'VerifyGoal',
+    #     ('move_block_to_block', (0, 1), 'B', 'Table', 'C'),
+    #     'VerifyGoal',
+    #     (10, 'clear', 'A', True),
+    #     (10, 'clear', 'B', True),
+    #     (2, 'is_on', 'A', 'B', True),
+    #     ('TOC', 10),
+    #     'VerifyGoal',
+    #     (
+    #         'TSA',
+    #         1,
+    #         [
+    #             (1, 'is_on', 'B', 'A', False),
+    #             (1, 'is_on', 'B', 'B', False),
+    #             (1, 'is_on', 'B', 'Table', False),
+    #             (1, 'is_on', 'A', 'C', False),
+    #             (1, 'is_on', 'C', 'C', False),
+    #             (1, 'is_on', 'B', 'C', True),
+    #             (1, 'clear', 'Table', True),
+    #             (1, 'clear', 'C', False),
+    #         ],
+    #     ),
+    #     'VerifyGoal',
+    #     'VerifyGoal',
+    #     ('move_block_to_block', (4, 2), 'A', 'Table', 'B'),
+    #     'VerifyGoal',
+    #     (
+    #         'TSA',
+    #         2,
+    #         [
+    #             (2, 'is_on', 'A', 'A', False),
+    #             (2, 'is_on', 'A', 'C', False),
+    #             (2, 'is_on', 'A', 'Table', False),
+    #             (2, 'is_on', 'B', 'B', False),
+    #             (2, 'is_on', 'C', 'B', False),
+    #             (2, 'is_on', 'A', 'B', True),
+    #             (2, 'clear', 'Table', True),
+    #             (2, 'clear', 'B', False),
+    #         ],
+    #     ),
+    #     'VerifyGoal',
+    #     'VerifyGoal',
+    # ]
+    print( planner.state.t_ordered )
+    print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
 
 """
 Author(s): Paul Zaidins

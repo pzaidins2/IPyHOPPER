@@ -300,10 +300,12 @@ class ChronicleInterface():
         min_stn: TemporalNetwork = value_chronicle.temporal_network
         # add temporal constraints included those from implied intervals
         print( "BEFORE TEMPORAL 0" )
+        print( reference_chronicle )
         temporal_success_0, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
                 temporal_constraint_lst + persistence_temporal_constraint_lst,
         )
         min_stn: TemporalNetwork = value_chronicle.temporal_network
+
         if temporal_success_0:
             # add to restoration tuple
             for i in range( 3 ):
@@ -314,26 +316,32 @@ class ChronicleInterface():
             t_ordered_temporal_constraint_lst: List[ TemporalConstraint ] = [
                 (t_now, "<=", x, 0) for x in time_point_add_lst
             ]
+            print( "BEFORE TEMPORAL 1" )
+            print( reference_chronicle )
             temporal_success_1, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
                     t_ordered_temporal_constraint_lst,
             )
-            print( "BEFORE TEMPORAL 1" )
+
             if temporal_success_1:
                 # add to restoration tuple
                 for i in range( 3 ):
                     temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
                 # add persistence assertions
                 print( "BEFORE PERSISTENCES" )
+                print( reference_chronicle )
                 if self.add_persistences(
                         reference_chronicle, value_chronicle,
                         persistence_assertion_lst, persistence_update_dict,
                 ):
                     # add change assertions
                     print( "BEFORE CHANGES" )
+                    print( reference_chronicle )
                     if self.add_changes(
                             reference_chronicle, value_chronicle,
                             change_assertion_lst, change_update_dict,
                     ):
+                        print( "AT RETURN" )
+                        print( reference_chronicle )
                         return True
         # if any alterations fail, rollback everything
         self.restore_chronicle(
@@ -441,7 +449,7 @@ class ChronicleInterface():
             # current assertion
             persistence_assertion: ObjectVarPersistence = persistence_assertion_lst[ i ]
             # don't need reverse of pairs
-            new_persistence_lst: List[ ObjectVarPersistence ] = persistence_assertion_lst[ i + 1: ]
+            new_persistence_lst: List[ ObjectVarPersistence ] = persistence_assertion_lst[ (i + 1): ]
             new_persistence_index: int = len( new_persistence_lst )
             safe_flag = check_persistence_existing_persistences_safe(
                     persistence_assertion, new_persistence_lst, new_persistence_index, min_stn,
@@ -476,11 +484,11 @@ class ChronicleInterface():
         # add new persistences to chronicle
         # alter persistence_update_dict for new object variable persistences
         # group persistences by predicate label and insert/update as appropriate
-        for k, g in groupby( persistence_assertion_lst, key=lambda x: x[ 2 ] ):
+        for k, v in groupby( persistence_assertion_lst, key=lambda x: x[ 2 ] ):
             persistence_value_lst: List[ ObjectVarPersistence ] = persistence_value_dict[ k ]
             persistence_index: int = persistence_reference_dict[ k ]
             # extends the list with new persistences and gives value of updated index
-            updated_index: int = safe_list_update( persistence_value_lst, persistence_assertion_lst, persistence_index )
+            updated_index: int = safe_list_update( persistence_value_lst, [ *v ], persistence_index )
             # store only the oldest value (allows rollback if failure occurs later in action if multiple calls)
             if k not in persistence_update_dict.keys():
                 persistence_update_dict[ k ] = persistence_index
@@ -619,6 +627,7 @@ class ChronicleInterface():
     def safe_list_update(self, lst: List, update_element_lst: List, update_start_index: int):
         # size of original list (including garbage)
         lst_size = len( lst )
+        assert update_start_index <= len( lst ) and update_start_index >= 0
         # size of update
         update_size = len( update_element_lst )
         # new last valid index
