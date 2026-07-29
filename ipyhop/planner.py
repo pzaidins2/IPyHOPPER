@@ -273,8 +273,8 @@ class IPyHOP(object):
             potential_time_points = stn.get_potential_next_time_points( t_unordered )
             # print( "UNORDERED TIME POINTS" )
             # print( t_unordered )
-            # print( "POTENTIAL TIME POINTS" )
-            # print( potential_time_points )
+            print( "POTENTIAL TIME POINTS" )
+            print( potential_time_points )
 
             # track node id, anchoring time point, type
             node_id_anchor_time_point_tup_lst: List[ Tuple[ int, int, int ] ] = [ ]
@@ -342,7 +342,7 @@ class IPyHOP(object):
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
             # node_id_anchor_time_point_tup_lst.sort( key=lambda x: sol_tree.nodes[ x[ 0 ] ][ "depth" ] )
             node_id_anchor_time_point_tup_lst.sort(
-                    key=lambda x: potential_time_points.index( x[ 2 ] ) if x[ 2 ] in potential_time_points else len(
+                    key=lambda x: potential_time_points.index( x[ 0 ] ) if x[ 0 ] in potential_time_points else len(
                             potential_time_points,
                     ),
             )
@@ -1479,25 +1479,25 @@ class IPyHOP(object):
             #     prev_node[ 'available_methods' ] = [ *relevant_methods ]
             #     prev_node[ 'selected_method_instances' ] = None
             #     prev_node[ 'exhausted_methods' ] = False
-            if prev_node[ 'type' ] == 'TOC':
-                prev_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
+            # if prev_node[ 'type' ] == 'TOC':
+            #     prev_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
             if 'temporal_restoration_tuple' in prev_node.keys():
-                print( prev_node[ 'temporal_restoration_tuple' ] )
-                print( "BEFORE ROLLBACK STN" )
-                print( [ *value_chronicle.temporal_network.min_stn.nodes ] )
-                print( "BEFORE ROLLBACK STATE" )
-                print( [ *self.state.t_ordered ] )
-                print( [ *self.state.t_unordered ] )
+                # print( prev_node[ 'temporal_restoration_tuple' ] )
+                # print( "BEFORE ROLLBACK STN" )
+                # print( [ *value_chronicle.temporal_network.min_stn.nodes ] )
+                # print( "BEFORE ROLLBACK STATE" )
+                # print( [ *self.state.t_ordered ] )
+                # print( [ *self.state.t_unordered ] )
                 if prev_node[ 'temporal_restoration_tuple' ] is not None:
                     value_chronicle.temporal_network.restore_graph(
                             *prev_node[ 'temporal_restoration_tuple' ],
                     )
                 prev_node[ 'temporal_restoration_tuple' ] = None
-                print( "AFTER ROLLBACK STN" )
-                print( [ *value_chronicle.temporal_network.min_stn.nodes ] )
-                print( "AFTER ROLLBACK STATE" )
-                print( [ *prev_node[ "state" ].t_ordered ] )
-                print( [ *prev_node[ "state" ].t_unordered ] )
+                # print( "AFTER ROLLBACK STN" )
+                # print( [ *value_chronicle.temporal_network.min_stn.nodes ] )
+                # print( "AFTER ROLLBACK STATE" )
+                # print( [ *prev_node[ "state" ].t_ordered ] )
+                # print( [ *prev_node[ "state" ].t_unordered ] )
 
             self.state = prev_node[ 'state' ].copy()
             # prev_node[ "state" ] = None
@@ -1539,12 +1539,12 @@ class IPyHOP(object):
                 print( [ *self.state.t_ordered ] )
                 print( [ *self.state.t_unordered ] )
                 for k in value_chronicle.changes.keys():
-                    print( value_chronicle.changes[ k ] )
-                    print( self.state.changes[ k ] )
+                    # print( value_chronicle.changes[ k ] )
+                    # print( self.state.changes[ k ] )
                     print( value_chronicle.changes[ k ][ :self.state.changes[ k ] + 1 ] )
                 for k in value_chronicle.persistences.keys():
-                    print( value_chronicle.persistences[ k ] )
-                    print( self.state.persistences[ k ] )
+                    # print( value_chronicle.persistences[ k ] )
+                    # print( self.state.persistences[ k ] )
                     print( value_chronicle.persistences[ k ][ :self.state.persistences[ k ] + 1 ] )
                 if 'temporal_restoration_tuple' in curr_node.keys() and curr_node[
                     'temporal_restoration_tuple' ] is not None:
@@ -1560,12 +1560,12 @@ class IPyHOP(object):
                     print( [ *curr_node[ "state" ].t_ordered ] )
                     print( [ *curr_node[ "state" ].t_unordered ] )
                     for k in value_chronicle.changes.keys():
-                        print( value_chronicle.changes[ k ] )
-                        print( curr_node[ "state" ].changes[ k ] )
+                        # print( value_chronicle.changes[ k ] )
+                        # print( curr_node[ "state" ].changes[ k ] )
                         print( value_chronicle.changes[ k ][ :curr_node[ "state" ].changes[ k ] + 1 ] )
                     for k in value_chronicle.persistences.keys():
-                        print( value_chronicle.persistences[ k ] )
-                        print( curr_node[ "state" ].persistences[ k ] )
+                        # print( value_chronicle.persistences[ k ] )
+                        # print( curr_node[ "state" ].persistences[ k ] )
                         print( value_chronicle.persistences[ k ][ :curr_node[ "state" ].persistences[ k ] + 1 ] )
                 else:
                     print( None )

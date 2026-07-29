@@ -193,9 +193,10 @@ def tgm_is_on_recurse(
             subgoal_lst: List[
                 Union[ MoveBlockToTableCall, MoveBlockToBlockCall, ClearGoal, IsOnGoal ] ] = [
                 (t_s, "clear", block_0, True),
-                (t_s, "clear", surface_0, True),
                 (t_e, "is_on", block_0, surface_0, True),
             ]
+            if surface_0 != table:
+                subgoal_lst.append( (t_s, "clear", surface_0, True) )
             print( "IS ON 2" )
             restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
             method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
@@ -254,30 +255,21 @@ def tgm_clear_single_now(
                         # persistence assertions
                         persistence_assertion_lst: List[ ObjectVarPersistence ] = [
                             # block_1 must be clear for the entire action
-                            (t_now, t_now, "clear", block_1, True),
+                            (t_now, t_e, "clear", block_1, True),
                             # surface_0 must be clear at the start
                             (t_now, t_now, "clear", surface_0, True),
                             (t_e, t_e, "clear", block_0, True),
                             # blocks cannot be on more than one surface for a single time point
                             # nor can they have more than one block on themselves
                             (t_now, t_now, "is_on", block_1, block_0, True),
-                            (t_e, t_e, "is_on", block_1, surface_0, True),
                             *[ (t_now, t_now, "is_on", block_1, x, False) for x in
-                                filter( lambda y: y != block_0, surface_lst ) ],
+                                filter( lambda y: y not in { block_0, block_1 }, surface_lst ) ],
                             *[ (t_now, t_now, "is_on", x, block_0, False) for x in
-                                filter( lambda y: y != block_1, blocks_lst ) ],
-
+                                filter( lambda y: y not in { block_0, block_1 }, blocks_lst ) ],
+                            (t_e, t_e, "is_on", block_1, surface_0, True),
                             *[ (t_e, t_e, "is_on", block_1, x, False) for x in
-                                filter( lambda y: y != surface_0, surface_lst ) ],
+                                filter( lambda y: y not in { surface_0, block_1 }, surface_lst ) ],
                         ]
-                        if surface_0 != table:
-                            # only the table can have multiple objects on it
-                            persistence_assertion_lst.extend(
-                                    [
-                                        *[ (t_e, t_e, "is_on", x, surface_0, False) for x in
-                                            filter( lambda y: y != block_1, blocks_lst ) ],
-                                    ],
-                            )
                         # action call changes based on ending on block or table
                         if surface_0 == table:
                             action_call = (
@@ -297,28 +289,36 @@ def tgm_clear_single_now(
 
                             )
                             action_call = cast( MoveBlockToBlockCall, action_call )
-                        if len( set( obj_lst ) ) == len( obj_lst ):
-                            # intializae rollback data structures
-                            temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
-                            change_update_dict = { }
-                            persistence_update_dict = { }
-                            new_reference_chronicle = reference_chronicle.copy()
-                            if CI.update_chronicle(
-                                    new_reference_chronicle, value_chronicle, change_assertion_lst,
-                                    persistence_assertion_lst,
-                                    temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
-                                    change_update_dict=change_update_dict,
-                                    persistence_update_dict=persistence_update_dict,
-                            ):
-                                # define list of subgoals
+                            # only the table can have multiple objects on it
+                            persistence_assertion_lst.extend(
+                                    [
+                                        *[ (t_e, t_e, "is_on", x, surface_0, False) for x in
+                                            filter( lambda y: y not in { surface_0, block_1 }, blocks_lst ) ],
 
-                                subgoal_lst: List[
-                                    Union[ MoveBlockToTableCall, MoveBlockToBlockCall, ClearGoal, IsOnGoal ] ] = [
-                                    action_call,
-                                ]
-                                restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
-                                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
-                                yield method_output
+                                    ],
+                            )
+
+                        # intializae rollback data structures
+                        temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+                        change_update_dict = { }
+                        persistence_update_dict = { }
+                        new_reference_chronicle = reference_chronicle.copy()
+                        if CI.update_chronicle(
+                                new_reference_chronicle, value_chronicle, change_assertion_lst,
+                                persistence_assertion_lst,
+                                temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                                change_update_dict=change_update_dict,
+                                persistence_update_dict=persistence_update_dict,
+                        ):
+                            # define list of subgoals
+
+                            subgoal_lst: List[
+                                Union[ MoveBlockToTableCall, MoveBlockToBlockCall, ClearGoal, IsOnGoal ] ] = [
+                                action_call,
+                            ]
+                            restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+                            method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                            yield method_output
 
 
 # block on top of clear target must be cleared first
@@ -342,16 +342,6 @@ def tgm_clear_recurse(
     table: Table = value_chronicle.domain_objects[ "table" ][ 0 ]
     t_now = reference_chronicle.t_ordered[ -1 ]
 
-    # don't do this method if an immeditate clear is possible
-    for block_1 in blocks_lst:
-        if CI.verify_object_assertion_list(
-                reference_chronicle, value_chronicle,
-                [
-                    (t_now, "is_on", block_1, block_0, True),
-                    (t_now, "clear", block_1, True),
-                ],
-        ):
-            return
     t_s = min_stn.get_n_new_time_point_labels( 1 )[ 0 ]
     # clear block_1 currently on block_0
     for block_1 in blocks_lst:
@@ -363,40 +353,76 @@ def tgm_clear_recurse(
                         (t_now, "clear", block_1, False),
                     ],
             ):
-                # temporal constraints
-                temporal_constraint_lst: List[ TemporalConstraint ] = [
-                    (t_e, "==", t_s, 1),
-                    (t_now, "<", t_s, 0),
-                ]
-                # change assertions
-                change_assertion_lst: List[ ObjectVarChange ] = [ ]
-                # persistence assertions
-                persistence_assertion_lst: List[ ObjectVarPersistence ] = [
-                    (t_s, t_e, "clear", block_1, True),
-                    (t_e, t_e, "clear", block_0, True),
-                ]
-                # initialize rollback data structures
-                temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
-                change_update_dict = { }
-                persistence_update_dict = { }
-                new_reference_chronicle = reference_chronicle.copy()
-                if CI.update_chronicle(
-                        new_reference_chronicle, value_chronicle, change_assertion_lst,
-                        persistence_assertion_lst,
-                        temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
-                        change_update_dict=change_update_dict,
-                        persistence_update_dict=persistence_update_dict,
-                ):
-                    # define list of subgoals
+                for surface_0 in reversed( surface_lst ):
 
-                    subgoal_lst: List[
-                        Union[ MoveBlockToTableCall, MoveBlockToBlockCall, ClearGoal, IsOnGoal ] ] = [
-                        (t_s, "clear", block_1, True),
-                        (t_e, "clear", block_0, True),
-                    ]
-                    restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
-                    method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
-                    yield method_output
+                    if surface_0 != block_0 and surface_0 != block_1:
+                        # temporal constraints
+                        temporal_constraint_lst: List[ TemporalConstraint ] = [
+                            (t_e, "==", t_s, 1),
+                            (t_now, "<", t_s, 0),
+                        ]
+                        # change assertions
+                        change_assertion_lst: List[ ObjectVarChange ] = [ ]
+                        # persistence assertions
+                        persistence_assertion_lst: List[ ObjectVarPersistence ] = [
+                            (t_s, t_e, "clear", block_1, True),
+                            (t_e, t_e, "clear", block_0, True),
+                            (t_now, t_s, "is_on", block_1, block_0, True),
+                            *[ (t_now, t_s, "is_on", block_1, x, False) for x in
+                                filter( lambda y: y not in { block_1, block_0 }, blocks_lst ) ],
+                            (t_e, t_e, "is_on", block_1, surface_0, True),
+                            *[ (t_e, t_e, "is_on", block_1, x, False) for x in
+                                filter( lambda y: y not in { block_1, surface_0 }, blocks_lst ) ],
+                        ]
+                        # initialize rollback data structures
+                        temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+                        change_update_dict = { }
+                        persistence_update_dict = { }
+                        new_reference_chronicle = reference_chronicle.copy()
+                        if CI.update_chronicle(
+                                new_reference_chronicle, value_chronicle, change_assertion_lst,
+                                persistence_assertion_lst,
+                                temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                                change_update_dict=change_update_dict,
+                                persistence_update_dict=persistence_update_dict,
+                        ):
+                            # define list of subgoals
+                            # action call changes based on ending on block or table
+                            if surface_0 == table:
+                                action_call = (
+                                    "move_block_to_table",
+                                    (t_s, t_e),
+                                    block_1,
+                                    block_0,
+                                )
+                                action_call = cast( MoveBlockToTableCall, action_call )
+                            else:
+                                action_call = (
+                                    "move_block_to_block",
+                                    (t_s, t_e),
+                                    block_1,
+                                    block_0,
+                                    surface_0,
+
+                                )
+                                action_call = cast( MoveBlockToBlockCall, action_call )
+                                persistence_assertion_lst.extend(
+                                        [
+                                            *[ (t_now, t_s, "is_on", x, surface_0, False) for x in
+                                                filter( lambda y: y not in { block_0, surface_0 }, blocks_lst ) ],
+                                            *[ (t_now, t_s, "is_on", x, surface_0, False) for x in
+                                                filter( lambda y: y not in { block_1, surface_0 }, blocks_lst ) ],
+                                        ],
+                                )
+
+                            subgoal_lst: List[
+                                Union[ MoveBlockToTableCall, MoveBlockToBlockCall, ClearGoal, IsOnGoal ] ] = [
+                                (t_s, "clear", block_1, True),
+                                action_call,
+                            ]
+                            restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+                            method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                            yield method_output
 
 
 # # progress stack

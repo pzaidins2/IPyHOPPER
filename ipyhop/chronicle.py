@@ -299,8 +299,8 @@ class ChronicleInterface():
         ]
         min_stn: TemporalNetwork = value_chronicle.temporal_network
         # add temporal constraints included those from implied intervals
-        print( "BEFORE TEMPORAL 0" )
-        print( reference_chronicle )
+        # print( "BEFORE TEMPORAL 0" )
+        # print( reference_chronicle )
         temporal_success_0, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
                 temporal_constraint_lst + persistence_temporal_constraint_lst,
         )
@@ -316,8 +316,8 @@ class ChronicleInterface():
             t_ordered_temporal_constraint_lst: List[ TemporalConstraint ] = [
                 (t_now, "<=", x, 0) for x in time_point_add_lst
             ]
-            print( "BEFORE TEMPORAL 1" )
-            print( reference_chronicle )
+            # print( "BEFORE TEMPORAL 1" )
+            # print( reference_chronicle )
             temporal_success_1, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
                     t_ordered_temporal_constraint_lst,
             )
@@ -327,21 +327,21 @@ class ChronicleInterface():
                 for i in range( 3 ):
                     temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
                 # add persistence assertions
-                print( "BEFORE PERSISTENCES" )
-                print( reference_chronicle )
+                # print( "BEFORE PERSISTENCES" )
+                # print( reference_chronicle )
                 if self.add_persistences(
                         reference_chronicle, value_chronicle,
                         persistence_assertion_lst, persistence_update_dict,
                 ):
                     # add change assertions
-                    print( "BEFORE CHANGES" )
-                    print( reference_chronicle )
+                    # print( "BEFORE CHANGES" )
+                    # print( reference_chronicle )
                     if self.add_changes(
                             reference_chronicle, value_chronicle,
                             change_assertion_lst, change_update_dict,
                     ):
-                        print( "AT RETURN" )
-                        print( reference_chronicle )
+                        # print( "AT RETURN" )
+                        # print( reference_chronicle )
                         return True
         # if any alterations fail, rollback everything
         self.restore_chronicle(

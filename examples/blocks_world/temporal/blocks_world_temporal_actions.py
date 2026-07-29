@@ -106,7 +106,7 @@ def move_block_to_table(
     # change assertions
     change_assertion_lst: List[ ObjectVarChange ] = [
         *[ (t_e, "is_on", block, x, False) for x in
-            filter( lambda y: y != table, value_chronicle.domain_objects[ "surfaces" ] ) ],
+            filter( lambda y: y not in { table, block }, value_chronicle.domain_objects[ "surfaces" ] ) ],
         (t_e, "is_on", block, table, True),
         (t_e, "clear", start_pos, True),
     ]
@@ -146,9 +146,9 @@ def move_block_to_block(
     # change assertions
     change_assertion_lst: List[ ObjectVarChange ] = [
         *[ (t_e, "is_on", block, x, False) for x in
-            filter( lambda y: y != end_pos, value_chronicle.domain_objects[ "surfaces" ] ) ],
+            filter( lambda y: y not in { block, end_pos }, value_chronicle.domain_objects[ "surfaces" ] ) ],
         *[ (t_e, "is_on", x, end_pos, False) for x in
-            filter( lambda y: y != block, value_chronicle.domain_objects[ "blocks" ] ) ],
+            filter( lambda y: y not in { block, end_pos }, value_chronicle.domain_objects[ "blocks" ] ) ],
         (t_e, "is_on", block, end_pos, True),
         (t_e, "clear", start_pos, True),
         (t_e, "clear", end_pos, False),
