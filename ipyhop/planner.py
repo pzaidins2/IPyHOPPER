@@ -334,9 +334,21 @@ class IPyHOP(object):
                         keep_flag = True
                 # high priority to goals for t_now, else medium priority
                 elif node_type == "G":
-                    keep_flag = True
                     anchor_idx = 0
                     anchor_tp = node_info[ anchor_idx ]
+                    # block if previous node is parent and identical time point value
+                    prev_node_id = node_id_visit_order[ -1 ]
+                    # check if prev node parent
+                    if node_id in dfs_successors( sol_tree, prev_node_id ):
+                        prev_node_info = sol_tree.nodes[ prev_node_id ][ "info" ]
+                        prev_time_point = prev_node_info[ anchor_idx ]
+                        # check if time point value must be equal - do not consider
+                        if temporal_network.is_strictly_equal( prev_time_point, anchor_tp ):
+                            continue
+
+                    # otherwise keep and prioritize goals for t_now
+                    keep_flag = True
+
                     if temporal_network.is_strictly_equal( anchor_tp, t_now ):
                         node_group = 4
                     else:
