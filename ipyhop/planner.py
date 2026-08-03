@@ -228,8 +228,39 @@ class IPyHOP(object):
         if not self.is_temporal and self.sol_tree.nodes[ 0 ][ 'status' ] != 'O':
             dfs_preorder_lst = [ *dfs_preorder_nodes( self.sol_tree, source=0 ) ]
             assert self.node_id_visit_order == dfs_preorder_lst
+        if self.is_temporal:
+            scheduled_plan, schedule_dict = self.schedule_plan( self.sol_tree, value_chronicle.temporal_network )
+            return scheduled_plan
+        else:
+            return self.sol_plan
 
-        return self.sol_plan
+    # ******************************        Class Method Declaration        ****************************************** #
+    # given a solution tree and the corresponding temporal network return a sechduled plan
+    # time point labels are exchanged with real time
+    # the earliest possible time is assigned to each label
+    # a dictionary is also returned such that every time point label is a key and the
+    # corresponding value is the assigned time
+    def schedule_plan(self, sol_tree: DiGraph, temporal_network: TemporalNetwork) -> Tuple[
+        List[ Tuple ], Dict[ int, int ] ]:
+        # initialization
+        schedule_dict: Dict[ int, int ] = dict()
+        min_t: int = temporal_network.t_min
+        max_t: int = temporal_network.t_max
+        # get plan with time point labels
+        unscheduled_plan: List[ Tuple ] = [ sol_tree.nodes[ x ][ "info" ] for x in
+            filter( lambda x: sol_tree.nodes[ x ][ "type" ] == "A", dfs_preorder_nodes( sol_tree, source=0 ) ) ]
+        # use edge information to assign time values
+        schedule_dict = temporal_network.assign_values_to_time_points()
+        # replace values in unscheduled plan according to the dict
+        print( unscheduled_plan )
+        scheduled_plan: List[ Tuple ] = [
+            (x[ 0 ], (schedule_dict[ x[ 1 ][ 0 ] ], schedule_dict[ x[ 1 ][ 1 ] ]), *x[ 2: ]) for x in
+            unscheduled_plan ]
+        scheduled_plan = [ *set( scheduled_plan ) ]
+        scheduled_plan.sort()
+        scheduled_plan.sort( key=lambda x: x[ 1 ] )
+
+        return (scheduled_plan, schedule_dict)
 
     # ******************************        Class Method Declaration        ****************************************** #
     # returns the node id of the next element to be expanded

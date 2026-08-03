@@ -4,7 +4,7 @@ File Description: class and methods for manipulating temporal constraints in the
 """
 
 from copy import deepcopy
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 from networkx import Graph
 
@@ -38,6 +38,31 @@ class TemporalNetwork:
         self.t_min = t_min
         self.t_max = t_max
         self.last_time_point_label = -1
+
+    # create a dictionary where every time point label has a key with a corresponding value that
+    # respects the network
+    def assign_values_to_time_points(self) -> Dict[ int, int ]:
+        value_dict: Dict[ int, int ] = { }
+        value_dict[ 0 ] = self.t_min
+        # iterate over all possible edges
+        # if an edge exists from a node in the dictionary the value is the negation of the min_delta_t
+        # if an edge does not exist
+        for u in self.min_stn.nodes:
+            u = cast( int, u )
+            if u not in value_dict.keys():
+                value_dict[ u ] = self.t_min
+            for v in self.min_stn.nodes:
+                v = cast( int, v )
+                if u != v and v not in value_dict.keys():
+                    edge_uv: Optional[ NetEdgeInput ] = self.find_edge( u, v )
+                    if edge_uv is not None:
+                        value_dict[ v ] = -edge_uv[ 2 ][ "min_delta_t" ] if edge_uv[ 0 ] == u else edge_uv[ 2 ][
+                            "max_delta_t" ]
+        offset = min( value_dict.values() ) - self.t_min
+        for k, v in value_dict.items():
+            value_dict[ k ] = v + offset
+        print( value_dict )
+        return value_dict
 
     # returns True if tp_0 cannot be greater than or equal to tp_1
     def is_strictly_less_than(self, tp_0: int, tp_1: int) -> bool:
