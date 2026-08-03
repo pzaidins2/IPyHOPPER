@@ -342,9 +342,11 @@ class IPyHOP(object):
                     if node_id in dfs_successors( sol_tree, prev_node_id ):
                         prev_node_info = sol_tree.nodes[ prev_node_id ][ "info" ]
                         prev_time_point = prev_node_info[ anchor_idx ]
-                        # check if time point value must be equal - do not consider
+                        # check if time point value must be equal
                         if temporal_network.is_strictly_equal( prev_time_point, anchor_tp ):
-                            continue
+                            # check if goals match beyond time point label
+                            if prev_node_info[ 1: ] == node_info[ 1: ]:
+                                continue
 
                     # otherwise keep and prioritize goals for t_now
                     keep_flag = True
