@@ -254,7 +254,7 @@ class IPyHOP(object):
         # replace values in unscheduled plan according to the dict
         print( unscheduled_plan )
         scheduled_plan: List[ Tuple ] = [
-            (x[ 0 ], (schedule_dict[ x[ 1 ][ 0 ] ], schedule_dict[ x[ 1 ][ 1 ] ]), *x[ 2: ]) for x in
+            (x[ 0 ], tuple( map( lambda y: schedule_dict[ y ], x[ 1 ] ) ), *x[ 2: ]) for x in
             unscheduled_plan ]
         scheduled_plan = [ *set( scheduled_plan ) ]
         scheduled_plan.sort()

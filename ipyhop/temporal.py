@@ -56,8 +56,7 @@ class TemporalNetwork:
                 if u != v and v not in value_dict.keys():
                     edge_uv: Optional[ NetEdgeInput ] = self.find_edge( u, v )
                     if edge_uv is not None:
-                        value_dict[ v ] = -edge_uv[ 2 ][ "min_delta_t" ] if edge_uv[ 0 ] == u else edge_uv[ 2 ][
-                            "max_delta_t" ]
+                        value_dict[ v ] = -edge_uv[ 2 ][ "min_delta_t" ]
         offset = min( value_dict.values() ) - self.t_min
         for k, v in value_dict.items():
             value_dict[ k ] = v + offset
@@ -116,6 +115,15 @@ class TemporalNetwork:
         candidate_time_point_lst.sort( key=lambda x: max_min_delta_t_dict[ x ] )
         return candidate_time_point_lst
 
+    # get offset bounds for going from t_0 to t_1
+    def get_offset_bounds(self, t_0: int, t_1: int) -> Optional[ Tuple[ int, int ] ]:
+        if t_0 == t_1:
+            return (0, 0)
+        edge_01: Optional[ NetEdgeInput ] = self.find_edge( t_0, t_1 )
+        if edge_01 is None:
+            return None
+        else:
+            return (-edge_01[ 2 ][ "min_delta_t" ], -edge_01[ 2 ][ "max_delta_t" ])
 
 
 

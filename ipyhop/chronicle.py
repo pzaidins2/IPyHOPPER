@@ -73,7 +73,7 @@ note: we handle time points by integer label rather than temporal value
 state description
 value_chronicle: contains lists corresponding to indices in state_references (this is curried in action/method 
 functions)
-    change: consists of lists of object variable temporal assignments
+    changes: consists of lists of object variable temporal assignments
         for each predicate 
         predicate_name: list of tuples (tp, *predicate_args, bool_val) where predicate_name(*predicate_args) 
         evaluates bool_val (True or False) as of time point tp, the absence of predicate_args implies bool_val is 
