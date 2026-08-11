@@ -5,7 +5,7 @@ for interfacing with them
 """
 from copy import deepcopy
 from itertools import groupby
-from typing import Any, Dict, Iterator, List, Protocol, Tuple, Type, Union
+from typing import Any, Dict, List, Protocol, Tuple, Type, Union
 
 from ipyhop.temporal import TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 
@@ -215,56 +215,104 @@ class ChronicleInterface():
                 ),
         )
 
-    # Given a pair of reference and value chronicles determine whether the given change assertion holds
-    # returns bool based on this premise
-    # ONLY WORKS IF THE CHANGE ASSERTION OCCURS NO LATER THAN t_now
+    # when all of the following are present the change assertion in question evaluates True
+    VerficationConditional = Tuple[ ObjectVarPersistence, ObjectVarChange, List[ TemporalConstraint ] ]
+
+    # Given a pair of reference and value chronicles determine whether the given change assertion must
+    # hold given the current facts
+    # DOES NOT RETURN TRUE IF ADDITIONAL SEPERATION CONDITIONS WOULD BE REQUIRED, POTENTIAL IMRPOVEMENT
     def verify_object_assertion(
             self, reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
-            change_assertion: ObjectVarChange
+            query_assertion: ObjectVarChange
     ) -> bool:
-        t_query: int = change_assertion[ 0 ]
-        t_ordered: List[ int ] = reference_chronicle.t_ordered
-        if t_query not in t_ordered:
-            return False
-        predicate_label: str = change_assertion[ 1 ]
-        predicate_args: Tuple = change_assertion[ 2:-1 ]
-        target_bool: bool = change_assertion[ -1 ]
+        print( "VERIFY START" )
+        print( "QUERY" )
+        print( query_assertion )
+        t_query: int = query_assertion[ 0 ]
+        predicate_label: str = query_assertion[ 1 ]
+        predicate_args: Tuple = query_assertion[ 2:-1 ]
+        query_bool: bool = query_assertion[ -1 ]
         min_stn: TemporalNetwork = value_chronicle.temporal_network
-        # get t_ordered
-        # t_ordered_idx: int = reference_chronicle.t_ordered
-
-        # get the maximum index in t_ordered that would be relevant to the change assertion
-        # cannot verify outside t_ordered
-        if t_query not in t_ordered:
-            return False
-        t_max_idx: int = t_ordered.index( t_query )
-        # get the index in t_ordered of the last time_point in the list with value equal to that
-        # of the change assertion
-        t_equivalent_lst: Iterator[ int ] = filter( lambda x: min_stn.is_strictly_equal( x, t_query ), t_ordered )
-        for t_i in t_equivalent_lst:
-            t_max_idx = max( t_ordered.index( t_i ), t_max_idx )
-
         # collect all change assertions that are relevant (same label and args as well as being a time point in
         # t_ordered that is not outside the range of the equivalent time points)
         change_assertion_reference_idx: int = reference_chronicle.changes[ predicate_label ]
         change_assertion_lst: List[ ObjectVarChange ] = value_chronicle.changes[ predicate_label ][
             :(change_assertion_reference_idx + 1) ]
-        relevant_change_lst: List[ ObjectVarChange ] = [
+        # account for default False
+        t_s = reference_chronicle.t_ordered[ 0 ]
+        if (t_s, predicate_label, *predicate_args, True) not in change_assertion_lst:
+            change_assertion_lst.append( (t_s, predicate_label, *predicate_args, False) )
+        print( "CHANGE ASSERTION LIST" )
+        print( change_assertion_lst )
+        # positive or negative exact match, no conditionals needed
+        for change_assertion in change_assertion_lst:
+            t_i: int = change_assertion[ 0 ]
+            # same excluding bool
+            if min_stn.is_strictly_equal( t_i, t_query ) and change_assertion[ 2:-1 ] == query_assertion[
+                2:-1 ]:
+                print( "PRINT EARLY VERIFY END" )
+                # exact match
+                if query_bool == change_assertion[ -1 ]:
+                    print( True )
+                    return True
+                # exact negation
+                else:
+                    print( False )
+                    return False
+
+        # matching predicate args
+        matching_change_assertion_lst: List[ ObjectVarChange ] = [
+            *filter( lambda x: x[ 2:-1 ] == predicate_args, change_assertion_lst ),
+        ]
+        print( "MATCHING CHANGE ASSERTION LIST" )
+        print( matching_change_assertion_lst )
+        # exclude every change assertion that must be later than change assertion to be verified
+        on_time_assertion_lst: List[ ObjectVarChange ] = [
             *filter(
-                    lambda x: x[ 2:-1 ] == predicate_args and x[ 0 ] in t_ordered and t_ordered.index(
-                            x[ 0 ],
-                    ) <= t_max_idx, change_assertion_lst,
+                    lambda x: not min_stn.is_strictly_less_than( t_query, x[ 0 ] ), matching_change_assertion_lst,
             ),
         ]
-        # if no relevant assertions then default is False
-        if len( relevant_change_lst ) == 0:
-            return not (target_bool)
-        # find the assertion with the highest index in t_ordered
-        last_change_assertion: ObjectVarChange = max( relevant_change_lst, key=lambda x: t_ordered.index( x[ 0 ] ) )
-        # true if last change assertion matches with the querying change assertions
-        if last_change_assertion[ 2: ] == change_assertion[ 2: ]:
+        print( "ON TIME ASSERTION LIST" )
+        print( on_time_assertion_lst )
+
+        # filter positive and negative lists to remove cases where duplicate time points that are necessarily
+        # equal in value
+        unique_value_time_point_lst: List[ int ] = min_stn.unique_value_time_points(
+                [ x[ 0 ] for x in on_time_assertion_lst ],
+        )
+        unique_change_lst: List[ ObjectVarChange ] = [
+            *filter( lambda x: x[ 0 ] in unique_value_time_point_lst, list( dict.fromkeys( on_time_assertion_lst ) ) ),
+        ]
+        print( "UNIQUE VALUE TIME POINT LIST" )
+        print( unique_value_time_point_lst )
+        print( "UNIQUE CHANGE ASSERTION LIST" )
+        print( unique_change_lst )
+        # remove changes that must occur before any other change (across both lists) where that later change
+        # cant be later than the query assertion
+        relevant_change_lst: List[ ObjectVarChange ] = [ ]
+        # each change its time point cant be strictly less than the time point of any change or the second time point
+        # is not strictly less than the query
+        for i in range( len( unique_change_lst ) ):
+            change_assertion_i = unique_change_lst[ i ]
+            t_i: int = change_assertion_i[ 0 ]
+            for j in range( len( unique_change_lst ) ):
+                if i != j:
+                    change_assertion_j = unique_change_lst[ j ]
+                    t_j: int = change_assertion_j[ 0 ]
+                    if min_stn.is_strictly_less_than( t_i, t_j ):
+                        if min_stn.is_strictly_less_than( t_j, t_query ):
+                            break
+            relevant_change_lst.append( change_assertion_i )
+        print( "RELEVANT CHANGE ASSERTION LIST" )
+        print( relevant_change_lst )
+        # at this point all remaining assertion could be the last such change assertion before the
+        # query change, if all remaining assertions match the query bool return True else False
+        print( "VERIFY END" )
+        if all( x[ -1 ] == query_bool for x in relevant_change_lst ):
+            print( True )
             return True
         else:
+            print( False )
             return False
 
     # combine add_changes, add_persistences, and add_temporal_constraints_from into single function call

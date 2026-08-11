@@ -92,6 +92,24 @@ class TemporalNetwork:
         # if <= but not <, must be =
         return self.is_strictly_less_than_or_equal( tp_0, tp_1 ) and not (self.is_strictly_less_than( tp_0, tp_1 ))
 
+    # given a list of time points, returns a list of time points where all time points could have unique values
+    # favors keeping time points by order in list (given two time points of equal value, removes the later one)
+    def unique_value_time_points(self, time_point_list: List[ int ]) -> List[ int ]:
+        # empty case
+        if time_point_list == [ ]:
+            return [ ]
+        # localize variables
+        min_stn = self.min_stn
+        is_strictly_equal = self.is_strictly_equal
+        # first time point cant be duplicate of earlier time point
+        unique_value_time_point_lst: List[ int ] = [ time_point_list[ 0 ] ]
+        # for every remaining time point, add to unique list if not exactly equal in value to any existing list member
+        for i in range( 1, len( time_point_list ) ):
+            t_i = time_point_list[ i ]
+            if all( map( lambda x: not is_strictly_equal( t_i, x ), unique_value_time_point_lst ) ):
+                unique_value_time_point_lst.append( t_i )
+        return unique_value_time_point_lst
+
     # returns list of time points that may be the next time point
     def get_potential_next_time_points( self, unordered_time_point_lst: List[int] ) -> List[int]:
         # refs
@@ -123,7 +141,7 @@ class TemporalNetwork:
         if edge_01 is None:
             return None
         else:
-            return (-edge_01[ 2 ][ "min_delta_t" ], -edge_01[ 2 ][ "max_delta_t" ])
+            return (-edge_01[ 2 ][ "max_delta_t" ], -edge_01[ 2 ][ "min_delta_t" ])
 
 
 
