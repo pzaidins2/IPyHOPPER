@@ -10,6 +10,7 @@ from itertools import groupby
 # from __future__ import annotations
 from typing import Dict, List, NewType, Tuple
 
+import networkx as nx
 from ordered_set import OrderedSet
 
 from ipyhop import ChronicleInterface, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, RestorationTuple, \
@@ -51,12 +52,12 @@ class ButtonMazeRigidRelations:
         self.open_time: Dict[ Button, int ] = open_time
         # dict with patients as keys and their locations as values
         self.patient_at: Dict[ Patient, Location ] = patient_at
-        # # # connections as graph
-        # self.connection_graph: nx.Graph = nx.DiGraph( connections )
-        # #
-        # self.shortest_path_lengths: Dict[ Location, Dict[ Location, int ] ] = dict(  # type: ignore
-        #         nx.algorithms.shortest_path_length( self.connection_graph ),
-        # )
+        # # connections as graph
+        self.connection_graph: nx.Graph = nx.DiGraph( connections )
+        #
+        self.shortest_path_lengths: Dict[ Location, Dict[ Location, int ] ] = dict(  # type: ignore
+                nx.algorithms.shortest_path_length( self.connection_graph ),
+        )
 
 
 temporal_actions_instance = TemporalActions()
