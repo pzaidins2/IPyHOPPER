@@ -159,6 +159,8 @@ class TemporalNetwork:
         lst_edge_add_lst: List[NetEdgeInput] = []
         lst_edge_remove_lst: List[NetEdgeInput] = []
         # iterate over constraints
+        print( new_edge_lst )
+        print( [ *map( get_formatted_edge, new_edge_lst ) ] )
         for new_edge in map(get_formatted_edge, new_edge_lst):
             if new_edge[ 0 ] == new_edge[ 1 ]:
                 print( new_edge )
@@ -169,8 +171,11 @@ class TemporalNetwork:
             lst_node_add_lst += node_add_lst
             lst_edge_add_lst += edge_add_lst
             lst_edge_remove_lst += edge_remove_lst
+
             # path inconsistent, restore graph and return
             if not success_flag:
+                print( "TEMPORAL NETWORK COULD NOT ADD EDGE" )
+                print( new_edge )
                 self.restore_graph(lst_node_add_lst, lst_edge_add_lst, lst_edge_remove_lst)
                 return (False, [], [], [])
         return (True, lst_node_add_lst, lst_edge_add_lst, lst_edge_remove_lst)

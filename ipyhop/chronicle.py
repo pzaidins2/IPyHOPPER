@@ -5,7 +5,7 @@ for interfacing with them
 """
 from copy import deepcopy
 from itertools import groupby
-from typing import Any, Dict, List, Protocol, Tuple, Type, Union
+from typing import Any, Collection, Dict, List, Protocol, Tuple, Type, Union
 
 from ipyhop.temporal import TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 
@@ -46,7 +46,7 @@ class ValueChronicle( Protocol ):
     # t_unordered: List[ int ]
     persistences: Dict[ str, List[ ObjectVarPersistence ] ]
     temporal_network: TemporalNetwork
-    domain_objects: Dict[ str, List ]
+    domain_objects: Dict[ str, Collection ]
 
     def __init__(
             self, changes: Dict[ str, List[ ObjectVarChange ] ],
@@ -55,7 +55,7 @@ class ValueChronicle( Protocol ):
             # t_unordered: List[ int ],
             persistences: Dict[ str, List[ ObjectVarPersistence ] ],
             temporal_network: TemporalNetwork,
-            domain_objects: Dict[ str, List ],
+            domain_objects: Dict[ str, Collection ],
     ):
         self.changes = changes
         # self.t_now = t_now
@@ -184,12 +184,12 @@ class ChronicleInterface():
             self, ReferenceChronicleClass: Type[ ReferenceChronicle ], ValueChronicleClass: Type[ ValueChronicle ],
             t_ordered: List[ int ], t_unordered: List[ int ], changes: Dict[ str, List[ ObjectVarChange ] ],
             persistences: Dict[ str, List[ ObjectVarPersistence ] ], temporal_network: TemporalNetwork,
-            domain_objects: Dict[ str, List ]
+            domain_objects: Dict[ str, Collection ], rigid_relations=None
     ):
         value_chronicle: ValueChronicle = ValueChronicleClass(
                 changes,
                 # t_now, t_ordered, t_unordered,
-                persistences, temporal_network, domain_objects,
+                persistences, temporal_network, domain_objects, rigid_relations
         )
         changes_len_dict: Dict[ str, int ] = { k: len( v ) for k, v in changes.items() }
         persistences_len_dict: Dict[ str, int ] = { k: len( v ) for k, v in persistences.items() }
@@ -225,9 +225,9 @@ class ChronicleInterface():
             self, reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
             query_assertion: ObjectVarChange
     ) -> bool:
-        print( "VERIFY START" )
-        print( "QUERY" )
-        print( query_assertion )
+        # print( "VERIFY START" )
+        # print( "QUERY" )
+        # print( query_assertion )
         t_query: int = query_assertion[ 0 ]
         predicate_label: str = query_assertion[ 1 ]
         predicate_args: Tuple = query_assertion[ 2:-1 ]
@@ -242,38 +242,38 @@ class ChronicleInterface():
         t_s = reference_chronicle.t_ordered[ 0 ]
         if (t_s, predicate_label, *predicate_args, True) not in change_assertion_lst:
             change_assertion_lst.append( (t_s, predicate_label, *predicate_args, False) )
-        print( "CHANGE ASSERTION LIST" )
-        print( change_assertion_lst )
+        # print( "CHANGE ASSERTION LIST" )
+        # print( change_assertion_lst )
         # positive or negative exact match, no conditionals needed
         for change_assertion in change_assertion_lst:
             t_i: int = change_assertion[ 0 ]
             # same excluding bool
             if min_stn.is_strictly_equal( t_i, t_query ) and change_assertion[ 2:-1 ] == query_assertion[
                 2:-1 ]:
-                print( "PRINT EARLY VERIFY END" )
+                # print( "PRINT EARLY VERIFY END" )
                 # exact match
                 if query_bool == change_assertion[ -1 ]:
-                    print( True )
+                    # print( True )
                     return True
                 # exact negation
                 else:
-                    print( False )
+                    # print( False )
                     return False
 
         # matching predicate args
         matching_change_assertion_lst: List[ ObjectVarChange ] = [
             *filter( lambda x: x[ 2:-1 ] == predicate_args, change_assertion_lst ),
         ]
-        print( "MATCHING CHANGE ASSERTION LIST" )
-        print( matching_change_assertion_lst )
+        # print( "MATCHING CHANGE ASSERTION LIST" )
+        # print( matching_change_assertion_lst )
         # exclude every change assertion that must be later than change assertion to be verified
         on_time_assertion_lst: List[ ObjectVarChange ] = [
             *filter(
                     lambda x: not min_stn.is_strictly_less_than( t_query, x[ 0 ] ), matching_change_assertion_lst,
             ),
         ]
-        print( "ON TIME ASSERTION LIST" )
-        print( on_time_assertion_lst )
+        # print( "ON TIME ASSERTION LIST" )
+        # print( on_time_assertion_lst )
 
         # filter positive and negative lists to remove cases where duplicate time points that are necessarily
         # equal in value
@@ -283,10 +283,10 @@ class ChronicleInterface():
         unique_change_lst: List[ ObjectVarChange ] = [
             *filter( lambda x: x[ 0 ] in unique_value_time_point_lst, list( dict.fromkeys( on_time_assertion_lst ) ) ),
         ]
-        print( "UNIQUE VALUE TIME POINT LIST" )
-        print( unique_value_time_point_lst )
-        print( "UNIQUE CHANGE ASSERTION LIST" )
-        print( unique_change_lst )
+        # print( "UNIQUE VALUE TIME POINT LIST" )
+        # print( unique_value_time_point_lst )
+        # print( "UNIQUE CHANGE ASSERTION LIST" )
+        # print( unique_change_lst )
         # remove changes that must occur before any other change (across both lists) where that later change
         # cant be later than the query assertion
         relevant_change_lst: List[ ObjectVarChange ] = [ ]
@@ -303,11 +303,11 @@ class ChronicleInterface():
                         if min_stn.is_strictly_less_than( t_j, t_query ):
                             break
             relevant_change_lst.append( change_assertion_i )
-        print( "RELEVANT CHANGE ASSERTION LIST" )
-        print( relevant_change_lst )
+        # print( "RELEVANT CHANGE ASSERTION LIST" )
+        # print( relevant_change_lst )
         # at this point all remaining assertion could be the last such change assertion before the
         # query change, if all remaining assertions match the query bool return True else False
-        print( "VERIFY END" )
+        # print( "VERIFY END" )
         if all( x[ -1 ] == query_bool for x in relevant_change_lst ):
             print( True )
             return True
@@ -347,8 +347,8 @@ class ChronicleInterface():
         ]
         min_stn: TemporalNetwork = value_chronicle.temporal_network
         # add temporal constraints included those from implied intervals
-        # print( "BEFORE TEMPORAL 0" )
-        # print( reference_chronicle )
+        print( "BEFORE TEMPORAL 0" )
+        print( reference_chronicle )
         temporal_success_0, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
                 temporal_constraint_lst + persistence_temporal_constraint_lst,
         )
@@ -364,8 +364,8 @@ class ChronicleInterface():
             t_ordered_temporal_constraint_lst: List[ TemporalConstraint ] = [
                 (t_now, "<=", x, 0) for x in time_point_add_lst
             ]
-            # print( "BEFORE TEMPORAL 1" )
-            # print( reference_chronicle )
+            print( "BEFORE TEMPORAL 1" )
+            print( reference_chronicle )
             temporal_success_1, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
                     t_ordered_temporal_constraint_lst,
             )
@@ -375,21 +375,21 @@ class ChronicleInterface():
                 for i in range( 3 ):
                     temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
                 # add persistence assertions
-                # print( "BEFORE PERSISTENCES" )
-                # print( reference_chronicle )
+                print( "BEFORE PERSISTENCES" )
+                print( reference_chronicle )
                 if self.add_persistences(
                         reference_chronicle, value_chronicle,
                         persistence_assertion_lst, persistence_update_dict,
                 ):
                     # add change assertions
-                    # print( "BEFORE CHANGES" )
-                    # print( reference_chronicle )
+                    print( "BEFORE CHANGES" )
+                    print( reference_chronicle )
                     if self.add_changes(
                             reference_chronicle, value_chronicle,
                             change_assertion_lst, change_update_dict,
                     ):
-                        # print( "AT RETURN" )
-                        # print( reference_chronicle )
+                        print( "AT RETURN" )
+                        print( reference_chronicle )
                         return True
         # if any alterations fail, rollback everything
         self.restore_chronicle(

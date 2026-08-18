@@ -439,7 +439,7 @@ class IPyHOP(object):
         need_new_curr_node = False
         while True:
             _iter += 1
-            # assert _iter < 1000
+            assert _iter < 20
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
@@ -886,7 +886,7 @@ class IPyHOP(object):
                                             elif subgoal[ 0 ] in self.actions.action_dict:
                                                 tps = [ *subgoal[ 1 ], ]
                                             else:
-                                                raise (ValueError( "Unsupported node in subgoals" ))
+                                                raise (ValueError( "Unsupported node in subgoals: " + str( subgoal ) ))
                                             for tp in tps:
                                                 if all(
                                                         [

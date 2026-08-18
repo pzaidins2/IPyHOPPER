@@ -1,855 +1,733 @@
-# #!/usr/bin/env python
-# """
-# File Description: unit testing for temporal blocks world domain
-# """
-# from typing import Dict, List, Tuple
-#
-# from examples.blocks_world.temporal.blocks_world_temporal_actions import Block, Surface, Table, \
-#     temporal_actions_instance
-# from examples.blocks_world.temporal.blocks_world_temporal_methods import temporal_methods_instance
-# from ipyhop import (ChronicleInterface, IPyHOP, ObjectVarChange, ObjectVarPersistence, ReferenceChronicle, State,
-#     TemporalActionCall, TemporalGoal, TemporalNetwork, ValueChronicle)
-#
-# CI = ChronicleInterface()
-#
-#
-# # chronicle classes for temporal blocks world
-# class BlocksWorldReferenceChronicle( ReferenceChronicle, State ):
-#     def __init__(
-#             self, changes: Dict[ str, int ],
-#             t_ordered: List[ int ], t_unordered: List[ int ],
-#             persistences: Dict[ str, int ],
-#     ):
-#         super().__init__(
-#                 changes,
-#                 t_ordered,
-#                 t_unordered,
-#                 persistences,
-#         )
-#         self.__name__ = "reference"
-#
-#
-# class BlocksWorldValueChronicle( ValueChronicle ):
-#     def __init__(
-#             self,
-#             changes: Dict[ str, List[ ObjectVarChange ] ],
-#             persistences: Dict[ str, List[ ObjectVarPersistence ] ],
-#             temporal_network: TemporalNetwork,
-#             domain_objects: Dict[ str, List ],
-#     ):
-#         super().__init__(
-#                 changes,
-#                 persistences,
-#                 temporal_network,
-#                 domain_objects,
-#         )
-#
-#
-# def make_blocks_world_chronicle_pair(
-#         t_ordered: List[ int ],
-#         t_unordered: List[ int ],
-#         changes: Dict[ str, List[ ObjectVarChange ] ],
-#         persistences: Dict[ str, List[ ObjectVarPersistence ] ],
-#         temporal_network: TemporalNetwork,
-#         domain_objects: Dict[ str, List ],
-# ) -> Tuple[ BlocksWorldReferenceChronicle, BlocksWorldValueChronicle ]:
-#     return CI.make_chronicle_pair(
-#             BlocksWorldReferenceChronicle, BlocksWorldValueChronicle, t_ordered, t_unordered, changes, persistences,
-#             temporal_network, domain_objects,
-#     )
-#
-#
-# # reference_chronicle, value_chronicle = \
-# #         CI.make_chronicle_pair(
-# #                 BlocksWorldReferenceChronicle,
-# #                 BlocksWorldValueChronicle,
-# #                 changes,
-# #                 # t_now,
-# #                 t_ordered,
-# #                 t_unordered,
-# #                 persistences,
-# #                 temporal_network,
-# #                 domain_objects,
-# #         )
-#
-# # no initial goals
-# def test_empty_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
-#     t_s = stn.get_n_new_time_point_labels( 1 )[ 0 ]
-#     stn.add_temporal_constraints_from(
-#             [ ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [ ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#     )
-#     assert sol_plan == [ ]
-#     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [ ("root",), ("TOC", 0) ]
-#
-#
-# # completed goal
-# def test_goal_done_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
-#     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
-#     stn.add_temporal_constraints_from(
-#             [ (t_s, "<=", t_e, 0) ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [ (t_e, "clear", A, True), ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [ ],
-#         "clear": [
-#             (t_s, "clear", A, True),
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_e, ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#     )
-#     assert sol_plan == [ ]
-#     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-#         ('root',), (1, 'clear', 'A', True), ('TOC', 1), ('TOC', 0), 'VerifyGoal',
-#     ]
-#
-#
-# # completed multiple goals
-# def test_many_goal_done_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
-#     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
-#     stn.add_temporal_constraints_from(
-#             [ (t_s, "<=", t_e, 0) ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [ (t_e, "clear", A, True), (t_e, "is_on", A, B, True) ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [
-#             (t_s, "is_on", A, B, True),
-#         ],
-#         "clear": [
-#             (t_s, "clear", A, True),
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_e, ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#     )
-#     assert sol_plan == [ ]
-#     print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
-#     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-#         ('root',),
-#         (1, 'clear', 'A', True),
-#         (1, 'is_on', 'A', 'B', True),
-#         ('TOC', 1),
-#         ('TOC', 0),
-#         'VerifyGoal',
-#         'VerifyGoal',
-#     ]
-#
-#
-# # single action
-# def test_action_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
-#     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
-#     stn.add_temporal_constraints_from(
-#             [ (t_s, "<", t_e, 0) ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal | TemporalActionCall ] = [
-#         ("move_block_to_table", (t_s, t_e), A, B),
-#     ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [
-#             (t_s, "is_on", A, B, True),
-#
-#         ],
-#         "clear": [
-#             (t_s, "clear", A, True),
-#             (t_s, "clear", TABLE, True),
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_e, ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#     )
-#     assert sol_plan == goal_lst
-#     print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
-#     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-#         ('root',),
-#         ('move_block_to_table', (0, 1), 'A', 'B'),
-#         ('TOC', 1),
-#         ('TOC', 0),
-#         (
-#             'TSA',
-#             1,
-#             [
-#                 (1, 'is_on', 'A', 'B', False),
-#                 (1, 'is_on', 'A', 'Table', True),
-#                 (1, 'clear', 'B', True),
-#             ],
-#         ),
-#     ]
-#
-#
-# # ordering time points
-# def test_time_point_ordering_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=10 )
-#     t_0, t_1, t_2, t_3, t_4, t_5 = stn.get_n_new_time_point_labels( 6 )
-#     stn.add_temporal_constraints_from(
-#             [
-#                 (t_0, "<", t_1, 0),
-#                 (t_1, "<=", t_2, 0),
-#                 (t_2, "<", t_3, 0),
-#                 (t_3, "<=", t_4, 0),
-#                 (t_4, "<", t_5, 0),
-#
-#             ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal | TemporalActionCall ] = [ ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#     t_ordered: List[ int ] = [ t_0, ]
-#     t_unordered: List[ int ] = [ t_1, t_2, t_3, t_4, t_5 ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#     )
-#     assert sol_plan == [ ]
-#     assert reference_chronicle.t_ordered == [ 0 ]
-#     assert reference_chronicle.t_unordered == [ 1, 2, 3, 4, 5 ]
-#     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-#         ('root',), ('TOC', 1), ('TOC', 2), ('TOC', 3), ('TOC', 4), ('TOC', 5), ('TOC', 0),
-#     ]
-#     for node_id in planner.sol_tree.nodes:
-#         node = planner.sol_tree.nodes[ node_id ]
-#         node_info = node[ "info" ]
-#         if node_info == ("TOC", 5):
-#             node_state = node[ "state" ]
-#             assert node_state.t_ordered == [ 0, 1, 2, 3, 4 ]
-#             assert node_state.t_unordered == [ 5 ]
-#             break
-#
-#
-# # ordering time points with backtracking
-# def test_time_point_ordering_backtrack_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=10 )
-#     t_0, t_1, t_2, t_3, t_4, t_5 = stn.get_n_new_time_point_labels( 6 )
-#     stn.add_temporal_constraints_from(
-#             [
-#                 (t_0, "<", t_1, 0),
-#                 (t_1, "<=", t_2, 0),
-#                 (t_2, "<", t_4, 0),
-#                 (t_4, "<=", t_3, 0),
-#                 (t_5, "<", t_4, 0),
-#
-#             ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal | TemporalActionCall ] = [ ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#     t_ordered: List[ int ] = [ t_0, ]
-#     t_unordered: List[ int ] = [ t_1, t_2, t_3, t_4, t_5 ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#     )
-#     assert sol_plan == [ ]
-#     assert reference_chronicle.t_ordered == [ 0 ]
-#     assert reference_chronicle.t_unordered == [ 1, 2, 3, 4, 5 ]
-#     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-#         ('root',), ('TOC', 1), ('TOC', 2), ('TOC', 3), ('TOC', 4), ('TOC', 5), ('TOC', 0),
-#     ]
-#     for node_id in planner.sol_tree.nodes:
-#         node = planner.sol_tree.nodes[ node_id ]
-#         node_info = node[ "info" ]
-#         if node_info == ("TOC", 5):
-#             node_state = node[ "state" ]
-#             assert node_state.t_ordered == [ 0, ]
-#             assert node_state.t_unordered == [ 1, 2, 3, 4, 5 ]
-#         if node_info == ("TOC", 4):
-#             node_state = node[ "state" ]
-#             assert node_state.t_ordered == [ 0, 5, 1, 2 ]
-#             assert node_state.t_unordered == [ 3, 4, ]
-#
-#
-# # blocks A starts on block B, move block A to table
-# def test_unstack_blocks_world():
-#     # print( temporal_action_lst )
-#     # print( temporal_actions_instance )
-#     # print( type( temporal_actions_instance ) )
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
-#     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
-#     stn.add_temporal_constraints_from(
-#             [
-#                 (t_s, "<", t_e, 0),
-#             ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [ (t_e, "clear", B, True) ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [
-#             (t_s, "is_on", A, B, True),
-#             (t_s, "is_on", B, TABLE, True),
-#         ],
-#         "clear": [
-#             (t_s, "clear", A, True),
-#             (t_s, "clear", B, False),
-#             (t_s, "clear", TABLE, True),  # always true, simplified some logic
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_e, ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#     )
-#     assert sol_plan == [ ('move_block_to_table', (0, 1), 'A', 'B') ]
-#
-# # blocks A and B start on table, move block A on to block B
-# def test_stack_blocks_world():
-#     # print( temporal_action_lst )
-#     # print( temporal_actions_instance )
-#     # print( type( temporal_actions_instance ) )
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=1 )
-#     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
-#     stn.add_temporal_constraints_from(
-#             [
-#                 (t_s, "<", t_e, 0),
-#             ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [ (t_e, "is_on", A, B, True) ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [
-#             (t_s, "is_on", A, TABLE, True),
-#             (t_s, "is_on", B, TABLE, True),
-#         ],
-#         "clear": [
-#             (t_s, "clear", A, True),
-#             (t_s, "clear", B, True),
-#             (t_s, "clear", TABLE, True),  # always true, simplified some logic
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_e, ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#             # depth_step_size=2,
-#     )
-#     assert sol_plan == [ ('move_block_to_block', (0, 1), 'A', 'Table', 'B') ]
-#     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-#         ('root',),
-#         (1, 'is_on', 'A', 'B', True),
-#         ('TOC', 1),
-#         ('TOC', 0),
-#         ('move_block_to_block', (0, 1), 'A', 'Table', 'B'),
-#         'VerifyGoal',
-#         (
-#             'TSA',
-#             1,
-#             [
-#                 (1, 'is_on', 'A', 'Table', False),
-#                 (1, 'is_on', 'A', 'B', True),
-#                 (1, 'clear', 'Table', True),
-#                 (1, 'clear', 'B', False),
-#             ],
-#         ),
-#     ]
-#     # print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
-#
-# # block B starts on block A, flip positions
-# def test_reverse_stack_blocks_world():
-#     # print( temporal_action_lst )
-#     # print( temporal_actions_instance )
-#     # print( type( temporal_actions_instance ) )
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=2 )
-#     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
-#     stn.add_temporal_constraints_from(
-#             [
-#                 (t_s, "<", t_e, 0),
-#             ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [ (t_e, "is_on", A, B, True) ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [
-#             (t_s, "is_on", A, TABLE, True),
-#             (t_s, "is_on", B, A, True),
-#         ],
-#         "clear": [
-#             (t_s, "clear", A, False),
-#             (t_s, "clear", B, True),
-#             (t_s, "clear", TABLE, True),  # always true, simplified some logic
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_e, ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#             # initial_max_depth=4,
-#             # depth_step_size=2,
-#     )
-#     print( "PLAN" )
-#     assert sol_plan == [
-#         ('move_block_to_table', (0, 1), 'B', 'A'),
-#         ('move_block_to_block', (1, 2), 'A', 'Table', 'B'),
-#     ]
-#
-#
-# # blocks A, B, and C start on table
-# # stack A on B on C
-# def test_triple_stack_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "C", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B, C = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=3 )
-#     t_s, t_BC, t_AB = stn.get_n_new_time_point_labels( 3 )
-#     stn.add_temporal_constraints_from(
-#             [
-#                 (t_s, "<", t_BC, 0),
-#                 (t_BC, "<", t_AB, 0),
-#             ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [
-#         (t_AB, "is_on", A, B, True),
-#         (t_BC, "is_on", B, C, True),
-#         (t_BC, "is_on", C, TABLE, True),
-#     ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [
-#             (t_s, "is_on", A, TABLE, True),
-#             (t_s, "is_on", B, TABLE, True),
-#             (t_s, "is_on", C, TABLE, True),
-#         ],
-#         "clear": [
-#             (t_s, "clear", A, True),
-#             (t_s, "clear", B, True),
-#             (t_s, "clear", C, True),
-#             (t_s, "clear", TABLE, True),  # always true, simplified some logic
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_AB, t_BC ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [
-#             (t_BC, t_AB, "is_on", B, C, True),
-#         ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#             # depth_step_size=5,
-#     )
-#     assert sol_plan == [
-#         ('move_block_to_block', (0, 1), 'B', 'Table', 'C'),
-#         ('move_block_to_block', (1, 2), 'A', 'Table', 'B'),
-#     ]
-#
-# # block D is on block A, block B is on block C
-# # move block A on to block B and Block C on to block D
-# def test_concurrent_stack_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "C", "D", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B, C, D = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=2 )
-#     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
-#     stn.add_temporal_constraints_from(
-#             [
-#                 (t_s, "<", t_e, 0),
-#             ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [
-#         (t_e, "is_on", A, B, True),
-#         (t_e, "is_on", C, D, True),
-#     ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [
-#             (t_s, "is_on", D, A, True),
-#             (t_s, "is_on", A, TABLE, True),
-#             (t_s, "is_on", C, B, True),
-#             (t_s, "is_on", B, TABLE, True),
-#         ],
-#         "clear": [
-#             (t_s, "clear", C, True),
-#             (t_s, "clear", D, True),
-#             (t_s, "clear", TABLE, True),  # always true, simplified some logic
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_e, ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#             # initial_max_depth=5,
-#             # depth_step_size=2,
-#     )
-#     assert sol_plan == [
-#         ('move_block_to_table', (0, 1), 'C', 'B'),
-#         ('move_block_to_table', (0, 1), 'D', 'A'),
-#         ('move_block_to_block', (1, 2), 'A', 'Table', 'B'),
-#         ('move_block_to_block', (1, 2), 'C', 'Table', 'D'),
-#     ]
-#
-#     # print( planner.state.t_ordered )
-#     # print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
-#
-#
-# # long clear goal chain
-# def test_multi_clear_blocks_world():
-#     surfaces = [ Surface( x ) for x in [ "A", "B", "C", "D", "Table" ] ]
-#     table = [ Table( surfaces[ -1 ] ), ]
-#     blocks = [ Block( x ) for x in surfaces[ :-1 ] ]
-#     A, B, C, D = blocks
-#     TABLE = table[ 0 ]
-#     stn: TemporalNetwork = TemporalNetwork( t_min=0, t_max=3 )
-#     t_s, t_e = stn.get_n_new_time_point_labels( 2 )
-#     stn.add_temporal_constraints_from(
-#             [
-#                 (t_s, "<", t_e, 0),
-#             ],
-#     )
-#
-#     goal_lst: List[ TemporalGoal ] = [
-#         (t_e, "clear", D, True),
-#     ]
-#     changes: Dict[ str, List[ ObjectVarChange ] ] = {
-#         "is_on": [
-#             (t_s, "is_on", A, B, True),
-#             (t_s, "is_on", B, C, True),
-#             (t_s, "is_on", C, D, True),
-#             (t_s, "is_on", D, TABLE, True),
-#         ],
-#         "clear": [
-#             (t_s, "clear", A, True),
-#             (t_s, "clear", TABLE, True),  # always true, simplified some logic
-#         ],
-#     }
-#     t_ordered: List[ int ] = [ t_s, ]
-#     t_unordered: List[ int ] = [ t_e, ]
-#     persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
-#         "is_on": [ ],
-#         "clear": [ ],
-#     }
-#
-#     domain_objects: Dict[ str, List ] = {
-#         "surfaces": surfaces,
-#         "table":    table,
-#         "blocks":   blocks,
-#     }
-#     reference_chronicle, value_chronicle = make_blocks_world_chronicle_pair(
-#             t_ordered,
-#             t_unordered,
-#             changes,
-#             persistences,
-#             stn,
-#             domain_objects,
-#     )
-#     planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
-#     sol_plan = planner.plan(
-#             reference_chronicle, goal_lst, methods=temporal_methods_instance,
-#             actions=temporal_actions_instance,
-#             value_chronicle=value_chronicle,
-#             # initial_max_depth=6,
-#     )
-#     assert sol_plan == [
-#         ('move_block_to_table', (0, 1), 'A', 'B'),
-#         ('move_block_to_table', (1, 2), 'B', 'C'),
-#         ('move_block_to_table', (2, 3), 'C', 'D'),
-#     ]
-#     # print( planner.state.t_ordered )
-#     # print( [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] )
-#
-# """
-# Author(s): Paul Zaidins
-# Repository: https://github.com/pzaidins2/IPyHOPPER.git
-# Organization: University of Maryland at College Park
-# """
+#!/usr/bin/env python
+"""
+File Description: unit testing for temporal blocks world domain
+"""
+from typing import Collection, Dict, List, Tuple
+
+from ordered_set import OrderedSet
+
+from examples.button_maze.button_maze_actions import Button, ButtonMazeReferenceChronicle, ButtonMazeRigidRelations, \
+    ButtonMazeValueChronicle, Location, MoveCall, Patient, PressButtonCall, StabilizeCall, temporal_actions_instance
+from examples.button_maze.button_maze_methods import temporal_methods_instance
+from ipyhop import (ChronicleInterface, IPyHOP, ObjectVarChange, ObjectVarPersistence, TemporalGoal, TemporalNetwork)
+
+CI = ChronicleInterface()
+
+
+def make_button_maze_chronicle_pair(
+        t_ordered: List[ int ],
+        t_unordered: List[ int ],
+        changes: Dict[ str, List[ ObjectVarChange ] ],
+        persistences: Dict[ str, List[ ObjectVarPersistence ] ],
+        temporal_network: TemporalNetwork,
+        domain_objects: Dict[ str, Collection ],
+        rigid_relations: ButtonMazeRigidRelations,
+) -> Tuple[ ButtonMazeReferenceChronicle, ButtonMazeValueChronicle ]:
+    ref_chron, val_chron = CI.make_chronicle_pair(
+            ButtonMazeReferenceChronicle, ButtonMazeValueChronicle, t_ordered, t_unordered, changes, persistences,
+            temporal_network, domain_objects,
+
+    )
+    val_chron.rigid_relations = rigid_relations
+    return ref_chron, val_chron
+
+
+# empty
+def test_empty():
+    patients = [ Patient( x ) for x in [ "Blue", "Purple", "Pink" ] ]
+    locations = [ Location( x ) for x in range( 9 ) ]
+    connections = OrderedSet(
+            [
+                (locations[ 0 ], locations[ 1 ]), (locations[ 1 ], locations[ 0 ]),
+                (locations[ 0 ], locations[ 3 ]), (locations[ 3 ], locations[ 0 ]),
+                (locations[ 1 ], locations[ 2 ]), (locations[ 2 ], locations[ 1 ]),
+                (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+                (locations[ 2 ], locations[ 5 ]), (locations[ 5 ], locations[ 2 ]),
+                (locations[ 3 ], locations[ 6 ]), (locations[ 6 ], locations[ 3 ]),
+                (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+                (locations[ 5 ], locations[ 8 ]), (locations[ 8 ], locations[ 5 ]),
+                (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+            ],
+    )
+    buttons = [ Button( x ) for x in [ "Green", "Red", "Orange" ] ]
+    button_at = {
+        buttons[ 0 ]: locations[ 3 ],
+        buttons[ 1 ]: locations[ 1 ],
+        buttons[ 2 ]: locations[ 5 ],
+    }
+    is_gated = { k: False for k in connections }
+    gated_connections = [
+        (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+        (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+        (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+    ]
+    for connection in gated_connections:
+        is_gated[ connection ] = True
+
+    patient_stabilization_limit = {
+        patients[ 0 ]: 20,
+        patients[ 1 ]: 17,
+        patients[ 2 ]: 12,
+    }
+    opened_by = dict()
+    # opens = { k: [ ] for k in buttons }
+    for i in range( len( gated_connections ) ):
+        connection = gated_connections[ i ]
+        button = buttons[ i // 2 ]
+        opened_by[ connection ] = button
+
+    open_time = {
+        buttons[ 0 ]: 11,
+        buttons[ 1 ]: 11,
+        buttons[ 2 ]: 8,
+    }
+
+    patient_at = {
+        patients[ 0 ]: locations[ 0 ],
+        patients[ 1 ]: locations[ 4 ],
+        patients[ 2 ]: locations[ 8 ],
+    }
+    rigid_relations = ButtonMazeRigidRelations(
+            button_at, connections, is_gated,
+            patient_stabilization_limit, opened_by, open_time, patient_at, )
+
+    stn: TemporalNetwork = TemporalNetwork(
+            t_min=0, t_max=max( patient_stabilization_limit.values() ) + max( open_time.values() ) + 1,
+    )
+
+    t_s, t_0, t_1, t_e = stn.get_n_new_time_point_labels( 4 )
+    stn.add_temporal_constraints_from(
+            [
+                (t_0, "==", t_s, 1),
+                (t_1, "==", t_0, open_time[ buttons[ 0 ] ]),
+                (t_e, "==", t_1, 1),
+            ],
+    )
+
+    goal_lst: List[ TemporalGoal | MoveCall | StabilizeCall | PressButtonCall ] = [
+
+    ]
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "at":        [ (t_s, "at", button_at[ buttons[ 0 ] ], True) ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+    t_ordered: List[ int ] = [ t_s, ]
+    t_unordered: List[ int ] = [ t_0, t_1, t_e ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "at":        [ ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+
+    domain_objects: Dict[ str, Collection ] = {
+        "locations":   locations,
+        "connections": connections,
+        "patients":    patients,
+        "buttons":     buttons,
+    }
+    reference_chronicle, value_chronicle = make_button_maze_chronicle_pair(
+            t_ordered,
+            t_unordered,
+            changes,
+            persistences,
+            stn,
+            domain_objects,
+            rigid_relations,
+    )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    sol_plan = planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+    )
+    assert sol_plan == [ ]
+
+
+# action
+def test_button():
+    patients = [ Patient( x ) for x in [ "Blue", "Purple", "Pink" ] ]
+    locations = [ Location( x ) for x in range( 9 ) ]
+    connections = OrderedSet(
+            [
+                (locations[ 0 ], locations[ 1 ]), (locations[ 1 ], locations[ 0 ]),
+                (locations[ 0 ], locations[ 3 ]), (locations[ 3 ], locations[ 0 ]),
+                (locations[ 1 ], locations[ 2 ]), (locations[ 2 ], locations[ 1 ]),
+                (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+                (locations[ 2 ], locations[ 5 ]), (locations[ 5 ], locations[ 2 ]),
+                (locations[ 3 ], locations[ 6 ]), (locations[ 6 ], locations[ 3 ]),
+                (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+                (locations[ 5 ], locations[ 8 ]), (locations[ 8 ], locations[ 5 ]),
+                (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+            ],
+    )
+    buttons = [ Button( x ) for x in [ "Green", "Red", "Orange" ] ]
+    button_at = {
+        buttons[ 0 ]: locations[ 3 ],
+        buttons[ 1 ]: locations[ 1 ],
+        buttons[ 2 ]: locations[ 5 ],
+    }
+    is_gated = { k: False for k in connections }
+    gated_connections = [
+        (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+        (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+        (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+    ]
+    for connection in gated_connections:
+        is_gated[ connection ] = True
+
+    patient_stabilization_limit = {
+        patients[ 0 ]: 20,
+        patients[ 1 ]: 17,
+        patients[ 2 ]: 12,
+    }
+    opened_by = dict()
+    # opens = { k: [ ] for k in buttons }
+    for i in range( len( gated_connections ) ):
+        connection = gated_connections[ i ]
+        button = buttons[ i // 2 ]
+        opened_by[ connection ] = button
+
+    open_time = {
+        buttons[ 0 ]: 11,
+        buttons[ 1 ]: 11,
+        buttons[ 2 ]: 8,
+    }
+
+    patient_at = {
+        patients[ 0 ]: locations[ 0 ],
+        patients[ 1 ]: locations[ 4 ],
+        patients[ 2 ]: locations[ 8 ],
+    }
+    rigid_relations = ButtonMazeRigidRelations(
+            button_at, connections, is_gated,
+            patient_stabilization_limit, opened_by, open_time, patient_at, )
+
+    stn: TemporalNetwork = TemporalNetwork(
+            t_min=0, t_max=max( patient_stabilization_limit.values() ) + max( open_time.values() ) + 1,
+    )
+
+    t_s, t_0, t_1, t_e = stn.get_n_new_time_point_labels( 4 )
+    stn.add_temporal_constraints_from(
+            [
+                (t_0, "==", t_s, 1),
+                (t_1, "==", t_0, open_time[ buttons[ 0 ] ]),
+                (t_e, "==", t_1, 1),
+            ],
+    )
+
+    goal_lst: List[ TemporalGoal | MoveCall | StabilizeCall | PressButtonCall ] = [
+        ("press_button", (t_s, t_0, t_1, t_e), buttons[ 0 ]),
+    ]
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "at":        [ (t_s, "at", button_at[ buttons[ 0 ] ], True) ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+    t_ordered: List[ int ] = [ t_s, ]
+    t_unordered: List[ int ] = [ t_0, t_1, t_e ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "at":        [ ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+
+    domain_objects: Dict[ str, Collection ] = {
+        "locations":   locations,
+        "connections": connections,
+        "patients":    patients,
+        "buttons":     buttons,
+    }
+    reference_chronicle, value_chronicle = make_button_maze_chronicle_pair(
+            t_ordered,
+            t_unordered,
+            changes,
+            persistences,
+            stn,
+            domain_objects,
+            rigid_relations,
+    )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    sol_plan = planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+    )
+    assert sol_plan == [
+        ('press_button', (0, 1, 1 + open_time[ buttons[ 0 ] ], 2 + open_time[ buttons[ 0 ] ]), buttons[ 0 ]),
+    ]
+
+
+def test_move():
+    patients = [ Patient( x ) for x in [ "Blue", "Purple", "Pink" ] ]
+    locations = [ Location( x ) for x in range( 9 ) ]
+    start_loc = locations[ 0 ]
+    end_loc = locations[ 1 ]
+    connections = OrderedSet(
+            [
+                (locations[ 0 ], locations[ 1 ]), (locations[ 1 ], locations[ 0 ]),
+                (locations[ 0 ], locations[ 3 ]), (locations[ 3 ], locations[ 0 ]),
+                (locations[ 1 ], locations[ 2 ]), (locations[ 2 ], locations[ 1 ]),
+                (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+                (locations[ 2 ], locations[ 5 ]), (locations[ 5 ], locations[ 2 ]),
+                (locations[ 3 ], locations[ 6 ]), (locations[ 6 ], locations[ 3 ]),
+                (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+                (locations[ 5 ], locations[ 8 ]), (locations[ 8 ], locations[ 5 ]),
+                (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+            ],
+    )
+    buttons = [ Button( x ) for x in [ "Green", "Red", "Orange" ] ]
+    button_at = {
+        buttons[ 0 ]: locations[ 3 ],
+        buttons[ 1 ]: locations[ 1 ],
+        buttons[ 2 ]: locations[ 5 ],
+    }
+    is_gated = { k: False for k in connections }
+    gated_connections = [
+        (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+        (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+        (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+    ]
+    for connection in gated_connections:
+        is_gated[ connection ] = True
+
+    patient_stabilization_limit = {
+        patients[ 0 ]: 20,
+        patients[ 1 ]: 17,
+        patients[ 2 ]: 12,
+    }
+    opened_by = dict()
+    # opens = { k: [ ] for k in buttons }
+    for i in range( len( gated_connections ) ):
+        connection = gated_connections[ i ]
+        button = buttons[ i // 2 ]
+        opened_by[ connection ] = button
+
+    open_time = {
+        buttons[ 0 ]: 11,
+        buttons[ 1 ]: 11,
+        buttons[ 2 ]: 8,
+    }
+
+    patient_at = {
+        patients[ 0 ]: locations[ 0 ],
+        patients[ 1 ]: locations[ 4 ],
+        patients[ 2 ]: locations[ 8 ],
+    }
+    rigid_relations = ButtonMazeRigidRelations(
+            button_at, connections, is_gated,
+            patient_stabilization_limit, opened_by, open_time, patient_at, )
+
+    stn: TemporalNetwork = TemporalNetwork(
+            t_min=0, t_max=max( patient_stabilization_limit.values() ) + max( open_time.values() ) + 1,
+    )
+
+    t_s, t_e = stn.get_n_new_time_point_labels( 2 )
+    stn.add_temporal_constraints_from(
+            [
+                (t_e, "==", t_s, 1),
+            ],
+    )
+
+    goal_lst: List[ TemporalGoal | MoveCall | StabilizeCall | PressButtonCall ] = [
+        ("move", (t_s, t_e), start_loc, end_loc),
+    ]
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "at":        [ (t_s, "at", start_loc, True) ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+    t_ordered: List[ int ] = [ t_s, ]
+    t_unordered: List[ int ] = [ t_e ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "at":        [ ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+
+    domain_objects: Dict[ str, Collection ] = {
+        "locations":   locations,
+        "connections": connections,
+        "patients":    patients,
+        "buttons":     buttons,
+    }
+    reference_chronicle, value_chronicle = make_button_maze_chronicle_pair(
+            t_ordered,
+            t_unordered,
+            changes,
+            persistences,
+            stn,
+            domain_objects,
+            rigid_relations,
+    )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    sol_plan = planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+    )
+    assert sol_plan == [
+        ('move', (0, 1), start_loc, end_loc),
+    ]
+    assert all(
+            (x in value_chronicle.changes[ "at" ][ :planner.state.changes[ "at" ] + 1 ] for x in
+                [ (1, "at", end_loc, True), (1, "at", start_loc, False) ]),
+    )
+
+
+def test_simple_navigate():
+    patients = [ Patient( x ) for x in [ "Blue", "Purple", "Pink" ] ]
+    locations = [ Location( x ) for x in range( 9 ) ]
+    start_loc = locations[ 0 ]
+    end_loc = locations[ 1 ]
+    connections = OrderedSet(
+            [
+                (locations[ 0 ], locations[ 1 ]), (locations[ 1 ], locations[ 0 ]),
+                (locations[ 0 ], locations[ 3 ]), (locations[ 3 ], locations[ 0 ]),
+                (locations[ 1 ], locations[ 2 ]), (locations[ 2 ], locations[ 1 ]),
+                (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+                (locations[ 2 ], locations[ 5 ]), (locations[ 5 ], locations[ 2 ]),
+                (locations[ 3 ], locations[ 6 ]), (locations[ 6 ], locations[ 3 ]),
+                (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+                (locations[ 5 ], locations[ 8 ]), (locations[ 8 ], locations[ 5 ]),
+                (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+            ],
+    )
+    buttons = [ Button( x ) for x in [ "Green", "Red", "Orange" ] ]
+    button_at = {
+        buttons[ 0 ]: locations[ 3 ],
+        buttons[ 1 ]: locations[ 1 ],
+        buttons[ 2 ]: locations[ 5 ],
+    }
+    is_gated = { k: False for k in connections }
+    gated_connections = [
+        (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+        (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+        (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+    ]
+    for connection in gated_connections:
+        is_gated[ connection ] = True
+
+    patient_stabilization_limit = {
+        patients[ 0 ]: 20,
+        patients[ 1 ]: 17,
+        patients[ 2 ]: 12,
+    }
+    opened_by = dict()
+    # opens = { k: [ ] for k in buttons }
+    for i in range( len( gated_connections ) ):
+        connection = gated_connections[ i ]
+        button = buttons[ i // 2 ]
+        opened_by[ connection ] = button
+
+    open_time = {
+        buttons[ 0 ]: 11,
+        buttons[ 1 ]: 11,
+        buttons[ 2 ]: 8,
+    }
+
+    patient_at = {
+        patients[ 0 ]: locations[ 0 ],
+        patients[ 1 ]: locations[ 4 ],
+        patients[ 2 ]: locations[ 8 ],
+    }
+    rigid_relations = ButtonMazeRigidRelations(
+            button_at, connections, is_gated,
+            patient_stabilization_limit, opened_by, open_time, patient_at, )
+
+    stn: TemporalNetwork = TemporalNetwork(
+            t_min=0, t_max=max( patient_stabilization_limit.values() ) + max( open_time.values() ) + 1,
+    )
+
+    t_s, t_e = stn.get_n_new_time_point_labels( 2 )
+    stn.add_temporal_constraints_from(
+            [
+                (t_e, "==", t_s, 1),
+            ],
+    )
+
+    goal_lst: List[ TemporalGoal | MoveCall | StabilizeCall | PressButtonCall ] = [
+        (t_e, "at", end_loc, True),
+    ]
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "at":        [ (t_s, "at", start_loc, True) ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+    t_ordered: List[ int ] = [ t_s, ]
+    t_unordered: List[ int ] = [ t_e ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "at":        [ ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+
+    domain_objects: Dict[ str, Collection ] = {
+        "locations":   locations,
+        "connections": connections,
+        "patients":    patients,
+        "buttons":     buttons,
+    }
+    reference_chronicle, value_chronicle = make_button_maze_chronicle_pair(
+            t_ordered,
+            t_unordered,
+            changes,
+            persistences,
+            stn,
+            domain_objects,
+            rigid_relations,
+    )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    sol_plan = planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+    )
+    assert sol_plan == [
+        ('move', (0, 1), start_loc, end_loc),
+    ]
+
+
+# stabilize
+def test_stabilize():
+    patients = [ Patient( x ) for x in [ "Blue", "Purple", "Pink" ] ]
+    locations = [ Location( x ) for x in range( 9 ) ]
+    start_loc = locations[ 0 ]
+    end_loc = locations[ 1 ]
+    connections = OrderedSet(
+            [
+                (locations[ 0 ], locations[ 1 ]), (locations[ 1 ], locations[ 0 ]),
+                (locations[ 0 ], locations[ 3 ]), (locations[ 3 ], locations[ 0 ]),
+                (locations[ 1 ], locations[ 2 ]), (locations[ 2 ], locations[ 1 ]),
+                (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+                (locations[ 2 ], locations[ 5 ]), (locations[ 5 ], locations[ 2 ]),
+                (locations[ 3 ], locations[ 6 ]), (locations[ 6 ], locations[ 3 ]),
+                (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+                (locations[ 5 ], locations[ 8 ]), (locations[ 8 ], locations[ 5 ]),
+                (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+            ],
+    )
+    buttons = [ Button( x ) for x in [ "Green", "Red", "Orange" ] ]
+    button_at = {
+        buttons[ 0 ]: locations[ 3 ],
+        buttons[ 1 ]: locations[ 1 ],
+        buttons[ 2 ]: locations[ 5 ],
+    }
+    is_gated = { k: False for k in connections }
+    gated_connections = [
+        (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+        (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+        (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+    ]
+    for connection in gated_connections:
+        is_gated[ connection ] = True
+
+    patient_stabilization_limit = {
+        patients[ 0 ]: 20,
+        patients[ 1 ]: 17,
+        patients[ 2 ]: 12,
+    }
+    opened_by = dict()
+    # opens = { k: [ ] for k in buttons }
+    for i in range( len( gated_connections ) ):
+        connection = gated_connections[ i ]
+        button = buttons[ i // 2 ]
+        opened_by[ connection ] = button
+
+    open_time = {
+        buttons[ 0 ]: 11,
+        buttons[ 1 ]: 11,
+        buttons[ 2 ]: 8,
+    }
+
+    patient_at = {
+        patients[ 0 ]: locations[ 0 ],
+        patients[ 1 ]: locations[ 4 ],
+        patients[ 2 ]: locations[ 8 ],
+    }
+    rigid_relations = ButtonMazeRigidRelations(
+            button_at, connections, is_gated,
+            patient_stabilization_limit, opened_by, open_time, patient_at, )
+
+    stn: TemporalNetwork = TemporalNetwork(
+            t_min=0, t_max=max( patient_stabilization_limit.values() ) + max( open_time.values() ) + 1,
+    )
+
+    t_s, t_e = stn.get_n_new_time_point_labels( 2 )
+    stn.add_temporal_constraints_from(
+            [
+                (t_e, "==", t_s, 1),
+            ],
+    )
+
+    goal_lst: List[ TemporalGoal | MoveCall | StabilizeCall | PressButtonCall ] = [
+        (t_e, "is_stable", patients[ 0 ], True),
+    ]
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "at":        [ (t_s, "at", start_loc, True) ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+    t_ordered: List[ int ] = [ t_s, ]
+    t_unordered: List[ int ] = [ t_e ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "at":        [ ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+
+    domain_objects: Dict[ str, Collection ] = {
+        "locations":   locations,
+        "connections": connections,
+        "patients":    patients,
+        "buttons":     buttons,
+    }
+    reference_chronicle, value_chronicle = make_button_maze_chronicle_pair(
+            t_ordered,
+            t_unordered,
+            changes,
+            persistences,
+            stn,
+            domain_objects,
+            rigid_relations,
+    )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    sol_plan = planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+    )
+    assert sol_plan == [
+        ('stabilize', (0, 1), patients[ 0 ]),
+    ]
+    assert all(
+            (x in value_chronicle.changes[ "is_stable" ][ :planner.state.changes[ "is_stable" ] + 1 ] for x in
+                [ (1, "is_stable", patients[ 0 ], True) ]),
+    )
+
+
+# multi move
+def test_long_navigate():
+    patients = [ Patient( x ) for x in [ "Blue", "Purple", "Pink" ] ]
+    locations = [ Location( x ) for x in range( 9 ) ]
+    start_loc = locations[ 6 ]
+    end_loc = locations[ 1 ]
+    connections = OrderedSet(
+            [
+                (locations[ 0 ], locations[ 1 ]), (locations[ 1 ], locations[ 0 ]),
+                (locations[ 0 ], locations[ 3 ]), (locations[ 3 ], locations[ 0 ]),
+                (locations[ 1 ], locations[ 2 ]), (locations[ 2 ], locations[ 1 ]),
+                (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+                (locations[ 2 ], locations[ 5 ]), (locations[ 5 ], locations[ 2 ]),
+                (locations[ 3 ], locations[ 6 ]), (locations[ 6 ], locations[ 3 ]),
+                (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+                (locations[ 5 ], locations[ 8 ]), (locations[ 8 ], locations[ 5 ]),
+                (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+            ],
+    )
+    buttons = [ Button( x ) for x in [ "Green", "Red", "Orange" ] ]
+    button_at = {
+        buttons[ 0 ]: locations[ 3 ],
+        buttons[ 1 ]: locations[ 1 ],
+        buttons[ 2 ]: locations[ 5 ],
+    }
+    is_gated = { k: False for k in connections }
+    gated_connections = [
+        (locations[ 4 ], locations[ 7 ]), (locations[ 7 ], locations[ 4 ]),
+        (locations[ 7 ], locations[ 8 ]), (locations[ 8 ], locations[ 7 ]),
+        (locations[ 1 ], locations[ 4 ]), (locations[ 4 ], locations[ 1 ]),
+    ]
+    for connection in gated_connections:
+        is_gated[ connection ] = True
+
+    patient_stabilization_limit = {
+        patients[ 0 ]: 20,
+        patients[ 1 ]: 17,
+        patients[ 2 ]: 12,
+    }
+    opened_by = dict()
+    # opens = { k: [ ] for k in buttons }
+    for i in range( len( gated_connections ) ):
+        connection = gated_connections[ i ]
+        button = buttons[ i // 2 ]
+        opened_by[ connection ] = button
+
+    open_time = {
+        buttons[ 0 ]: 11,
+        buttons[ 1 ]: 11,
+        buttons[ 2 ]: 8,
+    }
+
+    patient_at = {
+        patients[ 0 ]: locations[ 0 ],
+        patients[ 1 ]: locations[ 4 ],
+        patients[ 2 ]: locations[ 8 ],
+    }
+    rigid_relations = ButtonMazeRigidRelations(
+            button_at, connections, is_gated,
+            patient_stabilization_limit, opened_by, open_time, patient_at, )
+
+    stn: TemporalNetwork = TemporalNetwork(
+            t_min=0, t_max=3,
+    )
+
+    t_s, t_e = stn.get_n_new_time_point_labels( 2 )
+    stn.add_temporal_constraints_from(
+            [
+                (t_e, ">", t_s, 0),
+            ],
+    )
+
+    goal_lst: List[ TemporalGoal | MoveCall | StabilizeCall | PressButtonCall ] = [
+        (t_e, "at", end_loc, True),
+    ]
+    changes: Dict[ str, List[ ObjectVarChange ] ] = {
+        "at":        [ (t_s, "at", start_loc, True) ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+    t_ordered: List[ int ] = [ t_s, ]
+    t_unordered: List[ int ] = [ t_e ]
+    persistences: Dict[ str, List[ ObjectVarPersistence ] ] = {
+        "at":        [ ],
+        "is_open":   [ ],
+        "is_stable": [ ],
+    }
+
+    domain_objects: Dict[ str, Collection ] = {
+        "locations":   locations,
+        "connections": connections,
+        "patients":    patients,
+        "buttons":     buttons,
+    }
+    reference_chronicle, value_chronicle = make_button_maze_chronicle_pair(
+            t_ordered,
+            t_unordered,
+            changes,
+            persistences,
+            stn,
+            domain_objects,
+            rigid_relations,
+    )
+    planner = IPyHOP( temporal_methods_instance, temporal_actions_instance, verbose=3 )
+    sol_plan = planner.plan(
+            reference_chronicle, goal_lst, methods=temporal_methods_instance,
+            actions=temporal_actions_instance,
+            value_chronicle=value_chronicle,
+    )
+    assert sol_plan == [
+        ('move', (0, 1), start_loc, locations[ 3 ]), ('move', (1, 2), locations[ 3 ], locations[ 0 ]),
+        ('move', (2, 3), locations[ 0 ], end_loc),
+    ]
+
+
+# move and stabilize
+# multi move with button
+# multiple patients
+# multiple patients needing button
+
+"""
+Author(s): Paul Zaidins
+Repository: https://github.com/pzaidins2/IPyHOPPER.git
+Organization: University of Maryland at College Park
+"""
