@@ -258,7 +258,8 @@ class ChronicleInterface():
             t_i: int = change_assertion[ 0 ]
             # same excluding bool
             offset_bounds = min_stn.get_offset_bounds( t_query, t_i )
-            if offset_bounds[ 0 ] == offset_bounds[ 1 ] and offset_bounds[ 1 ] == offset and change_assertion[
+            if offset_bounds is not None and offset_bounds[ 0 ] == offset_bounds[ 1 ] and offset_bounds[
+                1 ] == offset and change_assertion[
                 2:-1 ] == query_assertion[
                 2:-1 ]:
                 # print( "PRINT EARLY VERIFY END" )
