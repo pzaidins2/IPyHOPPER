@@ -39,7 +39,7 @@ methods.declare_task_methods('tm_3', [tm_3_1])
 
 
 # ******************************************        Main Program Start      ****************************************** #
-def main():
+def test_sample_2():
     print( '\n\r', methods )
     print( '\n\r', actions )
     print( '\nInitial State: \n\r', init_state, '\n\r' )
@@ -54,7 +54,7 @@ def main():
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':
     try:
-        main()
+        test_sample_2()
         print('\nFile executed successfully!\n')
     except KeyboardInterrupt:
         print('\nProcess interrupted by user. Bye!')
