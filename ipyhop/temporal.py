@@ -60,7 +60,7 @@ class TemporalNetwork:
         offset = min( value_dict.values() ) - self.t_min
         for k, v in value_dict.items():
             value_dict[ k ] = v + offset
-        print( value_dict )
+        # print( value_dict )
         return value_dict
 
     # returns True if tp_0 cannot be greater than or equal to tp_1
@@ -159,8 +159,8 @@ class TemporalNetwork:
         lst_edge_add_lst: List[NetEdgeInput] = []
         lst_edge_remove_lst: List[NetEdgeInput] = []
         # iterate over constraints
-        print( new_edge_lst )
-        print( [ *map( get_formatted_edge, new_edge_lst ) ] )
+        # print( new_edge_lst )
+        # print( [ *map( get_formatted_edge, new_edge_lst ) ] )
         for new_edge in map(get_formatted_edge, new_edge_lst):
             if new_edge[ 0 ] == new_edge[ 1 ]:
                 print( new_edge )

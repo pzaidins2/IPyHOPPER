@@ -538,9 +538,9 @@ class ChronicleInterface():
             )
 
             if not safe_flag:
-                print( "PERSISTENCE CHANGES UNSAFE" )
-                print( persistence_assertion )
-                print( change_value_lst )
+                # print( "PERSISTENCE CHANGES UNSAFE" )
+                # print( persistence_assertion )
+                # print( change_value_lst )
 
                 return False
             # persistence vs persistence

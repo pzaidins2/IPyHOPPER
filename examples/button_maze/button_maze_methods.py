@@ -123,9 +123,9 @@ def tgm_navigate_base(
     if start_loc == goal_loc:
         return
     # maximum time allowed for travel
-    print( "TIME OFFSET CHECK" )
-    print( t_now, t_e )
-    print( [ *temporal_network.min_stn.edges.data() ] )
+    # print( "TIME OFFSET CHECK" )
+    # print( t_now, t_e )
+    # print( [ *temporal_network.min_stn.edges.data() ] )
 
     offset_bounds: Optional[ Tuple[ int, int ] ] = temporal_network.get_offset_bounds( t_now, t_e )
     if offset_bounds is None:
@@ -250,9 +250,9 @@ def tgm_navigate_with_button(
             break
     if start_loc == goal_loc:
         return
-    print( "OFFSET BOUND BUTTON METHOD" )
-    print( t_now, t_e )
-    print( [ *temporal_network.min_stn.edges.data() ] )
+    # print( "OFFSET BOUND BUTTON METHOD" )
+    # print( t_now, t_e )
+    # print( [ *temporal_network.min_stn.edges.data() ] )
     # maximum time allowed for travel
     offset_bounds: Optional[ Tuple[ int, int ] ] = temporal_network.get_offset_bounds( t_now, t_e )
     if offset_bounds is None:
