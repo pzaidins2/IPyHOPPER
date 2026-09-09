@@ -307,6 +307,9 @@ class IPyHOP(object):
             # print( "POTENTIAL TIME POINTS" )
             # print( potential_time_points )
 
+            print( "TEMPORAL NETWORK" )
+            print( temporal_network.min_stn.edges.data() )
+
             # track node id, anchoring time point, type
             node_id_anchor_time_point_tup_lst: List[ Tuple[ int, int, int ] ] = [ ]
             for node_id in open_frontier_node_tup_filter:
@@ -318,7 +321,7 @@ class IPyHOP(object):
                 # only temporal singleton actions for the current time point
                 if node_type == "TSA":
                     anchor_idx = 1
-                    node_group = 1
+                    node_group = 0
                     anchor_tp = node_info[ anchor_idx ]
                     # only care if TSA has anchor tp equal to t_now
                     if temporal_network.is_strictly_equal( anchor_tp, t_now ):
@@ -326,9 +329,59 @@ class IPyHOP(object):
 
                 # high priority to actions
                 elif node_type == "A":
-                    node_info = node_info[ 1 ]
                     anchor_idx = 0
-                    anchor_tp = node_info[ anchor_idx ]
+                    anchor_tp = node_info[ 1 ][ anchor_idx ]
+                    # block effectively identical actions
+                    # all nodes of tree except current node
+                    print( "ACTION DUPLICATE CHECK" )
+                    tree_nodes_minus_curr: Iterator[ int ] = filter(
+                            lambda x: x != node_id, sol_tree.nodes,
+                    )
+                    # tree_nodes_minus_curr_lst = [ *tree_nodes_minus_curr ]
+                    # print( tree_nodes_minus_curr_lst )
+                    node_gen: Iterator[ Dict ] = (sol_tree.nodes[ x ] for x in
+                        tree_nodes_minus_curr)
+                    # actions besides current node
+                    action_node_gen: Iterator[ Dict ] = filter(
+                            lambda x: x[ "type" ] == "A", node_gen,
+                    )
+                    # action_node_lst = [ *action_node_gen ]
+                    # print( action_node_lst )
+                    # action info
+                    action_info_gen: Iterator[ Tuple ] = map(
+                            lambda x: x[ "info" ], action_node_gen,
+                    )
+                    # action_info_lst = [ *action_info_gen ]
+                    # print( action_info_lst )
+                    # other actions in solution tree with same args (ignoring
+                    # timepoints)
+                    action_args_no_tp: Tuple = (
+                        node_info[ 0 ], node_info[ 2: ],
+                    )
+                    potential_duplicate_args_action_gen: Iterator[ Tuple ] = filter(
+                            lambda x: (x[ 0 ], x[ 2: ]) == action_args_no_tp,
+                            action_info_gen,
+                    )
+                    # potential_duplicate_args_action_lst = [ *potential_duplicate_args_action_gen ]
+                    # print( potential_duplicate_args_action_lst )
+                    # also exactly equal time point values
+                    curr_node_tps: Tuple[ int ] = node_info[ 1 ]
+                    is_strictly_equal = (
+                        value_chronicle.temporal_network.is_strictly_equal)
+                    all_tps_match = lambda x: all(
+                            map( is_strictly_equal, x, curr_node_tps ),
+                    )
+                    is_exact_match: Iterator[ bool ] = map(
+                            lambda x: all_tps_match( x[ 1 ] ),
+                            potential_duplicate_args_action_gen,
+                    )
+                    # another action is a copy of this one, force failure
+                    if any( is_exact_match ):
+                        print( "REPEATED ACTION" )
+                        print( node_info )
+                        return
+
+                    # only pursue actions occuring at t_now
                     if temporal_network.is_strictly_equal( anchor_tp, t_now ):
                         node_group = 2
                         keep_flag = True
@@ -373,7 +426,7 @@ class IPyHOP(object):
                     anchor_tp = parent_node_info[ anchor_idx ]
                     if temporal_network.is_strictly_equal( anchor_tp, t_now ):
                         keep_flag = True
-                        node_group = 0
+                        node_group = 1
                 else:
                     # print( node_info )
                     raise (ValueError( "Invalid node type for temporal planning: " + node_type ))
@@ -383,19 +436,19 @@ class IPyHOP(object):
                 if keep_flag:
                     node_id_anchor_time_point_tup_lst.append( (node_id, anchor_tp, node_group) )
             # print( node_id_anchor_time_point_tup_lst )
-            # sort TSA < A < G (t_now) < G (other) TOC
+            # sort TSA < A < G (t_now) < G (other) < TOC
             # node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: sol_tree.nodes[ x[ 0 ] ][ "depth" ] )
-            node_id_anchor_time_point_tup_lst.sort(
-                    key=lambda x: potential_time_points.index( x[ 1 ] ) if x[ 1 ] in potential_time_points else len(
-                            potential_time_points,
-                    ),
-            )
+            # node_id_anchor_time_point_tup_lst.sort(
+            #         key=lambda x: potential_time_points.index( x[ 1 ] ) if x[ 1 ] in potential_time_points else len(
+            #                 potential_time_points,
+            #         ),
+            # )
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
             for node_id_anchor_time_point_tup in node_id_anchor_time_point_tup_lst:
                 if self._verbose > 1:
                     print(
-                            'Iteration {}, Refining Node {}:\n {}'.format(
+                            'Refining Node {}:\n {}'.format(
                                     _iter, node_id_anchor_time_point_tup[ 0 ],
                                     repr( sol_tree.nodes[ node_id_anchor_time_point_tup[ 0 ] ][ 'info' ] ),
 
@@ -413,7 +466,7 @@ class IPyHOP(object):
                     curr_node_id = cast( int, node_id )
                     if self._verbose > 1:
                         print(
-                                'Iteration {}, Refining Node {}:\n {}'.format(
+                                'Refining Node {}:\n {}'.format(
                                         _iter, curr_node_id,
                                         str( sol_tree.nodes[ curr_node_id ][ 'info' ] ),
                                 )
@@ -439,7 +492,7 @@ class IPyHOP(object):
         need_new_curr_node = False
         while True:
             _iter += 1
-            assert _iter < 150
+            assert _iter < 200
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
@@ -1523,8 +1576,8 @@ class IPyHOP(object):
             #     prev_node[ 'available_methods' ] = [ *relevant_methods ]
             #     prev_node[ 'selected_method_instances' ] = None
             #     prev_node[ 'exhausted_methods' ] = False
-            # if prev_node[ 'type' ] == 'TOC':
-            #     prev_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
+            if prev_node[ 'type' ] == 'TOC':
+                prev_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
             if 'temporal_restoration_tuple' in prev_node.keys():
                 # print( prev_node[ 'temporal_restoration_tuple' ] )
                 # print( "BEFORE ROLLBACK STN" )

@@ -46,7 +46,7 @@ def tgm_is_on_single_now(
     ]
     # change assertions
     change_assertion_lst: List[ ObjectVarChange ] = [ ]
-    print( reference_chronicle )
+    # print( reference_chronicle )
     for surface_1 in surface_lst:
         if CI.verify_object_assertion_list(
                 reference_chronicle, value_chronicle, [

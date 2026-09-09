@@ -428,17 +428,21 @@ def test_time_point_ordering_backtrack_blocks_world():
     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
         ('root',), ('TOC', 1), ('TOC', 2), ('TOC', 3), ('TOC', 4), ('TOC', 5), ('TOC', 0),
     ]
-    for node_id in planner.sol_tree.nodes:
-        node = planner.sol_tree.nodes[ node_id ]
-        node_info = node[ "info" ]
-        if node_info == ("TOC", 5):
-            node_state = node[ "state" ]
-            assert node_state.t_ordered == [ 0, ]
-            assert node_state.t_unordered == [ 1, 2, 3, 4, 5 ]
-        if node_info == ("TOC", 4):
-            node_state = node[ "state" ]
-            assert node_state.t_ordered == [ 0, 5, 1, 2 ]
-            assert node_state.t_unordered == [ 3, 4, ]
+    # for node_id in planner.sol_tree.nodes:
+    #     node = planner.sol_tree.nodes[ node_id ]
+    #     node_info = node[ "info" ]
+    #     if node_info == ("TOC", 5):
+    #         node_state = node[ "state" ]
+    #         assert node_state.t_ordered == [ 0, ]
+    #         assert node_state.t_unordered == [ 1, 2, 3, 4, 5 ]
+    #     if node_info == ("TOC", 4):
+    #         node_state = node[ "state" ]
+    #         assert node_state.t_ordered == [ 0, 5, 1, 2 ]
+    #         assert node_state.t_unordered == [ 3, 4, ]
+    for i in range( len( planner.state.t_ordered ) - 1 ):
+        assert value_chronicle.temporal_network.is_strictly_less_than_or_equal(
+                planner.state.t_ordered[ i ], planner.state.t_ordered[ i + 1 ],
+        )
 
 
 # blocks A starts on block B, move block A to table

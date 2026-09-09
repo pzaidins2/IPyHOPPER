@@ -89,8 +89,15 @@ class TemporalNetwork:
 
     # returns True if tp_0 must be equal to tp_1
     def is_strictly_equal(self, tp_0: int, tp_1: int) -> bool:
-        # if <= but not <, must be =
-        return self.is_strictly_less_than_or_equal( tp_0, tp_1 ) and not (self.is_strictly_less_than( tp_0, tp_1 ))
+        if tp_0 == tp_1:
+            return True
+        edge_01 = self.find_edge( tp_0, tp_1 )
+        if edge_01 is None:
+            return False
+        if edge_01[ 2 ][ "max_delta_t" ] == 0 and edge_01[ 2 ][ "min_delta_t" ] == 0:
+            return True
+        else:
+            return False
 
     # given a list of time points, returns a list of time points where all time points could have unique values
     # favors keeping time points by order in list (given two time points of equal value, removes the later one)
