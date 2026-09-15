@@ -127,7 +127,7 @@ def test_verify_object_assertion_0():
         "can_go":      [ ],
     }
     temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
-    temporal_network.add_temporal_constraints_from( [ (0, "<=", 1, 0) ] )
+    temporal_network.add_temporal_constraints_from( [ (0, "<", 1, 0) ] )
     domain_objects: Dict[ str, List ] = { "color": [ "red", "yellow", "green" ] }
     reference_chronicle, value_chronicle = CI.make_chronicle_pair(
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,
@@ -309,7 +309,7 @@ def test_verify_object_assertion_6():
         "can_go":      [ ],
     }
     temporal_network: TemporalNetwork = TemporalNetwork( 0, 10 )
-    temporal_network.add_temporal_constraints_from( [ (0, "<=", 1, 0), (1, "==", 2, 0) ] )
+    temporal_network.add_temporal_constraints_from( [ (0, "<", 1, 0), (1, "==", 2, 0) ] )
     domain_objects: Dict[ str, List ] = { "color": [ "red", "yellow", "green" ] }
     reference_chronicle, value_chronicle = CI.make_chronicle_pair(
             TrafficReferenceChronicle, TrafficValueChronicle, t_ordered,

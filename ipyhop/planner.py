@@ -304,8 +304,8 @@ class IPyHOP(object):
             potential_time_points = stn.get_potential_next_time_points( t_unordered )
             # print( "UNORDERED TIME POINTS" )
             # print( t_unordered )
-            # print( "POTENTIAL TIME POINTS" )
-            # print( potential_time_points )
+            print( "POTENTIAL TIME POINTS" )
+            print( potential_time_points )
 
             print( "TEMPORAL NETWORK" )
             print( temporal_network.min_stn.edges.data() )
@@ -436,20 +436,34 @@ class IPyHOP(object):
                 if keep_flag:
                     node_id_anchor_time_point_tup_lst.append( (node_id, anchor_tp, node_group) )
             # print( node_id_anchor_time_point_tup_lst )
-            # sort TSA < A < G (t_now) < G (other) < TOC
-            # node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
+            # favor lower depth nodes
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: sol_tree.nodes[ x[ 0 ] ][ "depth" ] )
-            # node_id_anchor_time_point_tup_lst.sort(
-            #         key=lambda x: potential_time_points.index( x[ 1 ] ) if x[ 1 ] in potential_time_points else len(
-            #                 potential_time_points,
-            #         ),
-            # )
+            # sort TSA < A < G (t_now) < G (other) < TOC
             node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
+            # favor anchoring time points in t_ordered, then by index in potential time points and then
+            # everything else
+            node_id_anchor_time_point_tup_lst.sort(
+                    key=lambda x: potential_time_points.index( x[ 1 ] ) if x[ 1 ] in potential_time_points else (
+                        -1 if x[ 1 ] in t_ordered else len(
+                                potential_time_points,
+                        )
+                    ),
+            )
+            # favor ordering time points that must be t_now
+            node_id_anchor_time_point_tup_lst.sort(
+                    key=lambda x: (0 if (
+                            sol_tree.nodes[ x[ 0 ] ][ "type" ] == "A" and is_strictly_equal( x[ 1 ], t_now )) else 1),
+
+            )
+            print( "NEXT NODE CANDIDATES" )
+            print( [ sol_tree.nodes[ x[ 0 ] ][ "info" ] for x in node_id_anchor_time_point_tup_lst ] )
+
+            # node_id_anchor_time_point_tup_lst.sort( key=lambda x: x[ 2 ] )
             for node_id_anchor_time_point_tup in node_id_anchor_time_point_tup_lst:
                 if self._verbose > 1:
                     print(
                             'Refining Node {}:\n {}'.format(
-                                    _iter, node_id_anchor_time_point_tup[ 0 ],
+                                    node_id_anchor_time_point_tup[ 0 ],
                                     repr( sol_tree.nodes[ node_id_anchor_time_point_tup[ 0 ] ][ 'info' ] ),
 
                             ),
@@ -467,7 +481,7 @@ class IPyHOP(object):
                     if self._verbose > 1:
                         print(
                                 'Refining Node {}:\n {}'.format(
-                                        _iter, curr_node_id,
+                                        curr_node_id,
                                         str( sol_tree.nodes[ curr_node_id ][ 'info' ] ),
                                 )
                         ),
@@ -492,7 +506,7 @@ class IPyHOP(object):
         need_new_curr_node = False
         while True:
             _iter += 1
-            assert _iter < 200
+            assert _iter < 50
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
@@ -844,11 +858,11 @@ class IPyHOP(object):
 
             if is_temporal:
                 temporal_goal = curr_node_info
-                # print( "TESTING GOAL" )
+                print( "TESTING GOAL: " + str( temporal_goal ) )
                 if value_chronicle is not None and CI.verify_object_assertion(
                         self.state, value_chronicle, temporal_goal
                 ):
-                    # print( "GOAL VERIFIED" )
+                    print( "GOAL VERIFIED" )
                     # block clobbering
                     # initialize rollback data structures
                     temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])

@@ -121,6 +121,14 @@ def tgm_navigate_base(
             start_loc: Location = loc
             break
     if start_loc == goal_loc:
+        # raise ValueError("Start location is goal, but goal verification failed")
+        print( "Start location is goal, but goal verification failed" )
+        return
+    if start_loc is None:
+        # raise ValueError("Start location cannot be determined")
+        print( "Start location cannot be determined" )
+        print( t_now )
+        print( value_chronicle.changes[ "at" ][ :reference_chronicle.changes[ "at" ] ] )
         return
     # maximum time allowed for travel
     # print( "TIME OFFSET CHECK" )
@@ -249,6 +257,12 @@ def tgm_navigate_with_button(
             start_loc: Location = loc
             break
     if start_loc == goal_loc:
+        # raise ValueError("Start location is goal, but goal verification failed")
+        print( "Start location is goal, but goal verification failed" )
+        return
+    if start_loc is None:
+        # raise ValueError("Start location cannot be determined")
+        print( "Start location cannot be determined" )
         return
     # print( "OFFSET BOUND BUTTON METHOD" )
     # print( t_now, t_e )
