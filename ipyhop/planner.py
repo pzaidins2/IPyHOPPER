@@ -1576,7 +1576,7 @@ class IPyHOP(object):
             # reopen last node closed
             prev_node[ 'status' ] = 'O'
 
-            prev_node[ 'next_node_id_iter' ] = None
+            # prev_node[ 'next_node_id_iter' ] = None
             node_id_visit_order.pop( -1 )
             # restore state and task list prior to closing the last node
             dfs_successor_dict = dfs_successors( self.sol_tree, prev_node_id )
@@ -1590,8 +1590,8 @@ class IPyHOP(object):
             #     prev_node[ 'available_methods' ] = [ *relevant_methods ]
             #     prev_node[ 'selected_method_instances' ] = None
             #     prev_node[ 'exhausted_methods' ] = False
-            if prev_node[ 'type' ] == 'TOC':
-                prev_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
+            # if prev_node[ 'type' ] == 'TOC':
+            #     prev_node[ 'seperation_condition_lst' ] = [ *default_separation_condition_tup ]
             if 'temporal_restoration_tuple' in prev_node.keys():
                 # print( prev_node[ 'temporal_restoration_tuple' ] )
                 # print( "BEFORE ROLLBACK STN" )
