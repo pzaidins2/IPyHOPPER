@@ -400,7 +400,7 @@ def tgm_navigate_with_button(
                     temporal_goal,
                 ]
                 # no buttons needed, do not use method for this path
-                if subgoal_lst == [ temporal_goal ]:
+                if not has_gate:
                     continue
                 if CI.update_chronicle(
                         new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,

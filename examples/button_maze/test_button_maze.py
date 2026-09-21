@@ -950,7 +950,7 @@ def test_button_navigate():
     assert sol_plan == [
         ('move', (0, 1), start_loc, locations[ 3 ]), ('move', (1, 2), locations[ 3 ], locations[ 0 ]),
         ('move', (2, 3), locations[ 0 ], locations[ 1 ]),
-        ("press_button", (3, 4), buttons[ 1 ]), ('move', (3, 4), locations[ 1 ], locations[ 2 ]),
+        ("press_button", (3, 4, 15, 16), buttons[ 1 ]), ('move', (3, 4), locations[ 1 ], locations[ 2 ]),
         ('move', (4, 5), locations[ 2 ], locations[ 5 ]), ('move', (5, 6), locations[ 5 ], locations[ 8 ]),
         ('move', (6, 7), locations[ 8 ], locations[ 7 ]),
     ]

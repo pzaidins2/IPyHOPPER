@@ -506,7 +506,7 @@ class IPyHOP(object):
         need_new_curr_node = False
         while True:
             _iter += 1
-            assert _iter < 50
+            assert _iter < 200
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
@@ -1576,7 +1576,8 @@ class IPyHOP(object):
             # reopen last node closed
             prev_node[ 'status' ] = 'O'
 
-            # prev_node[ 'next_node_id_iter' ] = None
+            prev_node[ 'next_node_id_iter' ] = None
+
             node_id_visit_order.pop( -1 )
             # restore state and task list prior to closing the last node
             dfs_successor_dict = dfs_successors( self.sol_tree, prev_node_id )
@@ -1680,7 +1681,7 @@ class IPyHOP(object):
                 #         print( value_chronicle.persistences[ k ][ :curr_node[ "state" ].persistences[ k ] + 1 ] )
                 # else:
                 #     print( None )
-            self.state = curr_node[ 'state' ].copy()
+            # self.state = curr_node[ 'state' ].copy()
             curr_node[ 'state' ] = None
 
         # avoid backtracking to current node
