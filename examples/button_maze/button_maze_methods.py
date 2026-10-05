@@ -247,6 +247,7 @@ def tgm_navigate_with_button(
     button_at = value_chronicle.rigid_relations.button_at
     open_time = value_chronicle.rigid_relations.open_time
     t_now = reference_chronicle.t_ordered[ -1 ]
+    opens = value_chronicle.rigid_relations.opens
     assert predicate == "at" and bool_val == True
     # current position
     start_loc = None
@@ -281,8 +282,8 @@ def tgm_navigate_with_button(
     path_gen: Iterator[ List[ Location ] ] = nx.all_simple_paths( connection_graph, start_loc, goal_loc, delta_t_max )
     # sort paths shortest to longest
     path_lst: List[ List[ Location ] ] = sorted( path_gen, key=lambda x: len( x ) )
-    # time point label for next move action end
-    t_move_end = temporal_network.get_n_new_time_point_labels( 1 )[ 0 ]
+    # # time point label for next move action end
+    # t_move_end = temporal_network.get_n_new_time_point_labels( 1 )[ 0 ]
     # track paths to destination from current location
     valid_path_lst: List[ List[ Location ] ] = [ ]
     # temporal constraints by path
@@ -296,9 +297,13 @@ def tgm_navigate_with_button(
     gate_close_time_points_lst_lst: List[ List[ int ] ] = [ ]
     # how long each gate is open
     gate_open_time_offset_lst_lst: List[ List[ int ] ] = [ ]
+    # persistence constraints
+    persistence_assertion_lst_lst: List[ List[ ObjectVarPersistence ] ] = [ ]
+    # object assertions
+    change_assertions_lst_lst: List[ List[ ObjectVarChange ] ] = [ ]
     # consider each path
     for path in path_lst:
-        has_gate: bool = True
+        has_gate: bool = False
         buttons_needed_lst: List[ Button ] = [ ]
         # not t_now and move duration is
         # ensure each edge in path would be open for passage
@@ -320,6 +325,7 @@ def tgm_navigate_with_button(
                     has_gate = True
                     gate_button: Button = opened_by[ next_connection ]
                     buttons_needed_lst.append( gate_button )
+        buttons_needed_lst = list( dict.fromkeys( buttons_needed_lst ) )
 
         # previous method handles cases where button presses are uneeded
         if has_gate:
@@ -341,8 +347,8 @@ def tgm_navigate_with_button(
                 path_temporal_constraint_lst: List[ TemporalConstraint ] = [
                     # minimum time is length of path minus initial position
                     (t_e, ">=", t_now, len( path ) - 1),
-                    # next move takes single time unit
-                    (t_move_end, "==", t_now, 1),
+                    # # next move takes single time unit
+                    # (t_move_end, "==", t_now, 1),
                     # button press must be between t_now (included) and t_end (excluded)
                     *[ (t_now, "<=", x, 0) for x in button_start_time_points ],
                     *[ (t_e, "<", x, 0) for x in gate_close_time_points ],
@@ -354,12 +360,28 @@ def tgm_navigate_with_button(
                     # gate closing
                     *[ (x[ 1 ], "==", x[ 0 ], 1) for x in zip( gate_last_open_time_points, gate_close_time_points ) ],
                 ]
+                # add persistence assertion for gate staying open
+                path_persistence_assertion_lst = [ ]
+                for b, s, e in zip( buttons_needed_lst, gate_open_time_points, gate_last_open_time_points ):
+                    for g in opens[ b ]:
+                        path_persistence_assertion_lst.append( (s, e, "is_open", g, True), )
+                # # set gate as open (no is_open goal, this should not cause issue
+                # path_change_assertion_lst = [
+                #     *[ (x[ 0 ], "is_open", x[ 2 ], True) for x in zip(
+                #             gate_open_time_points, gate_last_open_time_points, button_start_time_points,
+                #             buttons_needed_lst,
+                #     ) ],
+                # ]
                 valid_paths_temporal_constraint_lst_lst.append( path_temporal_constraint_lst )
                 button_start_time_points_lst_lst.append( button_start_time_points )
                 gate_open_time_points_lst_lst.append( gate_open_time_points )
                 gate_last_open_time_points_lst_lst.append( gate_last_open_time_points )
                 gate_close_time_points_lst_lst.append( gate_close_time_points )
                 gate_open_time_offset_lst_lst.append( gate_open_time_offsets )
+                persistence_assertion_lst_lst.append( path_persistence_assertion_lst )
+            else:
+                # no buttons needed, do not use method for this path
+                continue
     if start_loc is not None:
         for i in range( len( valid_path_lst ) ):
             chosen_path: List[ Location ] = valid_path_lst[ i ]
@@ -374,7 +396,7 @@ def tgm_navigate_with_button(
             # change assertions
             change_assertion_lst: List[ ObjectVarChange ] = [ ]
             # persistence assertions
-            persistence_assertion_lst: List[ ObjectVarPersistence ] = [ ]
+            persistence_assertion_lst: List[ ObjectVarPersistence ] = persistence_assertion_lst_lst[ i ]
             # initialize rollback data structures
             temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
             change_update_dict = { }
@@ -399,9 +421,7 @@ def tgm_navigate_with_button(
                         ) ],
                     temporal_goal,
                 ]
-                # no buttons needed, do not use method for this path
-                if not has_gate:
-                    continue
+
                 if CI.update_chronicle(
                         new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
                         temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,

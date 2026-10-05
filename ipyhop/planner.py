@@ -660,18 +660,18 @@ class IPyHOP(object):
             curr_node[ 'state' ] = self.state.copy()
         curr_node_info = curr_node[ 'info' ]
         if is_temporal:
-            # print( 'CURR STATE BEFORE REFINE' )
-            # print( self.state.t_ordered )
-            # print( self.state.t_unordered )
-            # for k in value_chronicle.changes.keys():
-            #     # print( value_chronicle.changes[ k ] )
-            #     # print( self.state.changes[ k ] )
-            #     print( value_chronicle.changes[ k ] )
-            #
-            # for k in value_chronicle.persistences.keys():
-            #     # print( value_chronicle.persistences[ k ] )
-            #     # print( self.state.persistences[ k ] )
-            #     print( value_chronicle.persistences[ k ][ :self.state.persistences[ k ] + 1 ] )
+            print( 'CURR STATE BEFORE REFINE' )
+            print( self.state.t_ordered )
+            print( self.state.t_unordered )
+            for k in value_chronicle.changes.keys():
+                # print( value_chronicle.changes[ k ] )
+                # print( self.state.changes[ k ] )
+                print( value_chronicle.changes[ k ] )
+
+            for k in value_chronicle.persistences.keys():
+                # print( value_chronicle.persistences[ k ] )
+                # print( self.state.persistences[ k ] )
+                print( value_chronicle.persistences[ k ][ :self.state.persistences[ k ] + 1 ] )
 
             print( "VISIT ORDER" )
             print( [ sol_tree.nodes[ x ][ "info" ] for x in node_id_visit_order ] )
@@ -1093,12 +1093,24 @@ class IPyHOP(object):
                 if value_chronicle is not None and CI.verify_object_assertion(
                         new_state, value_chronicle, temporal_goal,
                 ):
+                    # initialize rollback data structures
+                    temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+                    change_update_dict = { }
+                    persistence_update_dict = { }
                     # add change assertion equivalent to goal as guard against clobbering
                     # attempt chronicle update
                     change_update_dict = dict()
-                    success_flag = CI.add_changes(
-                            new_state, value_chronicle, [ temporal_goal, ], change_update_dict,
+                    success_flag = CI.update_chronicle(
+                            new_state,
+                            value_chronicle,
+                            [ temporal_goal, ],
+                            [ ],
+                            [ ],
+                            change_update_dict,
+                            persistence_update_dict,
+                            temporal_restoration_tup,
                     )
+                    assert temporal_restoration_tup == ([ ], [ ], [ ])
 
             else:
                 state_var, arg, desired_val = self.sol_tree.nodes[ parent_node_id ][ 'info' ]
@@ -1196,9 +1208,18 @@ class IPyHOP(object):
             if value_chronicle is not None:
                 # attempt chronicle update
                 new_state = self.state.copy()
-                success_flag = CI.add_changes(
-                        new_state, value_chronicle, object_var_change_lst, change_update_dict,
+                temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+                change_update_dict = { }
+                persistence_update_dict = { }
+                new_state = self.state.copy()
+                # print( "BEFORE GOAL DECOMP" )
+                # print( new_state )
+                success_flag = CI.update_chronicle(
+                        new_state, value_chronicle, object_var_change_lst, [ ],
+                        [ ], temporal_restoration_tup=temporal_restoration_tup,
+                        change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
                 )
+                assert temporal_restoration_tup == ([ ], [ ], [ ])
                 # on success change reference chronicle (state) and close node
                 if success_flag:
                     if verbose > 2:
