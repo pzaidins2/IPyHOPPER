@@ -370,7 +370,7 @@ def tgm_navigate_with_button(
                 for b, s in zip( buttons_needed_lst, button_start_time_points ):
                     for g in opens[ b ]:
                         path_persistence_assertion_lst.append( (s, s, "is_open", g, False), )
-                # # set gate as open (no is_open goal, this should not cause issue
+                # set gate as open (no is_open goal, this should not cause issue
                 # path_change_assertion_lst = [
                 #     *[ (x[ 0 ], "is_open", x[ 2 ], True) for x in zip(
                 #             gate_open_time_points, gate_last_open_time_points, button_start_time_points,

@@ -381,20 +381,29 @@ class IPyHOP(object):
                         print( node_info )
                         return
 
-                    # only pursue actions occuring at t_now
+                    # prioritize actions now
                     if temporal_network.is_strictly_equal( anchor_tp, t_now ):
                         node_group = 2
-                        keep_flag = True
+
+                    else:
+                        node_group = 4
+                    keep_flag = True
                 # high priority to goals for t_now, else medium priority
                 elif node_type == "G":
+                    print( "PREV NODE GOAL CHECK" )
                     anchor_idx = 0
                     anchor_tp = node_info[ anchor_idx ]
                     # block if previous node is parent and identical time point value
                     prev_node_id = node_id_visit_order[ -1 ]
-                    # check if prev node parent
-                    if node_id in dfs_successors( sol_tree, prev_node_id ):
-                        prev_node_info = sol_tree.nodes[ prev_node_id ][ "info" ]
+                    prev_node_info = sol_tree.nodes[ prev_node_id ][ "info" ]
+                    print( prev_node_id, prev_node_info )
+                    print( node_id, node_info )
+                    # block
+                    print( [ (x, sol_tree.nodes[ x ][ "info" ]) for x in sol_tree.successors( prev_node_id ) ] )
+                    if node_id in sol_tree.successors( prev_node_id ):
+
                         prev_time_point = prev_node_info[ anchor_idx ]
+
                         # check if time point value must be equal
                         if temporal_network.is_strictly_equal( prev_time_point, anchor_tp ):
                             # check if goals match beyond time point label
@@ -405,7 +414,7 @@ class IPyHOP(object):
                     keep_flag = True
 
                     if temporal_network.is_strictly_equal( anchor_tp, t_now ):
-                        node_group = 4
+                        node_group = 3
                     else:
                         node_group = 5
                 # temporal ordering choices should only be considered if they have no timepoint in t_unordered
@@ -661,6 +670,7 @@ class IPyHOP(object):
         curr_node_info = curr_node[ 'info' ]
         if is_temporal:
             print( 'CURR STATE BEFORE REFINE' )
+            print( [ *value_chronicle.temporal_network.min_stn.edges.data() ] )
             print( self.state.t_ordered )
             print( self.state.t_unordered )
             for k in value_chronicle.changes.keys():

@@ -86,6 +86,8 @@ class TemporalNetwork:
             else:
                 return True
         edge_01 = self.find_edge( tp_0, tp_1 )
+        print( [ *self.min_stn.edges ] )
+        print( edge_01 )
         if edge_01 is None:
             return False
         if edge_01[ 2 ][ "max_delta_t" ] <= offset:
@@ -227,12 +229,20 @@ class TemporalNetwork:
     def restore_graph( self, node_add_lst: List[int], edge_add_lst: List[NetEdgeInput],
                        edge_remove_lst: List[NetEdgeInput] ):
         graph: Graph = self.min_stn
-        # add removed edges
-        graph.add_edges_from( reversed( edge_remove_lst ) )
+        print( "RESTORE TEMPORAL NETWORK" )
+        print( [ *self.min_stn.edges ] )
+        print( node_add_lst )
+        print( edge_add_lst )
+        print( edge_remove_lst )
+
         # remove added edges
         graph.remove_edges_from( reversed( edge_add_lst ) )
+        # add removed edges
+        graph.add_edges_from( reversed( edge_remove_lst ) )
         # remove added nodes
         graph.remove_nodes_from( node_add_lst )
+
+        print( [ *self.min_stn.edges ] )
         return
 
 

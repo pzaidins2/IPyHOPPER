@@ -340,13 +340,21 @@ class ChronicleInterface():
                     # if t_j is strictly inclusively between t_i and t_q + offset, drop t_i
                     change_assertion_j = unique_change_lst[ j ]
                     t_j: int = change_assertion_j[ 0 ]
-                    if is_strictly_less_than_or_equal( t_i, t_j ) and is_strictly_less_than_or_equal(
+                    print( t_i, t_j, t_query )
+                    print( is_strictly_less_than( t_i, t_j ) )
+                    print(
+                            is_strictly_less_than_or_equal(
+                                    t_j, t_query, offset=offset,
+                            ),
+                    )
+                    if is_strictly_less_than( t_i, t_j ) and is_strictly_less_than_or_equal(
                             t_j, t_query, offset=offset,
                     ):
                         keep_assertion = False
 
             if keep_assertion:
                 relevant_change_lst.append( change_assertion_i )
+        print( [ *value_chronicle.temporal_network.min_stn.edges.data() ] )
         print( "RELEVANT CHANGE ASSERTION LIST" )
         print( relevant_change_lst )
         # at this point all remaining assertion could be the last such change assertion before the
@@ -391,8 +399,8 @@ class ChronicleInterface():
         ]
         min_stn: TemporalNetwork = value_chronicle.temporal_network
         # add temporal constraints included those from implied intervals
-        # print( "BEFORE TEMPORAL 0" )
-        # print( reference_chronicle )
+        print( "BEFORE TEMPORAL 0" )
+        print( reference_chronicle )
         temporal_success_0, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
                 temporal_constraint_lst + persistence_temporal_constraint_lst,
         )
@@ -408,8 +416,8 @@ class ChronicleInterface():
             t_ordered_temporal_constraint_lst: List[ TemporalConstraint ] = [
                 (t_now, "<=", x, 0) for x in time_point_add_lst
             ]
-            # print( "BEFORE TEMPORAL 1" )
-            # print( reference_chronicle )
+            print( "BEFORE TEMPORAL 1" )
+            print( reference_chronicle )
             temporal_success_1, *current_temporal_restoration_tup = min_stn.add_temporal_constraints_from(
                     t_ordered_temporal_constraint_lst,
             )
@@ -419,21 +427,21 @@ class ChronicleInterface():
                 for i in range( 3 ):
                     temporal_restoration_tup[ i ].extend( current_temporal_restoration_tup[ i ] )
                 # add persistence assertions
-                # print( "BEFORE PERSISTENCES" )
-                # print( reference_chronicle )
+                print( "BEFORE PERSISTENCES" )
+                print( reference_chronicle )
                 if self.add_persistences(
                         reference_chronicle, value_chronicle,
                         persistence_assertion_lst, persistence_update_dict,
                 ):
                     # add change assertions
-                    # print( "BEFORE CHANGES" )
-                    # print( reference_chronicle )
+                    print( "BEFORE CHANGES" )
+                    print( reference_chronicle )
                     if self.add_changes(
                             reference_chronicle, value_chronicle,
                             change_assertion_lst, change_update_dict,
                     ):
-                        # print( "AT RETURN" )
-                        # print( reference_chronicle )
+                        print( "AT RETURN" )
+                        print( reference_chronicle )
                         return True
         # if any alterations fail, rollback everything
         self.restore_chronicle(
@@ -476,6 +484,7 @@ class ChronicleInterface():
                     change_assertion, new_change_lst, new_change_index, min_stn,
             )
             if not safe_flag:
+
                 return False
         # iterate over new change assertions for existing change and persistence assertions
         for obj_var_assertion in change_assertion_lst:
@@ -539,7 +548,9 @@ class ChronicleInterface():
         # pairwise operations allow separate testing on new additions
         for i in range( len( persistence_assertion_lst ) - 1 ):
             # current assertion
+
             persistence_assertion: ObjectVarPersistence = persistence_assertion_lst[ i ]
+            # print( persistence_assertion )
             # don't need reverse of pairs
             new_persistence_lst: List[ ObjectVarPersistence ] = persistence_assertion_lst[ (i + 1): ]
             new_persistence_index: int = len( new_persistence_lst )
@@ -559,9 +570,9 @@ class ChronicleInterface():
             )
 
             if not safe_flag:
-                # print( "PERSISTENCE CHANGES UNSAFE" )
-                # print( persistence_assertion )
-                # print( change_value_lst )
+                print( "PERSISTENCE CHANGES UNSAFE" )
+                print( persistence_assertion )
+                print( change_value_lst[ :change_index + 1 ] )
 
                 return False
             # persistence vs persistence
@@ -572,6 +583,11 @@ class ChronicleInterface():
                     min_stn,
             )
             if not safe_flag:
+                print( "PERSISTENCE CHANGES UNSAFE" )
+                print( persistence_assertion )
+                print( persistence_value_lst[ :persistence_index + 1 ] )
+                print( [ *min_stn.min_stn.edges.data() ] )
+
                 return False
         # add new persistences to chronicle
         # alter persistence_update_dict for new object variable persistences
@@ -622,6 +638,9 @@ class ChronicleInterface():
                 # if time points can be equal return false
                 if not (is_strictly_less_than( t_obj_var_assertion, t_change ) or
                         is_strictly_less_than( t_change, t_obj_var_assertion )):
+                    print( "UNSAFE CHANGE ASSERTION" )
+                    print( new_change_assertion )
+                    print( search_lst )
                     return False
         return True
 
@@ -639,9 +658,11 @@ class ChronicleInterface():
         # only search elements below index
         search_lst: List[ ObjectVarPersistence ] = persistence_lst[ :(persistence_index + 1) ]
         # only persistences for the same predicate label, args, and negated boolean value can conflict
-        filtered_search_lst = filter(
+        filtered_search_lst = [
+            *filter(
                 lambda x: (*x[ 3:-1 ], not (x[ -1 ])) == new_generic_change_assertion, search_lst
-        )
+            )
+        ]
 
         # ensure that t_change is excluded from being between start and end time points for each remainging persistance
         for persistence in filtered_search_lst:
@@ -654,6 +675,9 @@ class ChronicleInterface():
             # there exists 1+ persistence assertions that for some valid assignments of t_change, t_start, t_end
             # would conflict with the new change assertion
             else:
+                print( "UNSAFE CHANGE ASSERTION" )
+                print( new_change_assertion )
+                print( filtered_search_lst )
                 return False
         return True
 
