@@ -5,7 +5,7 @@ for interfacing with them
 """
 from copy import deepcopy
 from itertools import groupby
-from typing import Any, Collection, Dict, List, Optional, Protocol, Tuple, Type, Union
+from typing import Any, Collection, Dict, List, Protocol, Tuple, Type, Union
 
 from ipyhop.temporal import TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 
@@ -235,11 +235,11 @@ class ChronicleInterface():
             self, reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
             query_assertion: ObjectVarChange, offset: int = 0,
     ) -> bool:
-        # print( "VERIFY START" )
-        # print( "QUERY" )
-        # print( query_assertion )
-        # print( "OFFSET" )
-        # print( offset )
+        print( "VERIFY START" )
+        print( "QUERY" )
+        print( query_assertion )
+        print( "OFFSET" )
+        print( offset )
         t_query: int = query_assertion[ 0 ]
         predicate_label: str = query_assertion[ 1 ]
         predicate_args: Tuple = query_assertion[ 2:-1 ]
@@ -247,6 +247,7 @@ class ChronicleInterface():
         min_stn: TemporalNetwork = value_chronicle.temporal_network
         is_strictly_equal = min_stn.is_strictly_equal
         is_strictly_less_than = min_stn.is_strictly_less_than
+        is_strictly_less_than_or_equal = min_stn.is_strictly_less_than_or_equal
         # collect all change assertions that are relevant (same label and args )
         change_assertion_reference_idx: int = reference_chronicle.changes[ predicate_label ]
         change_assertion_lst: List[ ObjectVarChange ] = value_chronicle.changes[ predicate_label ][
@@ -262,8 +263,8 @@ class ChronicleInterface():
         ):
             change_assertion_lst.append( (t_s, predicate_label, *predicate_args, False) )
 
-        # print( "CHANGE ASSERTION LIST" )
-        # print( change_assertion_lst )
+        print( "CHANGE ASSERTION LIST" )
+        print( change_assertion_lst )
         # # positive or negative exact match, no conditionals needed
         # for change_assertion in change_assertion_lst:
         #     t_i: int = change_assertion[ 0 ]
@@ -289,22 +290,27 @@ class ChronicleInterface():
         matching_change_assertion_lst: List[ ObjectVarChange ] = [
             *filter( lambda x: x[ 2:-1 ] == predicate_args, change_assertion_lst ),
         ]
-        offset_bounds_lst: List[ Tuple[ int, int ] ] = [
-            *map( lambda x: min_stn.get_offset_bounds( t_query, x ), matching_change_assertion_lst ),
-        ]
-        # print( "MATCHING CHANGE ASSERTION LIST" )
-        # print( matching_change_assertion_lst )
+        # offset_bounds_lst: List[ Tuple[ int, int ] ] = [
+        #     *map( lambda x: min_stn.get_offset_bounds( t_query, x ), matching_change_assertion_lst ),
+        # ]
+        print( "MATCHING CHANGE ASSERTION LIST" )
+        print( matching_change_assertion_lst )
         # exclude every change assertion that must be later than change assertion to be verified
-        on_time_assertion_lst: List[ ObjectVarChange ] = [ ]
-        for i in range( len( matching_change_assertion_lst ) ):
-            change_assertion: ObjectVarChange = matching_change_assertion_lst[ i ]
-            offset_bounds: Tuple[ int, int ] = offset_bounds_lst[ i ]
-            # only keep change assertions that could potentially occur before query assertion with offset
-            if offset_bounds is None or offset_bounds[ 0 ] <= offset:
-                on_time_assertion_lst.append( change_assertion )
+        on_time_assertion_lst: List[ ObjectVarChange ] = [
+            *filter(
+                    lambda x: not is_strictly_less_than( t_query, x[ 0 ], offset=-offset ),
+                    matching_change_assertion_lst,
+            ),
+        ]
+        # for i in range( len( matching_change_assertion_lst ) ):
+        #     change_assertion: ObjectVarChange = matching_change_assertion_lst[ i ]
+        #     offset_bounds: Tuple[ int, int ] = offset_bounds_lst[ i ]
+        #     # only keep change assertions that could potentially occur before query assertion with offset
+        #     if offset_bounds is None or offset_bounds[ 0 ] <= offset:
+        #         on_time_assertion_lst.append( change_assertion )
 
-        # print( "ON TIME ASSERTION LIST" )
-        # print( on_time_assertion_lst )
+        print( "ON TIME ASSERTION LIST" )
+        print( on_time_assertion_lst )
 
         # filter positive and negative lists to remove cases where duplicate time points that are necessarily
         # equal in value
@@ -314,10 +320,10 @@ class ChronicleInterface():
         unique_change_lst: List[ ObjectVarChange ] = [
             *filter( lambda x: x[ 0 ] in unique_value_time_point_lst, list( dict.fromkeys( on_time_assertion_lst ) ) ),
         ]
-        # print( "UNIQUE VALUE TIME POINT LIST" )
-        # print( unique_value_time_point_lst )
-        # print( "UNIQUE CHANGE ASSERTION LIST" )
-        # print( unique_change_lst )
+        print( "UNIQUE VALUE TIME POINT LIST" )
+        print( unique_value_time_point_lst )
+        print( "UNIQUE CHANGE ASSERTION LIST" )
+        print( unique_change_lst )
         # remove changes that must occur before any other change (across both lists) where that later change
         # cant be later than the query assertion
         relevant_change_lst: List[ ObjectVarChange ] = [ ]
@@ -329,40 +335,28 @@ class ChronicleInterface():
             t_i: int = change_assertion_i[ 0 ]
             keep_assertion = True
             # iterate over all other changes
-            # print( t_i )
             for j in range( len( unique_change_lst ) ):
-
                 if i != j:
+                    # if t_j is strictly inclusively between t_i and t_q + offset, drop t_i
                     change_assertion_j = unique_change_lst[ j ]
                     t_j: int = change_assertion_j[ 0 ]
-                    # print( " " + str( t_j ) )
-                    # print( " " + str( is_strictly_less_than( t_i, t_j ) ) )
-                    # offset_bounds_ij: Optional[ Tuple[ int, int ] ] = min_stn.get_offset_bounds( t_i, t_j )
-                    # if the bound maximum of i->j is less than 0 change i must occur before change j
-                    if is_strictly_less_than( t_i, t_j ):
-                        offset_bounds_jq: Optional[ Tuple[ int, int ] ] = min_stn.get_offset_bounds( t_j, t_query )
-                        # if the bound maximum j->q is less than or equal to the offset
-                        # change j must occur no latr than t_query + offset
-                        # print( "  " + str( offset_bounds_jq ) )
-                        # print( "  " + str( offset_bounds_jq[ 1 ] <= offset ) )
-                        if offset_bounds_jq is not None and offset_bounds_jq[ 1 ] >= offset:
-                            # if both the conditions are met change_i must be before change j which can be no
-                            # later than t_query + offset, change_i is irrelevant as change_j replaces it
-                            # by t_query + offset
-                            keep_assertion = False
-                            break
+                    if is_strictly_less_than_or_equal( t_i, t_j ) and is_strictly_less_than_or_equal(
+                            t_j, t_query, offset=offset,
+                    ):
+                        keep_assertion = False
+
             if keep_assertion:
                 relevant_change_lst.append( change_assertion_i )
-        # print( "RELEVANT CHANGE ASSERTION LIST" )
-        # print( relevant_change_lst )
+        print( "RELEVANT CHANGE ASSERTION LIST" )
+        print( relevant_change_lst )
         # at this point all remaining assertion could be the last such change assertion before the
         # query change, if all remaining assertions match the query bool return True else False
-        # print( "VERIFY END" )
+        print( "VERIFY END" )
         if all( x[ -1 ] == query_bool for x in relevant_change_lst ):
-            # print( True )
+            print( True )
             return True
         else:
-            # print( False )
+            print( False )
             return False
 
     # combine add_changes, add_persistences, and add_temporal_constraints_from into single function call
@@ -611,6 +605,7 @@ class ChronicleInterface():
             existing_change_lst: List[ ObjectVarChange ],
             existing_change_index: int, min_stn: TemporalNetwork,
     ) -> bool:
+        is_strictly_less_than = min_stn.is_strictly_less_than
         # only search elements below index
         search_lst: List[ ObjectVarChange ] = existing_change_lst[ :existing_change_index + 1 ]
         # remove label and before as they are redundant
@@ -625,8 +620,8 @@ class ChronicleInterface():
             if generic_change_assertion == negated_new_generic_assertion:
                 t_obj_var_assertion: int = obj_var_assert[ 0 ]
                 # if time points can be equal return false
-                if not (min_stn.is_strictly_less_than( t_obj_var_assertion, t_change ) or
-                        min_stn.is_strictly_less_than( t_change, t_obj_var_assertion )):
+                if not (is_strictly_less_than( t_obj_var_assertion, t_change ) or
+                        is_strictly_less_than( t_change, t_obj_var_assertion )):
                     return False
         return True
 
@@ -674,13 +669,19 @@ class ChronicleInterface():
         new_generic_persistence: GenericObjectVarChange = new_persistence[ 3: ]
         is_strictly_less_than = min_stn.is_strictly_less_than
         # only search elements below index
-        search_lst: List[ ObjectVarChange ] = change_lst[ :change_index + 1 ]
+        search_lst: List[ ObjectVarChange ] = change_lst[ :(change_index + 1) ]
         # only change assertions that share a predicate label, args and negated boolean value can clash
         filtered_search_lst = [
             *filter( lambda x: (*x[ 2:-1 ], not (x[ -1 ])) == new_generic_persistence, search_lst ),
         ]
-        # ensure that t_change is excluded from being between start and end time points for each remainging persistance
+        # ensure that t_change is excluded from being between start and end time points for each remaining persistence
+        # print( "CHECKING PERSISTENCE ASSERTION" )
+        # print( new_persistence )
+        # print( "CHANGE ASSERTION LIST" )
+        # print( search_lst )
+        # print( "RELEVANT CHANGE ASSERTIONS" )
         for change_assert in filtered_search_lst:
+            # print( change_assert )
             t_change: int = change_assert[ 0 ]
             # if t_change of the assertion cannot occur in the interval [t_start,t_end]
             # no valid assignment of t_change, t_start, t_end can conflict

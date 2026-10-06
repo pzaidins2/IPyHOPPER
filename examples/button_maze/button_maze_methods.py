@@ -134,6 +134,9 @@ def tgm_navigate_base(
         print( temporal_goal )
         print( value_chronicle.changes[ "at" ][ :reference_chronicle.changes[ "at" ] ] )
         return
+    print( "BASE NAVIGATE" )
+    print( temporal_goal )
+    print( start_loc )
     # maximum time allowed for travel
     # print( "TIME OFFSET CHECK" )
     # print( t_now, t_e )
@@ -144,6 +147,8 @@ def tgm_navigate_base(
         delta_t_max: int = abs( temporal_network.t_max - temporal_network.t_min )
     else:
         delta_t_max: int = offset_bounds[ 1 ]
+    print( "DELTA T MAX" )
+    print( delta_t_max )
     # consider all simple paths between start_loc and goal_loc short enough to allow for travel
     path_gen: Iterator[ List[ Location ] ] = nx.all_simple_paths( connection_graph, start_loc, goal_loc, delta_t_max )
     # sort paths shortest to longest
@@ -153,7 +158,9 @@ def tgm_navigate_base(
     valid_path_lst: List[ List[ Location ] ] = [ ]
     valid_paths_temporal_constraint_lst_lst: List[ List[ TemporalConstraint ] ] = [ ]
     # consider each path
+    print( "CONSIDERING PATHS:" )
     for path in path_lst:
+        print( path )
         path_valid: bool = True
         # temporal constraints
         # not t_now and move duration is 1
@@ -175,7 +182,9 @@ def tgm_navigate_base(
                         offset=i,
                 ):
                     path_valid = False
+                    print( "INVALID PATH, CONNECTION AT FAULT: " + str( next_connection ) )
                     break
+        print( "PATH VALID" )
         # only paths already set as open
         if path_valid:
             # ignore paths that have the same first move
@@ -205,28 +214,21 @@ def tgm_navigate_base(
             change_update_dict = { }
             persistence_update_dict = { }
             new_reference_chronicle = reference_chronicle.copy()
-            # don't allow duplicate move
-            if not CI.verify_object_assertion_list(
-                    reference_chronicle,
-                    value_chronicle,
-                    [ (t_now, "at", next_loc, True) ],
-                    offset=1,
+            if CI.update_chronicle(
+                    new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                    temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                    change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
             ):
-                if CI.update_chronicle(
-                        new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
-                        temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
-                        change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
-                ):
-                    # define list of subgoals
-                    # move first step in path
-                    subgoal_lst: List[ MoveCall | AtGoal ] = [
-                        ("move", (t_now, t_move_end), start_loc, next_loc),
-                        temporal_goal,
-                    ]
-                    restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
-                    method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
-                    yield method_output
-                    # break
+                # define list of subgoals
+                # move first step in path
+                subgoal_lst: List[ MoveCall | AtGoal ] = [
+                    ("move", (t_now, t_move_end), start_loc, next_loc),
+                    temporal_goal,
+                ]
+                restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                yield method_output
+                # break
 
 # navigate recursive call with buttons
 def tgm_navigate_with_button(
@@ -365,6 +367,9 @@ def tgm_navigate_with_button(
                 for b, s, e in zip( buttons_needed_lst, gate_open_time_points, gate_last_open_time_points ):
                     for g in opens[ b ]:
                         path_persistence_assertion_lst.append( (s, e, "is_open", g, True), )
+                for b, s in zip( buttons_needed_lst, button_start_time_points ):
+                    for g in opens[ b ]:
+                        path_persistence_assertion_lst.append( (s, s, "is_open", g, False), )
                 # # set gate as open (no is_open goal, this should not cause issue
                 # path_change_assertion_lst = [
                 #     *[ (x[ 0 ], "is_open", x[ 2 ], True) for x in zip(
@@ -402,36 +407,29 @@ def tgm_navigate_with_button(
             change_update_dict = { }
             persistence_update_dict = { }
             new_reference_chronicle = reference_chronicle.copy()
-            # don't allow duplicate move
-            if not CI.verify_object_assertion_list(
-                    reference_chronicle,
-                    value_chronicle,
-                    [ (t_now, "at", next_loc, True) ],
-                    offset=1,
+            # define list of subgoals
+            # move first step in path
+            subgoal_lst: List[ MoveCall | AtGoal | PressButtonCall ] = [
+                # ("move", (t_now, t_move_end), start_loc, next_loc),
+                *[ (x[ 1 ], "at", x[ 0 ], True) for x in zip( button_loc_lst, button_start_time_points ) ],
+                *[ ("press_button", (x[ 1 ], x[ 2 ], x[ 3 ], x[ 4 ]), x[ 0 ]) for x in
+                    zip(
+                            buttons_needed_lst, button_start_time_points,
+                            gate_open_time_points, gate_last_open_time_points, gate_close_time_points,
+                    ) ],
+                temporal_goal,
+            ]
+
+            if CI.update_chronicle(
+                    new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                    temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                    change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
             ):
-                # define list of subgoals
-                # move first step in path
-                subgoal_lst: List[ MoveCall | AtGoal | PressButtonCall ] = [
-                    # ("move", (t_now, t_move_end), start_loc, next_loc),
-                    *[ (x[ 1 ], "at", x[ 0 ], True) for x in zip( button_loc_lst, button_start_time_points ) ],
-                    *[ ("press_button", (x[ 1 ], x[ 2 ], x[ 3 ], x[ 4 ]), x[ 0 ]) for x in
-                        zip(
-                                buttons_needed_lst, button_start_time_points,
-                                gate_open_time_points, gate_last_open_time_points, gate_close_time_points,
-                        ) ],
-                    temporal_goal,
-                ]
 
-                if CI.update_chronicle(
-                        new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
-                        temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
-                        change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
-                ):
-
-                    restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
-                    method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
-                    yield method_output
-                    # break
+                restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                yield method_output
+                # break
 
 
 # at patient stabilize

@@ -506,7 +506,7 @@ class IPyHOP(object):
         need_new_curr_node = False
         while True:
             _iter += 1
-            assert _iter < 200
+            assert _iter < 300
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
@@ -666,7 +666,7 @@ class IPyHOP(object):
             for k in value_chronicle.changes.keys():
                 # print( value_chronicle.changes[ k ] )
                 # print( self.state.changes[ k ] )
-                print( value_chronicle.changes[ k ] )
+                print( value_chronicle.changes[ k ][ :self.state.changes[ k ] + 1 ] )
 
             for k in value_chronicle.persistences.keys():
                 # print( value_chronicle.persistences[ k ] )
@@ -1207,7 +1207,6 @@ class IPyHOP(object):
             success_flag = False
             if value_chronicle is not None:
                 # attempt chronicle update
-                new_state = self.state.copy()
                 temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
                 change_update_dict = { }
                 persistence_update_dict = { }
@@ -1245,17 +1244,17 @@ class IPyHOP(object):
         else:
             raise (ValueError( curr_node[ 'type' ] + " ia an unsupported node type" ))
         # if is_temporal:
-        # print( 'CURR STATE AFTER REFINE' )
-        # print( self.state.t_ordered )
-        # print( self.state.t_unordered )
-        # for k in value_chronicle.changes.keys():
-        #     # print( value_chronicle.changes[ k ] )
-        #     # print( self.state.changes[ k ] )
-        #     print( value_chronicle.changes[ k ][ :self.state.changes[ k ] ] )
-        # for k in value_chronicle.persistences.keys():
-        #     # print( value_chronicle.persistences[ k ] )
-        #     # print( self.state.persistences[ k ] )
-        #     print( value_chronicle.persistences[ k ][ :self.state.persistences[ k ] ] )
+        #     print( 'CURR STATE AFTER REFINE' )
+        #     print( self.state.t_ordered )
+        #     print( self.state.t_unordered )
+        #     for k in value_chronicle.changes.keys():
+        #         # print( value_chronicle.changes[ k ] )
+        #         # print( self.state.changes[ k ] )
+        #         print( value_chronicle.changes[ k ][ :self.state.changes[ k ] + 1 ] )
+        #     for k in value_chronicle.persistences.keys():
+        #         # print( value_chronicle.persistences[ k ] )
+        #         # print( self.state.persistences[ k ] )
+        #         print( value_chronicle.persistences[ k ][ :self.state.persistences[ k ] + 1 ] )
 
     # # ******************************        Class Method Declaration
     # ****************************************** #

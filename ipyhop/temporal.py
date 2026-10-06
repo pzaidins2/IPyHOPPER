@@ -64,37 +64,46 @@ class TemporalNetwork:
         return value_dict
 
     # returns True if tp_0 cannot be greater than or equal to tp_1
-    def is_strictly_less_than(self, tp_0: int, tp_1: int) -> bool:
+    def is_strictly_less_than(self, tp_0: int, tp_1: int, offset=0) -> bool:
         if tp_0 == tp_1:
-            return False
+            if offset >= 0:
+                return False
+            else:
+                return True
         edge_01 = self.find_edge( tp_0, tp_1 )
         if edge_01 is None:
             return False
-        if edge_01[ 2 ][ "max_delta_t" ] < 0:
+        if edge_01[ 2 ][ "max_delta_t" ] < offset:
             return True
         else:
             return False
 
     # returns True if tp_0 cannot be greater than tp_1
-    def is_strictly_less_than_or_equal(self, tp_0: int, tp_1: int) -> bool:
+    def is_strictly_less_than_or_equal(self, tp_0: int, tp_1: int, offset=0) -> bool:
         if tp_0 == tp_1:
-            return True
+            if offset > 0:
+                return False
+            else:
+                return True
         edge_01 = self.find_edge( tp_0, tp_1 )
         if edge_01 is None:
             return False
-        if edge_01[ 2 ][ "max_delta_t" ] <= 0:
+        if edge_01[ 2 ][ "max_delta_t" ] <= offset:
             return True
         else:
             return False
 
     # returns True if tp_0 must be equal to tp_1
-    def is_strictly_equal(self, tp_0: int, tp_1: int) -> bool:
+    def is_strictly_equal(self, tp_0: int, tp_1: int, offset=0) -> bool:
         if tp_0 == tp_1:
-            return True
+            if offset != 0:
+                return False
+            else:
+                return True
         edge_01 = self.find_edge( tp_0, tp_1 )
         if edge_01 is None:
             return False
-        if edge_01[ 2 ][ "max_delta_t" ] == 0 and edge_01[ 2 ][ "min_delta_t" ] == 0:
+        if edge_01[ 2 ][ "max_delta_t" ] == offset and edge_01[ 2 ][ "min_delta_t" ] == offset:
             return True
         else:
             return False

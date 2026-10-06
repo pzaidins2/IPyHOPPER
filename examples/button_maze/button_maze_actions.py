@@ -164,7 +164,7 @@ def move(
                     temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
             ):
                 # define list of singleton actions
-                restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
+                restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
                 singleton_action_lst: List[ TemporalSingletonAction ] = [ ]
                 for k, v in groupby( change_assertion_lst, key=lambda x: x[ 0 ] ):
                     singleton_action_lst.append( ("TSA", k, list( v )) )
@@ -227,11 +227,13 @@ def press_button(
                 temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
         ):
             # define list of singleton actions
-            restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
+            restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
             singleton_action_lst: List[ TemporalSingletonAction ] = [ ]
             for k, v in groupby( change_assertion_lst, key=lambda x: x[ 0 ] ):
                 singleton_action_lst.append( ("TSA", k, list( v )) )
             action_output: TemporalActionOutput = (restoration_tup, singleton_action_lst)
+            # print( "PRESS BUTTON POST STATE" )
+            # print( value_chronicle.changes[ "is_open" ][ :new_reference_chronicle.changes[ "is_open" ] + 1 ] )
             return action_output
 
 
@@ -281,7 +283,7 @@ def stabilize(
                 temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
         ):
             # define list of singleton actions
-            restoration_tup: RestorationTuple = (reference_chronicle, temporal_restoration_tup)
+            restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
             singleton_action_lst: List[ TemporalSingletonAction ] = [ ]
             for k, v in groupby( change_assertion_lst, key=lambda x: x[ 0 ] ):
                 singleton_action_lst.append( ("TSA", k, list( v )) )
