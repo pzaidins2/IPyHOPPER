@@ -515,7 +515,7 @@ class IPyHOP(object):
         need_new_curr_node = False
         while True:
             _iter += 1
-            assert _iter < 300
+            assert _iter < 10000
             # if every node in tree is closed, then planning has completed successfully
             if (sol_tree.nodes[ root_node_id ][ 'status' ] == 'O' or all(
                     [ sol_tree.nodes[ node_id ][ 'status' ] == 'C' for node_id in
@@ -742,6 +742,9 @@ class IPyHOP(object):
                 )
                 assert set( toc_open_node_lst ) == set( self.state.t_unordered )
                 assert set( toc_closed_node_lst ) == set( self.state.t_ordered )
+                assert set( toc_closed_node_lst ) & set( toc_open_node_lst ) == set()
+                assert len( set( toc_closed_node_lst ) ) == len( toc_closed_node_lst )
+                assert len( set( toc_open_node_lst ) ) == len( toc_open_node_lst )
 
         # If current node is a Task
         if curr_node['type'] == 'T':

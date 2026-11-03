@@ -744,8 +744,63 @@ class ChronicleInterface():
                 return False
         return True
 
-    # bulk insert elements into list overwriting and appending as needed
+    # returns list of temporal constraints needed for a given change assertion to hold with the given chronicle pair
+    # for every change or persistence assertion that could contradict the given change assertion places the
+    # time point for the given assertion to occur strictly later
+    def get_safe_temporal_constraint_list(
+            self, new_assertion: ObjectVarChange,
+            reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
+    ) -> List[ TemporalConstraint ]:
+        # if indices [1:-1] match and index -1 is negated then a contradiction could occur
+        negated_generic_assertion: GenericObjectVarChange = (new_assertion[ 2:-1 ], not (new_assertion[ -1 ]))
+        # assertion timepoint
+        assertion_tp: int = new_assertion[ 0 ]
+        # get relevant change and persistence assertions
+        # changes
+        assertion_pred = new_assertion[ 1 ]
+        change_idx: int = reference_chronicle.changes[ assertion_pred ]
+        change_lst: List[ ObjectVarChange ] = value_chronicle.changes[ assertion_pred ][ :change_idx ]
+        # persistences
+        persistence_idx: int = reference_chronicle.persistences[ assertion_pred ]
+        persistence_lst: List[ ObjectVarPersistence ] = value_chronicle.persistences[ assertion_pred ][
+            :persistence_idx ]
+        # filter lists to matching negated generic assertion
+        filtered_change_lst: List[ ObjectVarChange ] = [
+            *filter( lambda x: x[ 2: ] == new_assertion[ 0 ], change_lst ),
+        ]
+        filtered_persistence_lst: List[ ObjectVarPersistence ] = [
+            *filter( lambda x: x[ 3: ] == new_assertion[ 0 ], change_lst ),
+        ]
+        # collect every change time point and end time point for persistences
+        time_point_ordered_set: OrderedSet[ int ] = OrderedSet( [ ] )
+        for change in filtered_change_lst:
+            tp: int = change[ 0 ]
+            time_point_ordered_set.add( tp )
+        for persistence in filtered_persistence_lst:
+            tp_s: int = persistence[ 0 ]
+            tp_e: int = persistence[ 1 ]
+            time_point_ordered_set.add( tp_s )
+        # for every time point in list must occur at different time than assertion to avoid contradiction
+        temporal_constraint_lst: List[ TemporalConstraint ] = [ ]
+        temporal_network: TemporalNetwork = value_chronicle.temporal_network
+        # create separation condition
+        for tp in time_point_ordered_set:
+            # unavoidable contradiction is present
+            if temporal_network.is_strictly_equal( tp, assertion_tp ):
+                break
+            # don't add separation condition if already exists
+            if not (temporal_network.is_strictly_less_than( tp, assertion_tp ) or
+                    temporal_network.is_strictly_less_than( assertion_tp, tp )):
+                # if strictly greater than or equal, make strictly after
+                if temporal_network.is_strictly_less_than_or_equal( assertion_tp, tp ):
+                    temporal_constraint_lst.append( (assertion_tp, "<", tp, 0) )
+                # otherwise make strictly before
+                else:
+                    temporal_constraint_lst.append( (tp, "<", assertion_tp, 0) )
 
+        return temporal_constraint_lst
+
+    # bulk insert elements into list overwriting and appending as needed
     # this return the new last_valid_index
     def safe_list_update(self, lst: List, update_element_lst: List, update_start_index: int):
         # size of original list (including garbage)
