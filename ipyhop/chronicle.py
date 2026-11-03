@@ -7,6 +7,8 @@ from copy import deepcopy
 from itertools import groupby
 from typing import Any, Collection, Dict, List, Protocol, Tuple, Type, Union
 
+from ordered_set import OrderedSet
+
 from ipyhop.temporal import TemporalConstraint, TemporalNetwork, TemporalRestorationTuple
 
 # type aliases for object variable change and persistence assertions

@@ -201,34 +201,40 @@ def tgm_navigate_base(
         for i in range( len( valid_path_lst ) ):
             chosen_path: List[ Location ] = valid_path_lst[ i ]
             next_loc: Location = chosen_path[ 1 ]
-            temporal_constraint_lst: List[ TemporalConstraint ] = valid_paths_temporal_constraint_lst_lst[ i ]
-            # change assertions
-            change_assertion_lst: List[ ObjectVarChange ] = [ ]
-            # persistence assertions
-            # don't revisit start location until goal achieved
-            persistence_assertion_lst: List[ ObjectVarPersistence ] = [
-                (t_move_end, t_e, "at", start_loc, False),
-            ]
-            # initialize rollback data structures
-            temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
-            change_update_dict = { }
-            persistence_update_dict = { }
-            new_reference_chronicle = reference_chronicle.copy()
-            if CI.update_chronicle(
-                    new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
-                    temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
-                    change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
-            ):
-                # define list of subgoals
-                # move first step in path
-                subgoal_lst: List[ MoveCall | AtGoal ] = [
-                    ("move", (t_now, t_move_end), start_loc, next_loc),
-                    temporal_goal,
+            for use_safe in [ True, False ]:
+                temporal_constraint_lst: List[ TemporalConstraint ] = [ *valid_paths_temporal_constraint_lst_lst[ i ] ]
+                if use_safe:
+                    temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                            (t_move_end, "at", next_loc, True),
+                            reference_chronicle, value_chronicle,
+                    )
+                # change assertions
+                change_assertion_lst: List[ ObjectVarChange ] = [ ]
+                # persistence assertions
+                # don't revisit start location until goal achieved
+                persistence_assertion_lst: List[ ObjectVarPersistence ] = [
+                    (t_move_end, t_e, "at", start_loc, False),
                 ]
-                restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
-                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
-                yield method_output
-                # break
+                # initialize rollback data structures
+                temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+                change_update_dict = { }
+                persistence_update_dict = { }
+                new_reference_chronicle = reference_chronicle.copy()
+                if CI.update_chronicle(
+                        new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                        temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                        change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
+                ):
+                    # define list of subgoals
+                    # move first step in path
+                    subgoal_lst: List[ MoveCall | AtGoal ] = [
+                        ("move", (t_now, t_move_end), start_loc, next_loc),
+                        temporal_goal,
+                    ]
+                    restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+                    method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                    yield method_output
+                    # break
 
 # navigate recursive call with buttons
 def tgm_navigate_with_button(
@@ -397,39 +403,48 @@ def tgm_navigate_with_button(
             gate_open_time_points: List[ int ] = gate_open_time_points_lst_lst[ i ]
             gate_last_open_time_points: List[ int ] = gate_last_open_time_points_lst_lst[ i ]
             gate_close_time_points: List[ int ] = gate_close_time_points_lst_lst[ i ]
-            temporal_constraint_lst: List[ TemporalConstraint ] = valid_paths_temporal_constraint_lst_lst[ i ]
-            # change assertions
-            change_assertion_lst: List[ ObjectVarChange ] = [ ]
-            # persistence assertions
-            persistence_assertion_lst: List[ ObjectVarPersistence ] = persistence_assertion_lst_lst[ i ]
-            # initialize rollback data structures
-            temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
-            change_update_dict = { }
-            persistence_update_dict = { }
-            new_reference_chronicle = reference_chronicle.copy()
-            # define list of subgoals
-            # move first step in path
-            subgoal_lst: List[ MoveCall | AtGoal | PressButtonCall ] = [
-                # ("move", (t_now, t_move_end), start_loc, next_loc),
-                *[ (x[ 1 ], "at", x[ 0 ], True) for x in zip( button_loc_lst, button_start_time_points ) ],
-                *[ ("press_button", (x[ 1 ], x[ 2 ], x[ 3 ], x[ 4 ]), x[ 0 ]) for x in
-                    zip(
-                            buttons_needed_lst, button_start_time_points,
-                            gate_open_time_points, gate_last_open_time_points, gate_close_time_points,
-                    ) ],
-                temporal_goal,
-            ]
+            for use_safe in [ True, False ]:
+                temporal_constraint_lst: List[ TemporalConstraint ] = [ *valid_paths_temporal_constraint_lst_lst[ i ] ]
+                at_button = [ (x[ 1 ], "at", x[ 0 ], True) for x in zip( button_loc_lst, button_start_time_points ) ]
+                if use_safe:
+                    for change in at_button:
+                        temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                                change,
+                                reference_chronicle,
+                                value_chronicle,
+                        )
+                # change assertions
+                change_assertion_lst: List[ ObjectVarChange ] = [ ]
+                # persistence assertions
+                persistence_assertion_lst: List[ ObjectVarPersistence ] = persistence_assertion_lst_lst[ i ]
+                # initialize rollback data structures
+                temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+                change_update_dict = { }
+                persistence_update_dict = { }
+                new_reference_chronicle = reference_chronicle.copy()
+                # define list of subgoals
+                # move first step in path
+                subgoal_lst: List[ MoveCall | AtGoal | PressButtonCall ] = [
+                    # ("move", (t_now, t_move_end), start_loc, next_loc),
+                    *at_button,
+                    *[ ("press_button", (x[ 1 ], x[ 2 ], x[ 3 ], x[ 4 ]), x[ 0 ]) for x in
+                        zip(
+                                buttons_needed_lst, button_start_time_points,
+                                gate_open_time_points, gate_last_open_time_points, gate_close_time_points,
+                        ) ],
+                    temporal_goal,
+                ]
 
-            if CI.update_chronicle(
-                    new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
-                    temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
-                    change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
-            ):
+                if CI.update_chronicle(
+                        new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                        temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                        change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
+                ):
 
-                restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
-                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
-                yield method_output
-                # break
+                    restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+                    method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                    yield method_output
+                    # break
 
 
 # at patient stabilize
@@ -457,35 +472,47 @@ def tgm_base_stabilize(
                 (t_now, "at", patient_loc, True),
             ],
     ):
-        # temporal constraints
-        temporal_constraint_lst: List[ TemporalConstraint ] = [
-            (t_e, "==", t_now, 1),
-        ]
-        # change assertions
-        change_assertion_lst: List[ ObjectVarChange ] = [ ]
-        # persistence assertions
-        persistence_assertion_lst: List[ ObjectVarPersistence ] = [
-            (t_now, t_now, "at", patient_loc, True),
-            *[ (t_now, t_now, "at", x, False) for x in filter( lambda x: x != patient_loc, locations ) ],
-            (t_e, t_e, "is_stable", goal_patient, True),
-        ]
-        # initialize rollback data structures
-        temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
-        change_update_dict = { }
-        persistence_update_dict = { }
-        new_reference_chronicle = reference_chronicle.copy()
-        if CI.update_chronicle(
-                new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
-                temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
-                change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
-        ):
-            # define list of subgoals
+        for use_safe in [ True, False ]:
+            # temporal constraints
+            temporal_constraint_lst: List[ TemporalConstraint ] = [
+                (t_e, "==", t_now, 1),
+            ]
+            if use_safe:
+                # temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                #         (t_now, "at", patient_loc, True),
+                #         reference_chronicle,
+                #         value_chronicle,
+                # )
+                temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                        (t_e, "at", patient_loc, True),
+                        reference_chronicle,
+                        value_chronicle,
+                )
+            # change assertions
+            change_assertion_lst: List[ ObjectVarChange ] = [ ]
+            # persistence assertions
+            persistence_assertion_lst: List[ ObjectVarPersistence ] = [
+                (t_now, t_e, "at", patient_loc, True),
+                *[ (t_now, t_e, "at", x, False) for x in filter( lambda x: x != patient_loc, locations ) ],
+                (t_e, t_e, "is_stable", goal_patient, True),
+            ]
+            # initialize rollback data structures
+            temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+            change_update_dict = { }
+            persistence_update_dict = { }
+            new_reference_chronicle = reference_chronicle.copy()
+            if CI.update_chronicle(
+                    new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                    temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                    change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
+            ):
+                # define list of subgoals
 
-            subgoal_lst: List[ StabilizeCall ] = [ ("stabilize", (t_now, t_e), goal_patient) ]
-            restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
-            method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
-            yield method_output
-            # break
+                subgoal_lst: List[ StabilizeCall ] = [ ("stabilize", (t_now, t_e), goal_patient) ]
+                restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                yield method_output
+                # break
 
 # navigate and stabilize patient
 def tgm_navigate_and_stabilize(
@@ -513,39 +540,52 @@ def tgm_navigate_and_stabilize(
                 (t_now, "at", patient_loc, True),
             ],
     ):
-        # temporal constraints
-        temporal_constraint_lst: List[ TemporalConstraint ] = [
-            (t_e, ">", t_a, 0),
-            (t_a, ">", t_now, 0),
-        ]
-        # change assertions
-        change_assertion_lst: List[ ObjectVarChange ] = [ ]
-        # persistence assertions
-        persistence_assertion_lst: List[ ObjectVarPersistence ] = [
-            (t_a, t_a, "at", patient_loc, True),
-            *[ (t_a, t_a, "at", x, False) for x in filter( lambda x: x != patient_loc, locations ) ],
-            (t_e, t_e, "is_stable", goal_patient, True),
-        ]
-        # initialize rollback data structures
-        temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
-        change_update_dict = { }
-        persistence_update_dict = { }
-        new_reference_chronicle = reference_chronicle.copy()
-        if CI.update_chronicle(
-                new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
-                temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
-                change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
-        ):
-            # define list of subgoals
-
-            subgoal_lst: List[ AtGoal | StabilizeCall ] = [
-                (t_a, "at", patient_loc, True),
-                ("stabilize", (t_a, t_e), goal_patient),
+        for use_safe in [ True, False ]:
+            # temporal constraints
+            temporal_constraint_lst: List[ TemporalConstraint ] = [
+                (t_e, ">", t_a, 0),
+                (t_a, ">", t_now, 0),
             ]
-            restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
-            method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
-            yield method_output
-            # break
+            if use_safe:
+                temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                        (t_a, "at", patient_loc, True),
+                        reference_chronicle,
+                        value_chronicle,
+                )
+                temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                        (t_e, "at", patient_loc, True),
+                        reference_chronicle,
+                        value_chronicle,
+                )
+
+            # change assertions
+            change_assertion_lst: List[ ObjectVarChange ] = [ ]
+            # persistence assertions
+            persistence_assertion_lst: List[ ObjectVarPersistence ] = [
+                (t_a, t_e, "at", patient_loc, True),
+                *[ (t_a, t_e, "at", x, False) for x in filter( lambda x: x != patient_loc, locations ) ],
+                (t_e, t_e, "is_stable", goal_patient, True),
+            ]
+            # initialize rollback data structures
+            temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+            change_update_dict = { }
+            persistence_update_dict = { }
+            new_reference_chronicle = reference_chronicle.copy()
+            if CI.update_chronicle(
+                    new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                    temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                    change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
+            ):
+                # define list of subgoals
+
+                subgoal_lst: List[ AtGoal | StabilizeCall ] = [
+                    (t_a, "at", patient_loc, True),
+                    ("stabilize", (t_a, t_e), goal_patient),
+                ]
+                restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+                method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+                yield method_output
+                # break
 
 
 temporal_methods_instance.declare_temporal_goal_methods(

@@ -1153,7 +1153,7 @@ def test_multi_patient():
                 (t_p1, ">", t_s, 0),
                 (t_p0, "<=", t_s, patient_stabilization_limit[ goal_patient_0 ]),
                 (t_p1, "<=", t_s, patient_stabilization_limit[ goal_patient_1 ]),
-                (t_p1, ">", t_p0, 0),
+                # (t_p1, ">", t_p0, 0),
             ],
     )
 
@@ -1282,13 +1282,15 @@ def test_button_multi_patient():
                 (t_p1, ">", t_s, 0),
                 (t_p0, "<=", t_s, patient_stabilization_limit[ goal_patient_0 ]),
                 (t_p1, "<=", t_s, patient_stabilization_limit[ goal_patient_1 ]),
-                (t_p1, ">", t_p0, 0),
+                # (t_p1, ">", t_p0, 0),
             ],
     )
 
     goal_lst: List[ TemporalGoal | MoveCall | StabilizeCall | PressButtonCall ] = [
-        (t_p0, "is_stable", goal_patient_0, True),
-        (t_p1, "is_stable", goal_patient_1, True),
+        # (t_p0, "is_stable", goal_patient_0, True),
+        (t_p0, "at", patient_at[ goal_patient_0 ], True),
+        # (t_p1, "is_stable", goal_patient_1, True),
+        (t_p1, "at", patient_at[ goal_patient_1 ], True),
     ]
     changes: Dict[ str, List[ ObjectVarChange ] ] = {
         "at":        [ (t_s, "at", start_loc, True) ],

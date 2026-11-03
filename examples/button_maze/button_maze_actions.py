@@ -156,6 +156,10 @@ def move(
             ]
             # temporal assertions
             temporal_constraint_lst: List[ TemporalConstraint ] = [ (t_e, "==", t_s, 1) ]
+            temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                    (t_e, "at", end_loc, True),
+                    reference_chronicle, value_chronicle,
+            )
             temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
             # attempt to add all
             new_reference_chronicle = reference_chronicle.copy()
@@ -275,6 +279,10 @@ def stabilize(
         temporal_constraint_lst: List[ TemporalConstraint ] = [
             (t_e, "==", t_s, 1),
         ]
+        temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                (t_e, "at", patient_loc, True),
+                reference_chronicle, value_chronicle,
+        )
         temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
         # attempt to add all
         new_reference_chronicle = reference_chronicle.copy()
