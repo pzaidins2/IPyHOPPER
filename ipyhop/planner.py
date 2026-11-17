@@ -1515,56 +1515,43 @@ class IPyHOP(object):
 
                     value_chronicle = self.value_chronicle
                     curr_node = self.sol_tree.nodes[ _id ]
-                    # stores node separation constraint information
-                    separation_dict: Dict = {
-                        "temporal_boundary_nodes":  (),
-                        "left_exempt_time_points":  [ ],
-                        "right_exempt_time_points": [ ],
-
-                    }
-                    # create boundary time points, all time points not exempted must be no earlier than
-                    # the time point at index 0 and no later than the time point at index 1
-                    # if anchor time point was not exempt, bounds are bounded by parent bounds
-                    separation_dict[ "temporal_boundary_nodes" ]: Tuple[ int, int ] = tuple(
-                            CI.get_n_new_time_point_labels( value_chronicle, 2 ),
-                    )
+                    # action node care about parent boundary but do not need their own
+                    # for arg time point not exempt, said time point are bounded by parent bounds
                     # check for exemption in parent nodes
+                    separation_dict = {
+                        "separation_constraint_lst": [ ],
+                    }
+
                     curr_node = self.sol_tree.nodes[ _id ]
-                    curr_boundary_nodes: Tuple[ int, int ] = separation_dict[ "temporal_boundary_nodes" ]
-                    anchor_time_point: int = child_node_info[ 0 ]
+                    arg_time_points: Tuple[ int, ... ] = child_node_info[ 1 ]
                     parent_node = self.sol_tree.nodes[ parent_node_id ]
 
                     # the lower boundary of current node must be no later than the upper boundary
-                    separation_constraint_lst: List[ TemporalConstraint ] = [
-                        (curr_boundary_nodes[ 0 ], "<=", curr_boundary_nodes[ 1 ], 0),
-                    ]
+                    # anchor time point must be in inclusive interval between lower and upper boundary
+                    separation_constraint_lst: List[ TemporalConstraint ] = [ ]
                     # root is the only node that could be a parent without seperation constraints
+                    # MAY NEED TO MAKE ROLLBACK CHANGE FOR SEPARATION DICT
                     if parent_node[ "type" ] != "NA":
                         parent_separation_dict = parent_node[ "separation_dict" ]
                         parent_boundary_nodes: Tuple[ int, int ] = parent_separation_dict[ "temporal_boundary_nodes" ]
                         parent_left_exempt_tps: List[ int ] = parent_separation_dict[ "left_exempt_time_points" ]
                         parent_right_exempt_tps: List[ int ] = parent_separation_dict[ "right_exempt_time_points" ]
-                        # parent lower boundary must be no later than current node lower boundary if
-                        # not left exempt
-                        if anchor_time_point not in parent_left_exempt_tps:
-                            separation_constraint_lst.append(
-                                    (parent_boundary_nodes[ 0 ], "<=", curr_boundary_nodes[ 0 ], 0),
-                            )
-                        # parent upper boundary must be no earlier than current node upper boundary if
-                        # not right exempt
-                        if anchor_time_point not in parent_right_exempt_tps:
-                            separation_constraint_lst.append(
-                                    (parent_boundary_nodes[ 1 ], ">=", curr_boundary_nodes[ 1 ], 0),
-                            )
+                        # place action nodes within parent bounds unless exempt
+                        for tp in arg_time_points:
+                            # not left exempt
+                            if tp not in parent_left_exempt_tps:
+                                separation_constraint_lst.append(
+                                        (parent_boundary_nodes[ 0 ], "<=", tp, 0),
+                                )
+                            # parent upper boundary must be no earlier than current node upper boundary if
+                            # not right exempt
+                            if tp not in parent_right_exempt_tps:
+                                separation_constraint_lst.append(
+                                        (parent_boundary_nodes[ 1 ], ">=", tp, 0),
+                                )
                     # separation constraints
-                    # NEED TO PREPEND TO ACTION AND METHOD CHRONICLE UPDATES
                     separation_dict[ "separation_constraint_lst" ] = separation_constraint_lst
 
-                    # create boundary exemption lists
-                    # may occur before boundary
-                    separation_dict[ "left_exempt_time_points" ]: List[ int ] = [ ]
-                    # may occur after boundary
-                    separation_dict[ "right_exempt_time_points" ]: List[ int ] = [ ]
                     curr_node[ "separation_dict" ] = separation_dict
 
             elif child_node_info[ 0 ] in self.methods.goal_method_dict or (
@@ -1614,8 +1601,11 @@ class IPyHOP(object):
                     parent_node = self.sol_tree.nodes[ parent_node_id ]
 
                     # the lower boundary of current node must be no later than the upper boundary
+                    # anchor time point must be in inclusive interval between lower and upper boundary
                     separation_constraint_lst: List[ TemporalConstraint ] = [
                         (curr_boundary_nodes[ 0 ], "<=", curr_boundary_nodes[ 1 ], 0),
+                        (curr_boundary_nodes[ 0 ], "<=", anchor_time_point, 0),
+                        (curr_boundary_nodes[ 1 ], ">=", anchor_time_point, 0),
                     ]
                     # root is the only node that could be a parent without seperation constraints
                     if parent_node[ "type" ] != "NA":
