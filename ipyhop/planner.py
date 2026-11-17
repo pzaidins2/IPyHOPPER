@@ -307,8 +307,8 @@ class IPyHOP(object):
             print( "POTENTIAL TIME POINTS" )
             print( potential_time_points )
 
-            # print( "TEMPORAL NETWORK" )
-            # print( temporal_network.min_stn.edges.data() )
+            print( "TEMPORAL NETWORK" )
+            print( temporal_network.min_stn.edges.data() )
 
             # track node id, anchoring time point, type
             node_id_anchor_time_point_tup_lst: List[ Tuple[ int, int, int ] ] = [ ]
@@ -669,19 +669,19 @@ class IPyHOP(object):
             curr_node[ 'state' ] = self.state.copy()
         curr_node_info = curr_node[ 'info' ]
         if is_temporal:
-            # print( 'CURR STATE BEFORE REFINE' )
-            # print( [ *value_chronicle.temporal_network.min_stn.edges.data() ] )
-            # print( self.state.t_ordered )
-            # print( self.state.t_unordered )
-            # for k in value_chronicle.changes.keys():
-            #     # print( value_chronicle.changes[ k ] )
-            #     # print( self.state.changes[ k ] )
-            #     print( value_chronicle.changes[ k ][ :self.state.changes[ k ] + 1 ] )
-            #
-            # for k in value_chronicle.persistences.keys():
-            #     # print( value_chronicle.persistences[ k ] )
-            #     # print( self.state.persistences[ k ] )
-            #     print( value_chronicle.persistences[ k ][ :self.state.persistences[ k ] + 1 ] )
+            print( 'CURR STATE BEFORE REFINE' )
+            print( [ *value_chronicle.temporal_network.min_stn.edges.data() ] )
+            print( self.state.t_ordered )
+            print( self.state.t_unordered )
+            for k in value_chronicle.changes.keys():
+                # print( value_chronicle.changes[ k ] )
+                # print( self.state.changes[ k ] )
+                print( value_chronicle.changes[ k ][ :self.state.changes[ k ] + 1 ] )
+
+            for k in value_chronicle.persistences.keys():
+                # print( value_chronicle.persistences[ k ] )
+                # print( self.state.persistences[ k ] )
+                print( value_chronicle.persistences[ k ][ :self.state.persistences[ k ] + 1 ] )
 
             print( "VISIT ORDER" )
             print( [ sol_tree.nodes[ x ][ "info" ] for x in node_id_visit_order ] )
@@ -717,14 +717,14 @@ class IPyHOP(object):
                 ]
                 # print( "CLOSED TIME POINTS" )
                 # print( toc_closed_node_lst )
-                # print( "ORDERED TIME POINTS" )
-                # print( self.state.t_ordered )
+                print( "ORDERED TIME POINTS" )
+                print( self.state.t_ordered )
                 # print( sol_tree.nodes[ node_id_visit_order[ -1 ] ][ "state" ].t_ordered )
                 assert self.state.t_ordered == curr_node[ "state" ].t_ordered
                 # print( "OPEN TIME POINTS" )
                 # print( toc_open_node_lst )
-                # print( "UNORDERED TIME POINTS" )
-                # print( self.state.t_unordered )
+                print( "UNORDERED TIME POINTS" )
+                print( self.state.t_unordered )
                 # print( sol_tree.nodes[ node_id_visit_order[ -1 ] ][ "state" ].t_unordered )
                 assert self.state.t_unordered == curr_node[ "state" ].t_unordered
                 # print( "CLOSED TIME POINTS NOT IN VISITED NODES" )
