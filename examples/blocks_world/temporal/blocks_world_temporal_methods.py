@@ -2,7 +2,7 @@
 """
 File Description: methods for temporal variant of blocksworld domain. Actions have duration and may be concurrent
 """
-from typing import Dict, Iterator, List, Union, cast
+from typing import Iterator, List, Union, cast
 
 from examples.blocks_world.temporal.blocks_world_temporal_actions import (Block, ClearGoal, IsOnGoal,
     MoveBlockToBlockCall, MoveBlockToTableCall,
@@ -19,7 +19,7 @@ temporal_methods_instance = TemporalMethods()
 # block on doing goal until t_e
 # move block to surface_0 from surface_1
 def tgm_is_on_single_now(
-        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, separation_dict: Dict,
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
         temporal_goal: IsOnGoal,
 ) -> Iterator[ TemporalMethodOutput ]:
     # localize variables
@@ -137,7 +137,7 @@ def tgm_is_on_single_now(
 # t_minus_one block_0 is on some surface_1
 # clear block_0 and surface_0 and move block_0 to surface_0
 def tgm_is_on_recurse(
-        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, separation_dict: Dict,
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
         temporal_goal: IsOnGoal,
 ) -> Iterator[ TemporalMethodOutput ]:
     # localize variables
@@ -206,7 +206,7 @@ def tgm_is_on_recurse(
 # clear goal can be achieved by single move at t_now
 # clear block_0 by moving block_1 elsewhere
 def tgm_clear_single_now(
-        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, separation_dict: Dict,
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
         temporal_goal: ClearGoal,
 ) -> Iterator[ TemporalMethodOutput ]:
     # localize variables
@@ -324,7 +324,7 @@ def tgm_clear_single_now(
 # block on top of clear target must be cleared first
 # clear block_0 by moving block_1 elsewhere
 def tgm_clear_recurse(
-        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, separation_dict: Dict,
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
         temporal_goal: ClearGoal,
 ) -> Iterator[ TemporalMethodOutput ]:
     # localize variables

@@ -96,7 +96,7 @@ CI = ChronicleInterface()
 # action for moving block from being on block start_pos to the table
 MoveBlockToTableCall = Tuple[ str, Tuple[ int, int ], Block, Block ]
 def move_block_to_table(
-        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, separation_dict: Dict,
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
         time_point_tup: Tuple[ int, int ], block: Block, start_pos: Block,
 ) -> TemporalActionOutput:
     # get time point labels
@@ -137,7 +137,7 @@ def move_block_to_table(
 # action for moving block from being on block start_pos to block end_pos
 MoveBlockToBlockCall = Tuple[ str, Tuple[ int, int ], Block, Surface, Block ]
 def move_block_to_block(
-        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle, separation_dict: Dict,
+        reference_chronicle: ReferenceChronicle, value_chronicle: ValueChronicle,
         time_point_tup: Tuple[ int, int ], block: Block, start_pos: Surface, end_pos: Block,
 ) -> TemporalActionOutput:
     assert end_pos != value_chronicle.domain_objects[ "table" ][ 0 ]

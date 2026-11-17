@@ -809,9 +809,8 @@ class IPyHOP(object):
                     # print( curr_node_info )
                     # print( self.state )
                     # print( value_chronicle.changes )
-                    separation_dict = curr_node[ "separation_dict" ]
                     temporal_action_output: TemporalActionOutput = curr_node[ 'action' ](
-                            self.state.copy(), value_chronicle, separation_dict, *curr_node_info[ 1: ],
+                            self.state.copy(), value_chronicle, *curr_node_info[ 1: ],
                     )
                     if temporal_action_output is not None:
                         restoration_tup: RestorationTuple = temporal_action_output[ 0 ]
@@ -872,7 +871,6 @@ class IPyHOP(object):
 
             if is_temporal:
                 temporal_goal = curr_node_info
-                separation_dict = curr_node[ "separation_dict" ]
                 print( "TESTING GOAL: " + str( temporal_goal ) )
                 if value_chronicle is not None and CI.verify_object_assertion(
                         self.state, value_chronicle, temporal_goal
@@ -884,12 +882,11 @@ class IPyHOP(object):
                     change_update_dict = { }
                     persistence_update_dict = { }
                     new_state = self.state.copy()
-                    separation_constraint_lst = separation_dict[ "separation_constraint_lst" ]
                     # print( "BEFORE GOAL DECOMP" )
                     # print( new_state )
                     if CI.update_chronicle(
                             new_state, value_chronicle, [ temporal_goal, ], [ ],
-                            separation_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                            [ ], temporal_restoration_tup=temporal_restoration_tup,
                             change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
                     ):
                         # print( "AFTER GOAL DECOMP" )
@@ -933,9 +930,8 @@ class IPyHOP(object):
                             curr_node[ 'selected_method' ] = method
                             # create method instance generator
                             if is_temporal:
-                                separation_dict = curr_node[ "separation_dict" ]
                                 curr_node[ 'selected_method_instances' ] = method(
-                                        self.state.copy(), value_chronicle, separation_dict, curr_node_info
+                                        self.state.copy(), value_chronicle, curr_node_info,
                                 )
 
                             else:
@@ -1003,9 +999,8 @@ class IPyHOP(object):
                                 # create method instance generator
                                 # print( curr_node_info )
                                 if is_temporal:
-                                    separation_dict = curr_node[ 'separation_dict' ]
                                     curr_node[ 'selected_method_instances' ] = method(
-                                            self.state.copy(), value_chronicle, separation_dict, curr_node_info
+                                            self.state.copy(), value_chronicle, curr_node_info,
                                     )
                                 else:
                                     curr_node[ 'selected_method_instances' ] = method(
@@ -1512,25 +1507,17 @@ class IPyHOP(object):
                     self.sol_tree.nodes[ _id ][ "temporal_restoration_tuple" ]: Optional[
                         TemporalRestorationTuple ] = None
                     self.sol_tree.nodes[ _id ][ "temporal_singleton_action_lst" ] = None
-
                     value_chronicle = self.value_chronicle
                     curr_node = self.sol_tree.nodes[ _id ]
-                    # stores node separation constraint information
-                    separation_dict: Dict = {
-                        "temporal_boundary_nodes":  (),
-                        "left_exempt_time_points":  [ ],
-                        "right_exempt_time_points": [ ],
-
-                    }
                     # create boundary time points, all time points not exempted must be no earlier than
                     # the time point at index 0 and no later than the time point at index 1
                     # if anchor time point was not exempt, bounds are bounded by parent bounds
-                    separation_dict[ "temporal_boundary_nodes" ]: Tuple[ int, int ] = tuple(
+                    curr_node[ "temporal_boundary_nodes" ]: Tuple[ int, int ] = tuple(
                             CI.get_n_new_time_point_labels( value_chronicle, 2 ),
                     )
                     # check for exemption in parent nodes
                     curr_node = self.sol_tree.nodes[ _id ]
-                    curr_boundary_nodes: Tuple[ int, int ] = separation_dict[ "temporal_boundary_nodes" ]
+                    curr_boundary_nodes: Tuple[ int, int ] = curr_node[ "temporal_boundary_nodes" ]
                     anchor_time_point: int = child_node_info[ 0 ]
                     parent_node = self.sol_tree.nodes[ parent_node_id ]
 
@@ -1540,10 +1527,10 @@ class IPyHOP(object):
                     ]
                     # root is the only node that could be a parent without seperation constraints
                     if parent_node[ "type" ] != "NA":
-                        parent_separation_dict = parent_node[ "separation_dict" ]
-                        parent_boundary_nodes: Tuple[ int, int ] = parent_separation_dict[ "temporal_boundary_nodes" ]
-                        parent_left_exempt_tps: List[ int ] = parent_separation_dict[ "left_exempt_time_points" ]
-                        parent_right_exempt_tps: List[ int ] = parent_separation_dict[ "right_exempt_time_points" ]
+                        parent_boundary_nodes: Tuple[ int, int ] = self.sol_tree.nodes[ parent_node_id ][
+                            "temporal_boundary_nodes" ]
+                        parent_left_exempt_tps: List[ int ] = parent_node[ "left_exempt_time_points" ]
+                        parent_right_exempt_tps: List[ int ] = parent_node[ "right_exempt_time_points" ]
                         # parent lower boundary must be no later than current node lower boundary if
                         # not left exempt
                         if anchor_time_point not in parent_left_exempt_tps:
@@ -1558,14 +1545,13 @@ class IPyHOP(object):
                             )
                     # separation constraints
                     # NEED TO PREPEND TO ACTION AND METHOD CHRONICLE UPDATES
-                    separation_dict[ "separation_constraint_lst" ] = separation_constraint_lst
+                    curr_node[ "separation_constraint_lst" ] = separation_constraint_lst
 
                     # create boundary exemption lists
                     # may occur before boundary
-                    separation_dict[ "left_exempt_time_points" ]: List[ int ] = [ ]
+                    curr_node[ "left_exempt_time_points" ]: List[ int ] = [ ]
                     # may occur after boundary
-                    separation_dict[ "right_exempt_time_points" ]: List[ int ] = [ ]
-                    curr_node[ "separation_dict" ] = separation_dict
+                    curr_node[ "right_exempt_time_points" ]: List[ int ] = [ ]
 
             elif child_node_info[ 0 ] in self.methods.goal_method_dict or (
                     is_temporal and child_node_info[ 1 ] in self.methods.goal_method_dict):
@@ -1594,22 +1580,16 @@ class IPyHOP(object):
                     )
                     # check for exemption in parent nodes
 
-                    # stores node separation constraint information
-                    separation_dict: Dict = {
-                        "temporal_boundary_nodes":  (),
-                        "left_exempt_time_points":  [ ],
-                        "right_exempt_time_points": [ ],
-
-                    }
+                    curr_node = self.sol_tree.nodes[ _id ]
                     # create boundary time points, all time points not exempted must be no earlier than
                     # the time point at index 0 and no later than the time point at index 1
                     # if anchor time point was not exempt, bounds are bounded by parent bounds
-                    separation_dict[ "temporal_boundary_nodes" ]: Tuple[ int, int ] = tuple(
+                    curr_node[ "temporal_boundary_nodes" ]: Tuple[ int, int ] = tuple(
                             CI.get_n_new_time_point_labels( value_chronicle, 2 ),
                     )
                     # check for exemption in parent nodes
                     curr_node = self.sol_tree.nodes[ _id ]
-                    curr_boundary_nodes: Tuple[ int, int ] = separation_dict[ "temporal_boundary_nodes" ]
+                    curr_boundary_nodes: Tuple[ int, int ] = curr_node[ "temporal_boundary_nodes" ]
                     anchor_time_point: int = child_node_info[ 0 ]
                     parent_node = self.sol_tree.nodes[ parent_node_id ]
 
@@ -1619,10 +1599,10 @@ class IPyHOP(object):
                     ]
                     # root is the only node that could be a parent without seperation constraints
                     if parent_node[ "type" ] != "NA":
-                        parent_separation_dict = parent_node[ "separation_dict" ]
-                        parent_boundary_nodes: Tuple[ int, int ] = parent_separation_dict[ "temporal_boundary_nodes" ]
-                        parent_left_exempt_tps: List[ int ] = parent_separation_dict[ "left_exempt_time_points" ]
-                        parent_right_exempt_tps: List[ int ] = parent_separation_dict[ "right_exempt_time_points" ]
+                        parent_boundary_nodes: Tuple[ int, int ] = self.sol_tree.nodes[ parent_node_id ][
+                            "temporal_boundary_nodes" ]
+                        parent_left_exempt_tps: List[ int ] = parent_node[ "left_exempt_time_points" ]
+                        parent_right_exempt_tps: List[ int ] = parent_node[ "right_exempt_time_points" ]
                         # parent lower boundary must be no later than current node lower boundary if
                         # not left exempt
                         if anchor_time_point not in parent_left_exempt_tps:
@@ -1637,14 +1617,13 @@ class IPyHOP(object):
                             )
                     # separation constraints
                     # NEED TO PREPEND TO ACTION AND METHOD CHRONICLE UPDATES
-                    separation_dict[ "separation_constraint_lst" ] = separation_constraint_lst
+                    curr_node[ "separation_constraint_lst" ] = separation_constraint_lst
 
                     # create boundary exemption lists
                     # may occur before boundary
-                    separation_dict[ "left_exempt_time_points" ]: List[ int ] = [ ]
+                    curr_node[ "left_exempt_time_points" ]: List[ int ] = [ ]
                     # may occur after boundary
-                    separation_dict[ "right_exempt_time_points" ]: List[ int ] = [ ]
-                    curr_node[ "separation_dict" ] = separation_dict
+                    curr_node[ "right_exempt_time_points" ]: List[ int ] = [ ]
 
                 self.sol_tree.add_edge( parent_node_id, _id )
         if self.sol_tree.nodes[parent_node_id]['type'] == 'G':
