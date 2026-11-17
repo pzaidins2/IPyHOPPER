@@ -94,7 +94,7 @@ def path_planning_helper(start_loc, end_loc, ):
 #                     # break
 
 # orchestrates multiple stabilization to prevent temporal-location ambiguity locking up planner
-def tgm_stablilize_all(
+def tgm_stabilize_all(
         reference_chronicle: ButtonMazeReferenceChronicle, value_chronicle: ButtonMazeValueChronicle,
         separation_dict: Dict,
         temporal_goal: StabilizeALlGoal, ):
@@ -123,9 +123,11 @@ def tgm_stablilize_all(
         # button presses should have left exemptions
         # temporal constraints
 
-        temporal_constraint_lst: List[ TemporalConstraint ] = [ *separation_dict[ "separation_constraint_lst" ] ] + [
-            (t_patient, "<", t_others),
-            (t_patient, "<=", t_s, value_chronicle.rigid_relations.patient_stabilization_limit[ patient ]),
+        temporal_constraint_lst: List[ TemporalConstraint ] = [
+            *separation_dict[ "separation_constraint_lst" ],
+            (t_patient, "<", t_others, 0),
+            (t_s, "<=", t_patient, 0),
+            (t_others, "<=", t_e, 0)
         ]
         # change assertions
         change_assertion_lst: List[ ObjectVarChange ] = [ ]
@@ -154,7 +156,32 @@ def tgm_stablilize_all(
             restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
             method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
             yield method_output
-    pass
+    # if no patients unstable add all stable atom
+    if len( unstable_patient_lst ) == 0:
+        temporal_constraint_lst: List[ TemporalConstraint ] = [ *separation_dict[ "separation_constraint_lst" ] ]
+
+        # change assertions
+        change_assertion_lst: List[ ObjectVarChange ] = [ (t_e, "all_stable", True) ]
+        # persistence assertions
+        persistence_assertion_lst: List[ ObjectVarPersistence ] = [ ]
+        # initialize rollback data structures
+        temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
+        change_update_dict = { }
+        persistence_update_dict = { }
+        new_reference_chronicle = reference_chronicle.copy()
+
+        # define list of subgoals
+        subgoal_lst: List[ StabilizeGoal | StabilizeALlGoal ] = [ ]
+
+        if CI.update_chronicle(
+                new_reference_chronicle, value_chronicle, change_assertion_lst, persistence_assertion_lst,
+                temporal_constraint_lst, temporal_restoration_tup=temporal_restoration_tup,
+                change_update_dict=change_update_dict, persistence_update_dict=persistence_update_dict,
+        ):
+
+            restoration_tup: RestorationTuple = (new_reference_chronicle, temporal_restoration_tup)
+            method_output: TemporalMethodOutput = (restoration_tup, subgoal_lst)  # type: ignore
+            yield method_output
 
 # navigate recursive call no buttons
 def tgm_navigate_base(
@@ -671,6 +698,10 @@ temporal_methods_instance.declare_temporal_goal_methods(
 )
 temporal_methods_instance.declare_temporal_goal_methods(
         "is_stable", [ tgm_base_stabilize, tgm_navigate_and_stabilize ],  # type: ignore
+)
+
+temporal_methods_instance.declare_temporal_goal_methods(
+        "all_stable", [ tgm_stabilize_all ],  # type: ignore
 )
 # ******************************************    Demo / Test Routine         ****************************************** #
 if __name__ == '__main__':
