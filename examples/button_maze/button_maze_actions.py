@@ -121,6 +121,7 @@ MoveCall = Tuple[ str, Tuple[ int, int ], Location, Location ]
 # agent moves from start_loc to end_loc
 def move(
         reference_chronicle: ButtonMazeReferenceChronicle, value_chronicle: ButtonMazeValueChronicle,
+        separation_dict: Dict,
         time_point_tup: Tuple[ int, int ], start_loc: Location, end_loc: Location,
 ) -> TemporalActionOutput:
     # get time point labels
@@ -184,6 +185,7 @@ PressButtonCall = Tuple[ str, Tuple[ int, int, int, int ], Button ]
 # gates close after that time
 def press_button(
         reference_chronicle: ButtonMazeReferenceChronicle, value_chronicle: ButtonMazeValueChronicle,
+        separation_dict: Dict,
         time_point_tup: Tuple[ int, int, int, int ], button: Button,
 ) -> TemporalActionOutput:
     # get time point labels
@@ -247,6 +249,7 @@ StabilizeCall = Tuple[ str, Tuple[ int, int ], Patient ]
 # agent stabilizes patient at same location
 def stabilize(
         reference_chronicle: ButtonMazeReferenceChronicle, value_chronicle: ButtonMazeValueChronicle,
+        separation_dict: Dict,
         time_point_tup: Tuple[ int, int ], patient: Patient,
 ) -> TemporalActionOutput:
     # get time point labels

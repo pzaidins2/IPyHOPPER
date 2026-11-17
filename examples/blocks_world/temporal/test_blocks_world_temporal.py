@@ -168,7 +168,13 @@ def test_goal_done_blocks_world():
     )
     assert sol_plan == [ ]
     assert [ planner.sol_tree.nodes[ x ][ "info" ] for x in planner.sol_tree.nodes ] == [
-        ('root',), (1, 'clear', 'A', True), ('TOC', 1), ('TOC', 0), 'VerifyGoal',
+        ('root',),
+        (1, 'clear', 'A', True),
+        ('TOC', 1),
+        ('TOC', 0),
+        ('TOC', 6),
+        ('TOC', 7),
+        'VerifyGoal',
     ]
 
 
@@ -228,7 +234,11 @@ def test_many_goal_done_blocks_world():
         (1, 'is_on', 'A', 'B', True),
         ('TOC', 1),
         ('TOC', 0),
+        ('TOC', 6),
+        ('TOC', 7),
         'VerifyGoal',
+        ('TOC', 12),
+        ('TOC', 13),
         'VerifyGoal',
     ]
 

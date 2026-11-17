@@ -2,7 +2,7 @@
 """
 File Description: methods for temporal variant of blocksworld domain. Actions have duration and may be concurrent
 """
-from typing import Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import networkx as nx
 
@@ -94,6 +94,7 @@ def path_planning_helper(start_loc, end_loc, ):
 # navigate recursive call no buttons
 def tgm_navigate_base(
         reference_chronicle: ButtonMazeReferenceChronicle, value_chronicle: ButtonMazeValueChronicle,
+        separation_dict: Dict,
         temporal_goal: AtGoal,
 ) -> Iterator[ TemporalMethodOutput ]:
     # localize variables
@@ -239,6 +240,7 @@ def tgm_navigate_base(
 # navigate recursive call with buttons
 def tgm_navigate_with_button(
         reference_chronicle: ButtonMazeReferenceChronicle, value_chronicle: ButtonMazeValueChronicle,
+        separation_dict: Dict,
         temporal_goal: AtGoal,
 ) -> Iterator[ TemporalMethodOutput ]:
     # localize variables
@@ -450,6 +452,7 @@ def tgm_navigate_with_button(
 # at patient stabilize
 def tgm_base_stabilize(
         reference_chronicle: ButtonMazeReferenceChronicle, value_chronicle: ButtonMazeValueChronicle,
+        separation_dict: Dict,
         temporal_goal: StabilizeGoal,
 ) -> Iterator[ TemporalMethodOutput ]:
     # localize variables
@@ -517,6 +520,7 @@ def tgm_base_stabilize(
 # navigate and stabilize patient
 def tgm_navigate_and_stabilize(
         reference_chronicle: ButtonMazeReferenceChronicle, value_chronicle: ButtonMazeValueChronicle,
+        separation_dict: Dict,
         temporal_goal: StabilizeGoal,
 ) -> Iterator[ TemporalMethodOutput ]:
     # localize variables
