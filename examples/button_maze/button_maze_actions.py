@@ -156,11 +156,11 @@ def move(
                 *[ (t_s, t_s, "at", x, False) for x in filter( lambda y: y != start_loc, locations ) ],
             ]
             # temporal assertions
-            temporal_constraint_lst: List[ TemporalConstraint ] = [
-                (t_e, "==", t_s, 1),
-                *separation_dict[ "separation_constraint_lst" ],
-            ]
-
+            temporal_constraint_lst: List[ TemporalConstraint ] = [ (t_e, "==", t_s, 1) ]
+            temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                    (t_e, "at", end_loc, True),
+                    reference_chronicle, value_chronicle,
+            )
             temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
             # attempt to add all
             new_reference_chronicle = reference_chronicle.copy()
@@ -224,7 +224,6 @@ def press_button(
             (t_open, "==", t_s, 1),
             (t_close_end, "==", t_close_start, 1),
             (t_close_start, "==", t_open, open_time),
-            *separation_dict[ "separation_constraint_lst" ],
         ]
         temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
         # attempt to add all
@@ -282,8 +281,11 @@ def stabilize(
 
         temporal_constraint_lst: List[ TemporalConstraint ] = [
             (t_e, "==", t_s, 1),
-            *separation_dict[ "separation_constraint_lst" ],
         ]
+        temporal_constraint_lst += CI.get_safe_temporal_constraint_list(
+                (t_e, "at", patient_loc, True),
+                reference_chronicle, value_chronicle,
+        )
         temporal_restoration_tup: TemporalRestorationTuple = ([ ], [ ], [ ])
         # attempt to add all
         new_reference_chronicle = reference_chronicle.copy()
